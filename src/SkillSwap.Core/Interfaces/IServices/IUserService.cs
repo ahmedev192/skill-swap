@@ -1,0 +1,21 @@
+using SkillSwap.Core.DTOs;
+
+namespace SkillSwap.Core.Interfaces.Services;
+
+public interface IUserService
+{
+    Task<UserDto?> GetUserByIdAsync(string id);
+    Task<UserDto?> GetUserByEmailAsync(string email);
+    Task<IEnumerable<UserDto>> GetAllUsersAsync();
+    Task<UserDto> CreateUserAsync(CreateUserDto createUserDto);
+    Task<UserDto> UpdateUserAsync(string id, UpdateUserDto updateUserDto);
+    Task<bool> DeleteUserAsync(string id);
+    Task<bool> VerifyEmailAsync(string userId, string token);
+    Task<bool> ChangePasswordAsync(string userId, string currentPassword, string newPassword);
+    Task<bool> ResetPasswordAsync(string email);
+    Task<bool> ConfirmPasswordResetAsync(string userId, string token, string newPassword);
+    Task<decimal> GetUserCreditBalanceAsync(string userId);
+    Task<bool> UpdateUserCreditBalanceAsync(string userId, decimal amount);
+    Task<IEnumerable<UserDto>> SearchUsersAsync(string searchTerm, string? location = null);
+    Task<bool> UpdateLastActiveAsync(string userId);
+}
