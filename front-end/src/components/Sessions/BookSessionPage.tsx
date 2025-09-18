@@ -50,13 +50,12 @@ const BookSessionPage: React.FC<BookSessionPageProps> = ({ userSkillId, onBack }
         const userSkillData = await skillsService.getSkillById(userSkillId);
         // For now, we'll create a mock user skill since we don't have a direct endpoint
         const mockUserSkill: UserSkill = {
-          id: userSkillId,
+          id: parseInt(userSkillId),
           userId: 'teacher-id',
           skillId: userSkillData.id,
           skill: userSkillData,
-          type: 'Offering',
-          level: 'Intermediate',
-          hourlyRate: 2,
+          type: 1, // 1 = Offered
+          level: 2, // 2 = Intermediate
           creditsPerHour: 2,
           isAvailable: true,
           description: 'I can teach React development with hands-on projects',
@@ -92,7 +91,7 @@ const BookSessionPage: React.FC<BookSessionPageProps> = ({ userSkillId, onBack }
         location: sessionType === 'in-person' ? location : null,
         meetingLink: sessionType === 'online' ? meetingLink : null,
         notes: notes,
-        creditsPerHour: userSkill.hourlyRate
+        creditsPerHour: userSkill.creditsPerHour
       };
       
       await sessionsService.bookSession(sessionData);

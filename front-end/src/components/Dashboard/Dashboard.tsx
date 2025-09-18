@@ -15,7 +15,11 @@ import {
 import { sessionsService, Session } from '../../services/sessionsService';
 import { skillsService, UserSkill } from '../../services/skillsService';
 
-const Dashboard: React.FC = () => {
+interface DashboardProps {
+  onViewChange?: (view: string) => void;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
   const { user } = useAuth();
   const [upcomingSessions, setUpcomingSessions] = useState<Session[]>([]);
   const [userSkills, setUserSkills] = useState<UserSkill[]>([]);
@@ -50,7 +54,7 @@ const Dashboard: React.FC = () => {
   const stats = [
     {
       name: 'Skills Offered',
-      value: userSkills.filter(skill => skill.type === 'Offering').length.toString(),
+      value: userSkills.filter(skill => skill.type === 1).length.toString(),
       icon: BookOpen,
       color: 'text-blue-600 dark:text-blue-400',
       bgColor: 'bg-blue-100 dark:bg-blue-900/20',
@@ -58,7 +62,7 @@ const Dashboard: React.FC = () => {
     },
     {
       name: 'Sessions Completed',
-      value: user?.totalSessions?.toString() || '0',
+      value: user?.totalReviews?.toString() || '0',
       icon: Calendar,
       color: 'text-green-600 dark:text-green-400',
       bgColor: 'bg-green-100 dark:bg-green-900/20',
@@ -66,7 +70,7 @@ const Dashboard: React.FC = () => {
     },
     {
       name: 'Time Credits',
-      value: '0', // TODO: Add credit balance to user data
+      value: user?.creditBalance?.toString() || '0',
       icon: Wallet,
       color: 'text-purple-600 dark:text-purple-400',
       bgColor: 'bg-purple-100 dark:bg-purple-900/20',
@@ -74,11 +78,11 @@ const Dashboard: React.FC = () => {
     },
     {
       name: 'Rating',
-      value: user?.rating?.toFixed(1) || '0.0',
+      value: user?.averageRating?.toFixed(1) || '0.0',
       icon: Star,
       color: 'text-yellow-600 dark:text-yellow-400',
       bgColor: 'bg-yellow-100 dark:bg-yellow-900/20',
-      change: `Based on ${user?.totalSessions || 0} sessions`
+      change: `Based on ${user?.totalReviews || 0} reviews`
     }
   ];
 
@@ -134,7 +138,10 @@ const Dashboard: React.FC = () => {
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                   Upcoming Sessions
                 </h2>
-                <button className="text-blue-600 dark:text-blue-400 hover:underline text-sm">
+                <button 
+                  onClick={() => onViewChange?.('bookings')}
+                  className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
+                >
                   View all
                 </button>
               </div>
@@ -235,15 +242,24 @@ const Dashboard: React.FC = () => {
                 Quick Actions
               </h2>
               <div className="space-y-3">
-                <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <button 
+                  onClick={() => onViewChange?.('community')}
+                  className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
                   <Target className="h-4 w-4" />
                   <span>Find New Matches</span>
                 </button>
-                <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <button 
+                  onClick={() => onViewChange?.('manage-skills')}
+                  className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
                   <BookOpen className="h-4 w-4" />
                   <span>Add New Skill</span>
                 </button>
-                <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <button 
+                  onClick={() => onViewChange?.('profile')}
+                  className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
                   <Clock className="h-4 w-4" />
                   <span>Set Availability</span>
                 </button>

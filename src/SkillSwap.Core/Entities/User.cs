@@ -58,4 +58,9 @@ public class User : IdentityUser
     // JWT Refresh Token properties
     public string? RefreshToken { get; set; }
     public DateTime? RefreshTokenExpiryTime { get; set; }
+
+    // Referral system properties
+    public string? ReferralCode { get; set; }
+    public string? ReferrerId { get; set; }
+    public bool UsedReferralCode { get; set; } = false;
 }

@@ -18,4 +18,16 @@ public interface IUserService
     Task<bool> UpdateUserCreditBalanceAsync(string userId, decimal amount);
     Task<IEnumerable<UserDto>> SearchUsersAsync(string searchTerm, string? location = null);
     Task<bool> UpdateLastActiveAsync(string userId);
+    
+    // Referral system methods
+    Task<string> GenerateReferralCodeAsync(string userId);
+    Task<ReferralResult> UseReferralCodeAsync(string userId, string referralCode);
+    Task<object> GetReferralStatsAsync(string userId);
+}
+
+public class ReferralResult
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public decimal CreditsEarned { get; set; }
 }

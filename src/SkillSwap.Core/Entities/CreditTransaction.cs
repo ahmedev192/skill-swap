@@ -9,6 +9,10 @@ public class CreditTransaction
     [Required]
     public string UserId { get; set; } = string.Empty;
 
+    public string? FromUserId { get; set; }
+    
+    public string? ToUserId { get; set; }
+
     [Required]
     public TransactionType Type { get; set; }
 

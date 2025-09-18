@@ -14,4 +14,12 @@ public interface ICreditService
     Task<IEnumerable<CreditTransactionDto>> GetTransactionsBySessionAsync(int sessionId);
     Task<bool> AddBonusCreditsAsync(string userId, decimal amount, string description);
     Task<bool> AdjustCreditsAsync(string userId, decimal amount, string description);
+    
+    // New methods for enhanced credit functionality
+    Task<CreditTransactionDto?> GetTransactionByIdAsync(int transactionId);
+    Task<CreditTransactionDto> TransferCreditsAsync(string fromUserId, string toUserId, decimal amount, string description);
+    Task<CreditTransactionDto> AddCreditsAsync(string userId, decimal amount, string description);
+    Task<CreditTransactionDto> DeductCreditsAsync(string userId, decimal amount, string description);
+    Task<IEnumerable<CreditTransactionDto>> GetPendingTransactionsAsync(string userId);
+    Task<bool> CancelTransactionAsync(int transactionId, string userId);
 }

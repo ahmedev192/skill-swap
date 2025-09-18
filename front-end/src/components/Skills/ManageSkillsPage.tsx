@@ -57,15 +57,17 @@ const ManageSkillsPage: React.FC = () => {
   const filteredSkills = userSkills.filter(skill => {
     const matchesSearch = skill.skill?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          skill.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = filterType === 'all' || skill.type === filterType;
+    const matchesType = filterType === 'all' || 
+                       (filterType === 'Offering' && skill.type === 1) ||
+                       (filterType === 'Requesting' && skill.type === 2);
     return matchesSearch && matchesType;
   });
 
-  const handleDeleteSkill = async (skillId: string) => {
+  const handleDeleteSkill = async (skillId: number) => {
     if (!confirm('Are you sure you want to delete this skill?')) return;
     
     try {
-      await skillsService.deleteUserSkill(skillId);
+      await skillsService.deleteUserSkill(skillId.toString());
       setUserSkills(userSkills.filter(s => s.id !== skillId));
     } catch (error) {
       console.error('Error deleting skill:', error);
@@ -76,7 +78,7 @@ const ManageSkillsPage: React.FC = () => {
   const handleToggleAvailability = async (skill: UserSkill) => {
     try {
       const updatedSkill = { ...skill, isAvailable: !skill.isAvailable };
-      await skillsService.updateUserSkill(skill.id, updatedSkill);
+      await skillsService.updateUserSkill(skill.id.toString(), { isAvailable: !skill.isAvailable });
       setUserSkills(userSkills.map(s => 
         s.id === skill.id ? updatedSkill : s
       ));
@@ -119,7 +121,7 @@ const ManageSkillsPage: React.FC = () => {
 
       if (editingSkill) {
         // Update existing skill
-        const updatedSkill = await skillsService.updateUserSkill(editingSkill.id, skillData);
+        const updatedSkill = await skillsService.updateUserSkill(editingSkill.id.toString(), skillData);
         setUserSkills(userSkills.map(s => s.id === editingSkill.id ? updatedSkill : s));
       } else {
         // Create new skill
@@ -444,7 +446,7 @@ const ManageSkillsPage: React.FC = () => {
                   type="number"
                   min="0"
                   step="0.1"
-                  defaultValue={editingSkill?.hourlyRate || ''}
+                  defaultValue={editingSkill?.creditsPerHour || ''}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   placeholder="e.g., 10.0"
                 />

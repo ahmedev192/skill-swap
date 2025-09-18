@@ -49,34 +49,38 @@ class CreditsService {
   }
 
   async getTransactionById(id: number): Promise<CreditTransaction> {
-    // This endpoint doesn't exist in the backend
-    throw new Error('Transaction details endpoint not implemented');
+    const response = await api.get<CreditTransaction>(`/users/credits/transactions/${id}`);
+    return response.data;
   }
 
   async transferCredits(transferData: TransferCreditsRequest): Promise<CreditTransaction> {
-    // This endpoint doesn't exist in the backend
-    throw new Error('Credit transfer endpoint not implemented');
+    const response = await api.post<CreditTransaction>('/users/credits/transfer', transferData);
+    return response.data;
   }
 
   async addCredits(userId: string, amount: number, description: string): Promise<CreditTransaction> {
-    // This endpoint doesn't exist in the backend
-    throw new Error('Add credits endpoint not implemented');
+    const response = await api.post<CreditTransaction>(`/users/${userId}/credits/add`, {
+      amount,
+      description
+    });
+    return response.data;
   }
 
   async deductCredits(userId: string, amount: number, description: string): Promise<CreditTransaction> {
-    // This endpoint doesn't exist in the backend
-    throw new Error('Deduct credits endpoint not implemented');
+    const response = await api.post<CreditTransaction>(`/users/${userId}/credits/deduct`, {
+      amount,
+      description
+    });
+    return response.data;
   }
 
   async getPendingTransactions(userId: string): Promise<CreditTransaction[]> {
-    // This endpoint doesn't exist in the backend
-    console.warn('Pending transactions endpoint not available');
-    return [];
+    const response = await api.get<CreditTransaction[]>(`/users/${userId}/credits/pending`);
+    return response.data;
   }
 
   async cancelTransaction(id: number): Promise<void> {
-    // This endpoint doesn't exist in the backend
-    throw new Error('Cancel transaction endpoint not implemented');
+    await api.post(`/users/credits/transactions/${id}/cancel`);
   }
 }
 

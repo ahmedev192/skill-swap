@@ -267,7 +267,13 @@ const UserSearchPage: React.FC = () => {
                   <MessageCircle className="h-4 w-4" />
                   <span>Message</span>
                 </button>
-                <button className="flex-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 py-2 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm">
+                <button 
+                  onClick={() => {
+                    // TODO: Navigate to user profile page
+                    alert(`Viewing profile of ${user.firstName} ${user.lastName}...`);
+                  }}
+                  className="flex-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 py-2 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
+                >
                   View Profile
                 </button>
               </div>

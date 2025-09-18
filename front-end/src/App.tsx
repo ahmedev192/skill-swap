@@ -47,7 +47,7 @@ const AppContent: React.FC = () => {
   const renderCurrentView = () => {
     switch (currentView) {
       case 'dashboard':
-        return <Dashboard />;
+        return <Dashboard onViewChange={setCurrentView} />;
       case 'skills':
         return <SkillsPage />;
       case 'profile':
@@ -75,7 +75,7 @@ const AppContent: React.FC = () => {
       case 'community':
         return <CommunityPage />;
       default:
-        return <Dashboard />;
+        return <Dashboard onViewChange={setCurrentView} />;
     }
   };
 

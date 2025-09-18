@@ -87,8 +87,8 @@ const ProfilePage: React.FC = () => {
   };
 
   // Separate skills by type
-  const skillsOffered = userSkills.filter(skill => skill.type === 'Offering');
-  const skillsRequested = userSkills.filter(skill => skill.type === 'Requesting');
+  const skillsOffered = userSkills.filter(skill => skill.type === 1); // 1 = Offered
+  const skillsRequested = userSkills.filter(skill => skill.type === 2); // 2 = Requested
 
   const achievements = [
     { id: 1, name: 'Super Tutor', description: '50+ successful sessions', icon: Award, color: 'text-yellow-600' },

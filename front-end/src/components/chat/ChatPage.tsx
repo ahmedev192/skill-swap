@@ -14,6 +14,7 @@ import {
 import { ChatMessage, User as UserType } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { messagesService, Conversation, Message } from '../../services/messagesService';
+import CallModal from './CallModal';
 
 const ChatPage: React.FC = () => {
   const { user } = useAuth();
@@ -23,6 +24,8 @@ const ChatPage: React.FC = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showCallModal, setShowCallModal] = useState(false);
+  const [callType, setCallType] = useState<'voice' | 'video'>('voice');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -106,6 +109,15 @@ const ChatPage: React.FC = () => {
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
     return date.toLocaleDateString();
+  };
+
+  const handleStartCall = (type: 'voice' | 'video') => {
+    setCallType(type);
+    setShowCallModal(true);
+  };
+
+  const handleCloseCallModal = () => {
+    setShowCallModal(false);
   };
 
   return (
@@ -210,13 +222,25 @@ const ChatPage: React.FC = () => {
                 </div>
                 
                 <div className="flex items-center space-x-2">
-                  <button className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                  <button 
+                    onClick={() => handleStartCall('voice')}
+                    className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  >
                     <Phone size={20} />
                   </button>
-                  <button className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                  <button 
+                    onClick={() => handleStartCall('video')}
+                    className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  >
                     <Video size={20} />
                   </button>
-                  <button className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                  <button 
+                    onClick={() => {
+                      // TODO: Implement more options menu
+                      alert('More options:\n• View Profile\n• Block User\n• Report User\n• Clear Chat');
+                    }}
+                    className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  >
                     <MoreHorizontal size={20} />
                   </button>
                 </div>
@@ -313,6 +337,16 @@ const ChatPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Call Modal */}
+      {showCallModal && selectedConversation && (
+        <CallModal
+          isOpen={showCallModal}
+          callType={callType}
+          callerName={selectedConversation.otherUserName}
+          onClose={handleCloseCallModal}
+        />
+      )}
     </div>
   );
 };

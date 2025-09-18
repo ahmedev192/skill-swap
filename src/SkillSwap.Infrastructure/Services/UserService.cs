@@ -264,6 +264,122 @@ public class UserService : IUserService
         return result.Succeeded;
     }
 
+    public async Task<string> GenerateReferralCodeAsync(string userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+        {
+            throw new ArgumentException("User not found");
+        }
+
+        // Generate a unique referral code based on user ID and timestamp
+        var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var referralCode = $"REF{userId.Substring(0, 4).ToUpper()}{timestamp.ToString().Substring(6)}";
+        
+        // Store the referral code in user's metadata or a separate table
+        // For simplicity, we'll use a custom claim or store it in the user's data
+        user.ReferralCode = referralCode;
+        await _userManager.UpdateAsync(user);
+
+        return referralCode;
+    }
+
+    public async Task<ReferralResult> UseReferralCodeAsync(string userId, string referralCode)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+        {
+            return new ReferralResult { Success = false, Message = "User not found" };
+        }
+
+        // Check if user has already used a referral code
+        if (user.UsedReferralCode)
+        {
+            return new ReferralResult { Success = false, Message = "You have already used a referral code" };
+        }
+
+        // Find the user who owns this referral code
+        var referrer = await _userManager.Users.FirstOrDefaultAsync(u => u.ReferralCode == referralCode);
+        if (referrer == null)
+        {
+            return new ReferralResult { Success = false, Message = "Invalid referral code" };
+        }
+
+        if (referrer.Id == userId)
+        {
+            return new ReferralResult { Success = false, Message = "You cannot use your own referral code" };
+        }
+
+        // Mark that this user has used a referral code
+        user.UsedReferralCode = true;
+        user.ReferrerId = referrer.Id;
+        await _userManager.UpdateAsync(user);
+
+        // Award credits to both users
+        const decimal referralCredits = 15m;
+        
+        // Award credits to the new user
+        var newUserTransaction = new CreditTransaction
+        {
+            UserId = userId,
+            Type = TransactionType.Bonus,
+            Amount = referralCredits,
+            Description = "Referral bonus - Welcome!",
+            Status = TransactionStatus.Completed,
+            ProcessedAt = DateTime.UtcNow
+        };
+
+        // Award credits to the referrer
+        var referrerTransaction = new CreditTransaction
+        {
+            UserId = referrer.Id,
+            Type = TransactionType.Bonus,
+            Amount = referralCredits,
+            Description = "Referral bonus - Friend joined!",
+            Status = TransactionStatus.Completed,
+            ProcessedAt = DateTime.UtcNow
+        };
+
+        await _unitOfWork.CreditTransactions.AddAsync(newUserTransaction);
+        await _unitOfWork.CreditTransactions.AddAsync(referrerTransaction);
+        await _unitOfWork.SaveChangesAsync();
+
+        return new ReferralResult 
+        { 
+            Success = true, 
+            Message = "Referral code applied successfully! You earned 15 credits.",
+            CreditsEarned = referralCredits
+        };
+    }
+
+    public async Task<object> GetReferralStatsAsync(string userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+        {
+            throw new ArgumentException("User not found");
+        }
+
+        // Count how many users this user has referred
+        var referredUsersCount = await _userManager.Users.CountAsync(u => u.ReferrerId == userId);
+        
+        // Calculate total credits earned from referrals
+        var referralTransactions = await _unitOfWork.CreditTransactions
+            .FindAsync(ct => ct.UserId == userId && 
+                           ct.Type == TransactionType.Bonus && 
+                           ct.Description.Contains("Referral bonus"));
+        
+        var totalCreditsEarned = referralTransactions.Sum(t => t.Amount);
+
+        return new
+        {
+            referralCode = user.ReferralCode,
+            referredUsersCount,
+            totalCreditsEarned,
+            hasUsedReferral = user.UsedReferralCode
+        };
+    }
+
     private async Task<double> GetUserAverageRatingAsync(string userId)
     {
         var reviews = await _unitOfWork.Reviews.FindAsync(r => r.RevieweeId == userId && r.IsVisible);

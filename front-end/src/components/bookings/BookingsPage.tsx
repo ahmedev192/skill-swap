@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { sessionsService, Session } from '../../services/sessionsService';
+import BookSessionModal from './BookSessionModal';
 
 const BookingsPage: React.FC = () => {
   const { user } = useAuth();
@@ -22,6 +23,72 @@ const BookingsPage: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showBookModal, setShowBookModal] = useState(false);
+
+  // Session action handlers
+  const handleJoinSession = (sessionId: string) => {
+    // Open the meeting link in a new tab
+    const session = sessions.find(s => s.id === sessionId);
+    if (session?.meetingLink) {
+      window.open(session.meetingLink, '_blank');
+    } else {
+      alert('No meeting link available for this session');
+    }
+  };
+
+  const handleReschedule = (sessionId: string) => {
+    // For now, show an alert. In a real implementation, this would open a reschedule modal
+    alert(`Reschedule functionality for session ${sessionId} will be implemented soon.`);
+  };
+
+  const handleCancelSession = async (sessionId: string) => {
+    if (confirm('Are you sure you want to cancel this session?')) {
+      try {
+        await sessionsService.cancelSession(sessionId);
+        setSessions(sessions.filter(s => s.id !== sessionId));
+        alert('Session cancelled successfully');
+      } catch (error) {
+        console.error('Error cancelling session:', error);
+        alert('Failed to cancel session');
+      }
+    }
+  };
+
+  const handleAcceptRequest = async (sessionId: string) => {
+    try {
+      await sessionsService.acceptSession(sessionId);
+      setSessions(sessions.map(s => 
+        s.id === sessionId ? { ...s, status: 'Confirmed' } : s
+      ));
+      alert('Session request accepted');
+    } catch (error) {
+      console.error('Error accepting session:', error);
+      alert('Failed to accept session request');
+    }
+  };
+
+  const handleDeclineRequest = async (sessionId: string) => {
+    if (confirm('Are you sure you want to decline this session request?')) {
+      try {
+        await sessionsService.declineSession(sessionId);
+        setSessions(sessions.filter(s => s.id !== sessionId));
+        alert('Session request declined');
+      } catch (error) {
+        console.error('Error declining session:', error);
+        alert('Failed to decline session request');
+      }
+    }
+  };
+
+  const handleRateAndReview = (sessionId: string) => {
+    // Navigate to reviews page with the session ID
+    window.location.href = `/reviews?sessionId=${sessionId}`;
+  };
+
+  const handleSessionBooked = () => {
+    // Reload sessions after booking
+    window.location.reload();
+  };
 
   // Load sessions data
   useEffect(() => {
@@ -226,7 +293,13 @@ const BookingsPage: React.FC = () => {
         </div>
         
         {showActions && (
-          <button className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+          <button 
+            onClick={() => {
+              // TODO: Implement more options menu
+              alert('More options:\n• View Details\n• Contact User\n• Report Issue');
+            }}
+            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          >
             <MoreHorizontal className="h-4 w-4" />
           </button>
         )}
@@ -239,14 +312,23 @@ const BookingsPage: React.FC = () => {
           {status === 'Confirmed' && (
             <>
               {meetingUrl && (
-                <button className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors text-sm">
+                <button 
+                  onClick={() => handleJoinSession(session.id)}
+                  className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors text-sm"
+                >
                   Join Session
                 </button>
               )}
-              <button className="flex-1 bg-yellow-600 text-white py-2 px-4 rounded-lg hover:bg-yellow-700 transition-colors text-sm">
+              <button 
+                onClick={() => handleReschedule(session.id)}
+                className="flex-1 bg-yellow-600 text-white py-2 px-4 rounded-lg hover:bg-yellow-700 transition-colors text-sm"
+              >
                 Reschedule
               </button>
-              <button className="flex-1 border border-red-300 text-red-600 py-2 px-4 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm">
+              <button 
+                onClick={() => handleCancelSession(session.id)}
+                className="flex-1 border border-red-300 text-red-600 py-2 px-4 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm"
+              >
                 Cancel
               </button>
             </>
@@ -254,17 +336,26 @@ const BookingsPage: React.FC = () => {
           
           {status === 'Pending' && (
             <>
-              <button className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors text-sm">
+              <button 
+                onClick={() => handleAcceptRequest(session.id)}
+                className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors text-sm"
+              >
                 Accept
               </button>
-              <button className="flex-1 border border-red-300 text-red-600 py-2 px-4 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm">
+              <button 
+                onClick={() => handleDeclineRequest(session.id)}
+                className="flex-1 border border-red-300 text-red-600 py-2 px-4 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm"
+              >
                 Decline
               </button>
             </>
           )}
           
           {status === 'Completed' && (
-            <button className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm">
+            <button 
+              onClick={() => handleRateAndReview(session.id)}
+              className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+            >
               Rate & Review
             </button>
           )}
@@ -293,7 +384,10 @@ const BookingsPage: React.FC = () => {
             Manage your learning sessions and teaching appointments
           </p>
         </div>
-        <button className="mt-4 lg:mt-0 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+        <button 
+          onClick={() => setShowBookModal(true)}
+          className="mt-4 lg:mt-0 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
           <Plus className="h-4 w-4 mr-2" />
           Book New Session
         </button>
@@ -349,7 +443,10 @@ const BookingsPage: React.FC = () => {
               {activeTab === 'requests' && 'You don\'t have any pending session requests.'}
             </p>
             {activeTab === 'upcoming' && (
-              <button className="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              <button 
+                onClick={() => setShowBookModal(true)}
+                className="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Book Your First Session
               </button>
@@ -357,6 +454,13 @@ const BookingsPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Book Session Modal */}
+      <BookSessionModal
+        isOpen={showBookModal}
+        onClose={() => setShowBookModal(false)}
+        onSessionBooked={handleSessionBooked}
+      />
     </div>
   );
 };

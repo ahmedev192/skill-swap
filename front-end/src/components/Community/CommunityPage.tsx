@@ -62,8 +62,25 @@ const CommunityPage: React.FC = () => {
     .slice(0, 6) : [];
 
   const trendingSkills = Array.isArray(skills) ? skills
-    .filter(skill => skill.type === 'Offering')
+    .filter(skill => skill.type === 1) // 1 = Offered
     .slice(0, 6) : [];
+
+  const getLevelText = (level: number) => {
+    switch (level) {
+      case 1: return 'Beginner';
+      case 2: return 'Intermediate';
+      case 3: return 'Expert';
+      default: return 'Unknown';
+    }
+  };
+
+  const getTypeText = (type: number) => {
+    switch (type) {
+      case 1: return 'Offered';
+      case 2: return 'Requested';
+      default: return 'Unknown';
+    }
+  };
 
   const renderStars = (rating: number | undefined) => {
     const safeRating = rating || 0;
@@ -228,7 +245,7 @@ const CommunityPage: React.FC = () => {
                         {skill.skill?.category || 'Uncategorized'}
                       </span>
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300">
-                        {skill.level}
+                        {getLevelText(skill.level)}
                       </span>
                     </div>
                   </div>
@@ -242,17 +259,17 @@ const CommunityPage: React.FC = () => {
                 
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-sm text-gray-600 dark:text-gray-400">
-                    {skill.type === 'Offering' ? 'Teaching' : 'Learning'}
+                    {skill.type === 1 ? 'Teaching' : 'Learning'}
                   </span>
-                  {skill.hourlyRate && (
+                  {skill.creditsPerHour && (
                     <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      {skill.hourlyRate} credits/hr
+                      {skill.creditsPerHour} credits/hr
                     </span>
                   )}
                 </div>
                 
                 <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm">
-                  {skill.type === 'Offering' ? 'Book Session' : 'Connect'}
+                  {skill.type === 1 ? 'Book Session' : 'Connect'}
                 </button>
               </div>
             </div>
@@ -316,7 +333,7 @@ const CommunityPage: React.FC = () => {
                     </p>
                   </div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">
-                    {skill.level}
+                    {getLevelText(skill.level)}
                   </div>
                 </div>
               ))}

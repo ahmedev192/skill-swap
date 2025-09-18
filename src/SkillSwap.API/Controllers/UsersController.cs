@@ -288,10 +288,294 @@ public class UsersController : ControllerBase
             return StatusCode(500, new { message = "An unexpected error occurred" });
         }
     }
+
+    /// <summary>
+    /// Get transaction details by ID
+    /// </summary>
+    [HttpGet("credits/transactions/{transactionId}")]
+    public async Task<ActionResult<CreditTransactionDto>> GetTransactionById(int transactionId)
+    {
+        try
+        {
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(currentUserId))
+            {
+                return Unauthorized();
+            }
+
+            var transaction = await _creditService.GetTransactionByIdAsync(transactionId);
+            if (transaction == null)
+            {
+                return NotFound(new { message = "Transaction not found" });
+            }
+
+            // Users can only view their own transactions unless they're admin
+            if (transaction.FromUserId != currentUserId && transaction.ToUserId != currentUserId && !User.IsInRole("Admin"))
+            {
+                return Forbid();
+            }
+
+            return Ok(transaction);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting transaction {TransactionId}", transactionId);
+            return StatusCode(500, new { message = "An unexpected error occurred" });
+        }
+    }
+
+    /// <summary>
+    /// Transfer credits to another user
+    /// </summary>
+    [HttpPost("credits/transfer")]
+    public async Task<ActionResult<CreditTransactionDto>> TransferCredits([FromBody] TransferCreditsDto transferDto)
+    {
+        try
+        {
+            var fromUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(fromUserId))
+            {
+                return Unauthorized();
+            }
+
+            var transaction = await _creditService.TransferCreditsAsync(fromUserId, transferDto.ToUserId, transferDto.Amount, transferDto.Description);
+            return Ok(transaction);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning("Transfer failed: {Message}", ex.Message);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning("Transfer failed: {Message}", ex.Message);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error transferring credits");
+            return StatusCode(500, new { message = "An unexpected error occurred" });
+        }
+    }
+
+    /// <summary>
+    /// Add credits to user account (Admin only)
+    /// </summary>
+    [HttpPost("{userId}/credits/add")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<CreditTransactionDto>> AddCredits(string userId, [FromBody] AddCreditsDto addCreditsDto)
+    {
+        try
+        {
+            var transaction = await _creditService.AddCreditsAsync(userId, addCreditsDto.Amount, addCreditsDto.Description);
+            return Ok(transaction);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning("Add credits failed: {Message}", ex.Message);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding credits to user {UserId}", userId);
+            return StatusCode(500, new { message = "An unexpected error occurred" });
+        }
+    }
+
+    /// <summary>
+    /// Deduct credits from user account (Admin only)
+    /// </summary>
+    [HttpPost("{userId}/credits/deduct")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<CreditTransactionDto>> DeductCredits(string userId, [FromBody] DeductCreditsDto deductCreditsDto)
+    {
+        try
+        {
+            var transaction = await _creditService.DeductCreditsAsync(userId, deductCreditsDto.Amount, deductCreditsDto.Description);
+            return Ok(transaction);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning("Deduct credits failed: {Message}", ex.Message);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning("Deduct credits failed: {Message}", ex.Message);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deducting credits from user {UserId}", userId);
+            return StatusCode(500, new { message = "An unexpected error occurred" });
+        }
+    }
+
+    /// <summary>
+    /// Get pending transactions for user
+    /// </summary>
+    [HttpGet("{userId}/credits/pending")]
+    public async Task<ActionResult<IEnumerable<CreditTransactionDto>>> GetPendingTransactions(string userId)
+    {
+        try
+        {
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            // Users can only view their own pending transactions unless they're admin
+            if (currentUserId != userId && !User.IsInRole("Admin"))
+            {
+                return Forbid();
+            }
+
+            var transactions = await _creditService.GetPendingTransactionsAsync(userId);
+            return Ok(transactions);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting pending transactions for user {UserId}", userId);
+            return StatusCode(500, new { message = "An unexpected error occurred" });
+        }
+    }
+
+    /// <summary>
+    /// Cancel a pending transaction
+    /// </summary>
+    [HttpPost("credits/transactions/{transactionId}/cancel")]
+    public async Task<ActionResult> CancelTransaction(int transactionId)
+    {
+        try
+        {
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(currentUserId))
+            {
+                return Unauthorized();
+            }
+
+            var result = await _creditService.CancelTransactionAsync(transactionId, currentUserId);
+            if (result)
+            {
+                return Ok(new { message = "Transaction cancelled successfully" });
+            }
+            return BadRequest(new { message = "Transaction cannot be cancelled" });
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning("Cancel transaction failed: {Message}", ex.Message);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error cancelling transaction {TransactionId}", transactionId);
+            return StatusCode(500, new { message = "An unexpected error occurred" });
+        }
+    }
+
+    /// <summary>
+    /// Generate referral code for user
+    /// </summary>
+    [HttpPost("referral/generate")]
+    public async Task<ActionResult<object>> GenerateReferralCode()
+    {
+        try
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            var referralCode = await _userService.GenerateReferralCodeAsync(userId);
+            return Ok(new { referralCode });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating referral code");
+            return StatusCode(500, new { message = "An unexpected error occurred" });
+        }
+    }
+
+    /// <summary>
+    /// Use referral code
+    /// </summary>
+    [HttpPost("referral/use")]
+    public async Task<ActionResult<object>> UseReferralCode([FromBody] UseReferralCodeDto useReferralDto)
+    {
+        try
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            var result = await _userService.UseReferralCodeAsync(userId, useReferralDto.ReferralCode);
+            if (result.Success)
+            {
+                return Ok(new { 
+                    message = "Referral code applied successfully! You earned 15 credits.",
+                    creditsEarned = result.CreditsEarned
+                });
+            }
+            return BadRequest(new { message = result.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error using referral code");
+            return StatusCode(500, new { message = "An unexpected error occurred" });
+        }
+    }
+
+    /// <summary>
+    /// Get user's referral statistics
+    /// </summary>
+    [HttpGet("referral/stats")]
+    public async Task<ActionResult<object>> GetReferralStats()
+    {
+        try
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            var stats = await _userService.GetReferralStatsAsync(userId);
+            return Ok(stats);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting referral stats");
+            return StatusCode(500, new { message = "An unexpected error occurred" });
+        }
+    }
 }
 
 public class ChangePasswordDto
 {
     public string CurrentPassword { get; set; } = string.Empty;
     public string NewPassword { get; set; } = string.Empty;
+}
+
+public class TransferCreditsDto
+{
+    public string ToUserId { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string Description { get; set; } = string.Empty;
+}
+
+public class AddCreditsDto
+{
+    public decimal Amount { get; set; }
+    public string Description { get; set; } = string.Empty;
+}
+
+public class DeductCreditsDto
+{
+    public decimal Amount { get; set; }
+    public string Description { get; set; } = string.Empty;
+}
+
+public class UseReferralCodeDto
+{
+    public string ReferralCode { get; set; } = string.Empty;
 }

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { creditsService, CreditTransaction, CreditBalance } from '../../services/creditsService';
+import { referralService, ReferralStats } from '../../services/referralService';
 
 const WalletPage: React.FC = () => {
   const { user } = useAuth();
@@ -26,8 +27,12 @@ const WalletPage: React.FC = () => {
     pending: 0
   });
   const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
+  const [referralStats, setReferralStats] = useState<ReferralStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showReferralModal, setShowReferralModal] = useState(false);
+  const [showUseReferralModal, setShowUseReferralModal] = useState(false);
+  const [referralCodeInput, setReferralCodeInput] = useState('');
 
   // Load wallet data
   useEffect(() => {
@@ -38,18 +43,20 @@ const WalletPage: React.FC = () => {
         setIsLoading(true);
         setError(null);
         
-        const [balance, userTransactions] = await Promise.all([
+        const [balance, userTransactions, stats] = await Promise.all([
           creditsService.getUserCredits(user.id).catch(() => ({
             balance: 0,
             earned: 0,
             spent: 0,
             pending: 0
           })),
-          creditsService.getCreditTransactions(user.id).catch(() => [])
+          creditsService.getCreditTransactions(user.id).catch(() => []),
+          referralService.getReferralStats().catch(() => null)
         ]);
         
         setWalletBalance(balance);
         setTransactions(userTransactions);
+        setReferralStats(stats);
       } catch (err) {
         setError('Failed to load wallet data');
         console.error('Error loading wallet data:', err);
@@ -60,6 +67,44 @@ const WalletPage: React.FC = () => {
 
     loadWalletData();
   }, [user]);
+
+  // Referral functionality handlers
+  const handleGenerateReferralCode = async () => {
+    try {
+      const referralCode = await referralService.generateReferralCode();
+      setReferralStats(prev => prev ? { ...prev, referralCode } : null);
+      setShowReferralModal(true);
+    } catch (error) {
+      console.error('Error generating referral code:', error);
+      alert('Failed to generate referral code');
+    }
+  };
+
+  const handleUseReferralCode = async () => {
+    if (!referralCodeInput.trim()) {
+      alert('Please enter a referral code');
+      return;
+    }
+
+    try {
+      const result = await referralService.useReferralCode(referralCodeInput.trim());
+      alert(result.message);
+      setShowUseReferralModal(false);
+      setReferralCodeInput('');
+      // Reload wallet data to show updated balance
+      window.location.reload();
+    } catch (error) {
+      console.error('Error using referral code:', error);
+      alert('Failed to use referral code');
+    }
+  };
+
+  const copyReferralCode = () => {
+    if (referralStats?.referralCode) {
+      navigator.clipboard.writeText(referralStats.referralCode);
+      alert('Referral code copied to clipboard!');
+    }
+  };
 
   const earningOpportunities = [
     {
@@ -330,15 +375,27 @@ const WalletPage: React.FC = () => {
               Quick Actions
             </h2>
             <div className="space-y-3">
-              <button className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              <button 
+                onClick={handleGenerateReferralCode}
+                className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
                 <Gift className="h-4 w-4" />
                 <span>Refer Friends & Earn</span>
               </button>
-              <button className="w-full flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+              <button 
+                onClick={() => {
+                  // TODO: Implement earning tips modal or page
+                  alert('Earning tips:\n• Complete sessions on time\n• Maintain high ratings\n• Be responsive to messages\n• Offer quality teaching');
+                }}
+                className="w-full flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
                 <TrendingUp className="h-4 w-4" />
                 <span>View Earning Tips</span>
               </button>
-              <button className="w-full flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+              <button 
+                onClick={() => setActiveTab('transactions')}
+                className="w-full flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
                 <CreditCard className="h-4 w-4" />
                 <span>Transaction History</span>
               </button>
@@ -440,12 +497,106 @@ const WalletPage: React.FC = () => {
                   </div>
                 </div>
                 
-                <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                <button 
+                  onClick={() => {
+                    // TODO: Implement detailed earning opportunity modal
+                    alert(`Learn more about: ${opportunity.title}\n\nReward: ${opportunity.reward}\n\nThis feature will show detailed information about how to complete this earning opportunity.`);
+                  }}
+                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+                >
                   Learn More
                 </button>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Referral Code Modal */}
+      {showReferralModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Your Referral Code
+            </h3>
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                Share this code with friends to earn 15 credits when they join!
+              </p>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  value={referralStats?.referralCode || ''}
+                  readOnly
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                <button
+                  onClick={copyReferralCode}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowReferralModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Use Referral Code Modal */}
+      {showUseReferralModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Use Referral Code
+            </h3>
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                Enter a referral code to earn 15 credits!
+              </p>
+              <input
+                type="text"
+                value={referralCodeInput}
+                onChange={(e) => setReferralCodeInput(e.target.value)}
+                placeholder="Enter referral code"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowUseReferralModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUseReferralCode}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Use Code
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Use Referral Code Button */}
+      {referralStats && !referralStats.hasUsedReferral && (
+        <div className="fixed bottom-6 right-6">
+          <button
+            onClick={() => setShowUseReferralModal(true)}
+            className="bg-green-600 text-white px-6 py-3 rounded-full shadow-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+          >
+            <Gift className="h-5 w-5" />
+            <span>Use Referral Code</span>
+          </button>
         </div>
       )}
     </div>

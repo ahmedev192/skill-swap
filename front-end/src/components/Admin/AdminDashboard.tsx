@@ -13,6 +13,8 @@ import {
   Loader2
 } from 'lucide-react';
 import api from '../../services/api';
+import UserManagement from './UserManagement';
+import SkillsManagement from './SkillsManagement';
 
 interface SystemStats {
   totalUsers: number;
@@ -49,6 +51,7 @@ const AdminDashboard: React.FC = () => {
   const [healthMetrics, setHealthMetrics] = useState<HealthMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeView, setActiveView] = useState<'dashboard' | 'users' | 'skills' | 'sessions' | 'analytics'>('dashboard');
 
   // Load admin data
   useEffect(() => {
@@ -166,6 +169,79 @@ const AdminDashboard: React.FC = () => {
     );
   }
 
+  // Render different views based on activeView
+  if (activeView === 'users') {
+    return <UserManagement onClose={() => setActiveView('dashboard')} />;
+  }
+
+  if (activeView === 'skills') {
+    return <SkillsManagement onClose={() => setActiveView('dashboard')} />;
+  }
+
+  if (activeView === 'sessions') {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Sessions Management
+            </h1>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">
+              View and manage all sessions
+            </p>
+          </div>
+          <button
+            onClick={() => setActiveView('dashboard')}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            Back to Dashboard
+          </button>
+        </div>
+        <div className="text-center py-12">
+          <Calendar className="mx-auto h-12 w-12 text-gray-400" />
+          <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">
+            Sessions Management
+          </h3>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">
+            This feature will show all sessions with filtering and management options.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (activeView === 'analytics') {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              System Analytics
+            </h1>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">
+              Detailed analytics and reporting
+            </p>
+          </div>
+          <button
+            onClick={() => setActiveView('dashboard')}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            Back to Dashboard
+          </button>
+        </div>
+        <div className="text-center py-12">
+          <TrendingUp className="mx-auto h-12 w-12 text-gray-400" />
+          <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">
+            System Analytics
+          </h3>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">
+            This feature will show detailed analytics, charts, and reporting.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Error Message */}
@@ -258,19 +334,31 @@ const AdminDashboard: React.FC = () => {
             </h2>
           </div>
           <div className="p-6 space-y-3">
-            <button className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <button 
+              onClick={() => setActiveView('users')}
+              className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
               <Users className="h-4 w-4" />
               <span>Manage Users</span>
             </button>
-            <button className="w-full flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+            <button 
+              onClick={() => setActiveView('skills')}
+              className="w-full flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
               <BookOpen className="h-4 w-4" />
               <span>Manage Skills</span>
             </button>
-            <button className="w-full flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+            <button 
+              onClick={() => setActiveView('sessions')}
+              className="w-full flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
               <Calendar className="h-4 w-4" />
               <span>View Sessions</span>
             </button>
-            <button className="w-full flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+            <button 
+              onClick={() => setActiveView('analytics')}
+              className="w-full flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
               <TrendingUp className="h-4 w-4" />
               <span>System Analytics</span>
             </button>

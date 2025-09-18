@@ -231,4 +231,140 @@ public class CreditService : ICreditService
 
         return true;
     }
+
+    public async Task<CreditTransactionDto?> GetTransactionByIdAsync(int transactionId)
+    {
+        var transaction = await _unitOfWork.CreditTransactions.GetByIdAsync(transactionId);
+        return transaction != null ? _mapper.Map<CreditTransactionDto>(transaction) : null;
+    }
+
+    public async Task<CreditTransactionDto> TransferCreditsAsync(string fromUserId, string toUserId, decimal amount, string description)
+    {
+        await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            var fromUserBalance = await GetUserCreditBalanceAsync(fromUserId);
+            if (fromUserBalance < amount)
+            {
+                throw new InvalidOperationException("Insufficient credits for transfer");
+            }
+
+            var toUserBalance = await GetUserCreditBalanceAsync(toUserId);
+
+            // Create debit transaction for sender
+            var debitTransaction = new CreditTransaction
+            {
+                UserId = fromUserId,
+                Type = TransactionType.Transfer,
+                Amount = amount,
+                BalanceAfter = fromUserBalance - amount,
+                Description = $"Transfer to user: {description}",
+                Status = TransactionStatus.Completed,
+                ProcessedAt = DateTime.UtcNow,
+                ToUserId = toUserId
+            };
+
+            // Create credit transaction for receiver
+            var creditTransaction = new CreditTransaction
+            {
+                UserId = toUserId,
+                Type = TransactionType.Transfer,
+                Amount = amount,
+                BalanceAfter = toUserBalance + amount,
+                Description = $"Transfer from user: {description}",
+                Status = TransactionStatus.Completed,
+                ProcessedAt = DateTime.UtcNow,
+                FromUserId = fromUserId
+            };
+
+            await _unitOfWork.CreditTransactions.AddAsync(debitTransaction);
+            await _unitOfWork.CreditTransactions.AddAsync(creditTransaction);
+            await _unitOfWork.SaveChangesAsync();
+            await _unitOfWork.CommitTransactionAsync();
+
+            return _mapper.Map<CreditTransactionDto>(debitTransaction);
+        }
+        catch
+        {
+            await _unitOfWork.RollbackTransactionAsync();
+            throw;
+        }
+    }
+
+    public async Task<CreditTransactionDto> AddCreditsAsync(string userId, decimal amount, string description)
+    {
+        var currentBalance = await GetUserCreditBalanceAsync(userId);
+        var newBalance = currentBalance + amount;
+
+        var transaction = new CreditTransaction
+        {
+            UserId = userId,
+            Type = TransactionType.Adjustment,
+            Amount = amount,
+            BalanceAfter = newBalance,
+            Description = description,
+            Status = TransactionStatus.Completed,
+            ProcessedAt = DateTime.UtcNow
+        };
+
+        await _unitOfWork.CreditTransactions.AddAsync(transaction);
+        await _unitOfWork.SaveChangesAsync();
+
+        return _mapper.Map<CreditTransactionDto>(transaction);
+    }
+
+    public async Task<CreditTransactionDto> DeductCreditsAsync(string userId, decimal amount, string description)
+    {
+        var currentBalance = await GetUserCreditBalanceAsync(userId);
+        if (currentBalance < amount)
+        {
+            throw new InvalidOperationException("Insufficient credits for deduction");
+        }
+
+        var newBalance = currentBalance - amount;
+
+        var transaction = new CreditTransaction
+        {
+            UserId = userId,
+            Type = TransactionType.Adjustment,
+            Amount = amount,
+            BalanceAfter = newBalance,
+            Description = description,
+            Status = TransactionStatus.Completed,
+            ProcessedAt = DateTime.UtcNow
+        };
+
+        await _unitOfWork.CreditTransactions.AddAsync(transaction);
+        await _unitOfWork.SaveChangesAsync();
+
+        return _mapper.Map<CreditTransactionDto>(transaction);
+    }
+
+    public async Task<IEnumerable<CreditTransactionDto>> GetPendingTransactionsAsync(string userId)
+    {
+        var transactions = await _unitOfWork.CreditTransactions
+            .FindAsync(ct => ct.UserId == userId && ct.Status == TransactionStatus.Pending);
+
+        return _mapper.Map<IEnumerable<CreditTransactionDto>>(transactions.OrderByDescending(t => t.CreatedAt));
+    }
+
+    public async Task<bool> CancelTransactionAsync(int transactionId, string userId)
+    {
+        var transaction = await _unitOfWork.CreditTransactions.GetByIdAsync(transactionId);
+        if (transaction == null || transaction.UserId != userId)
+        {
+            return false;
+        }
+
+        if (transaction.Status != TransactionStatus.Pending)
+        {
+            return false; // Can only cancel pending transactions
+        }
+
+        transaction.Status = TransactionStatus.Cancelled;
+        await _unitOfWork.CreditTransactions.UpdateAsync(transaction);
+        await _unitOfWork.SaveChangesAsync();
+
+        return true;
+    }
 }
