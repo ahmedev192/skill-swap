@@ -1,0 +1,56 @@
+# <type>(<scope>): <subject>
+#
+# <body>
+#
+# <footer>
+
+# Type should be one of the following:
+# * feat: A new feature
+# * fix: A bug fix
+# * docs: Documentation only changes
+# * style: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
+# * refactor: A code change that neither fixes a bug nor adds a feature
+# * perf: A code change that improves performance
+# * test: Adding missing tests or correcting existing tests
+# * chore: Changes to the build process or auxiliary tools and libraries such as documentation generation
+# * ci: Changes to our CI configuration files and scripts
+# * build: Changes that affect the build system or external dependencies
+# * revert: Reverts a previous commit
+
+# Scope should be one of the following:
+# * api: API related changes
+# * auth: Authentication and authorization
+# * users: User management
+# * skills: Skill management
+# * sessions: Session management
+# * messages: Messaging system
+# * reviews: Review system
+# * notifications: Notification system
+# * admin: Admin functionality
+# * database: Database related changes
+# * config: Configuration changes
+# * docs: Documentation
+# * tests: Tests
+# * build: Build system
+# * ci: CI/CD
+
+# Subject should be:
+# * Use the imperative, present tense: "change" not "changed" nor "changes"
+# * Don't capitalize the first letter
+# * No dot (.) at the end
+
+# Body should be:
+# * Just as in <subject>, use the imperative, present tense: "change" not "changed" nor "changes"
+# * Include motivation for the change and contrast with previous behavior
+
+# Footer should be:
+# * Any breaking changes
+# * Reference issues that this commit closes
+
+# Examples:
+# feat(api): add user registration endpoint
+# fix(auth): resolve JWT token expiration issue
+# docs(api): update API documentation
+# refactor(sessions): improve session booking logic
+# test(users): add unit tests for user service
+# chore(build): update NuGet packages

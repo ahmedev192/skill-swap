@@ -1,0 +1,267 @@
+[core]
+    # Use LF line endings for consistency across platforms
+    autocrlf = input
+    # Ensure files are handled as text unless specified otherwise
+    safecrlf = warn
+    # Use UTF-8 encoding
+    quotepath = false
+    # Ignore case in file names
+    ignorecase = true
+    # Show untracked files
+    status.showUntrackedFiles = all
+    # Use more compact status format
+    status.relativePaths = true
+    # Enable color output
+    color.ui = auto
+    # Set default branch name
+    init.defaultBranch = main
+    # Use fast-import for better performance
+    fastimport.unpackLimit = 1
+    # Set default editor
+    editor = code --wait
+    # Set default pager
+    pager = less -FRX
+    # Enable reflog
+    reflog.enable = true
+    # Set default merge strategy
+    merge.tool = vscode
+    # Set default diff tool
+    diff.tool = vscode
+
+[merge]
+    # Use VS Code as merge tool
+    tool = vscode
+    # Keep conflict markers
+    conflictstyle = diff3
+    # Don't create backup files
+    keepBackup = false
+
+[diff]
+    # Use VS Code as diff tool
+    tool = vscode
+    # Show function names in diff
+    funcname = ^[[:alpha:]_][[:alnum:]_]*\\(
+    # Use patience algorithm for better diffs
+    algorithm = patience
+    # Show renames
+    renames = true
+    # Show copies
+    copies = true
+    # Show similarity index
+    similarity = 50
+
+[push]
+    # Set default push behavior
+    default = simple
+    # Follow tags
+    followTags = true
+    # Set upstream automatically
+    autoSetupRemote = true
+
+[pull]
+    # Use rebase by default
+    rebase = true
+    # Set default strategy
+    strategy = recursive
+    # Set strategy options
+    strategy-option = patience
+
+[rebase]
+    # Use interactive rebase
+    interactive = true
+    # Auto-squash commits
+    autoSquash = true
+    # Auto-stash changes
+    autoStash = true
+
+[fetch]
+    # Prune remote branches
+    prune = true
+    # Show progress
+    progress = true
+
+[log]
+    # Show one line per commit
+    oneline = true
+    # Show graph
+    graph = true
+    # Show all branches
+    all = true
+    # Show decorations
+    decorate = true
+    # Show relative dates
+    date = relative
+
+[alias]
+    # Common aliases
+    st = status
+    co = checkout
+    br = branch
+    ci = commit
+    df = diff
+    lg = log --oneline --graph --decorate --all
+    unstage = reset HEAD --
+    last = log -1 HEAD
+    visual = !gitk
+    # Custom aliases for SkillSwap project
+    skillswap-status = status --porcelain
+    skillswap-log = log --oneline --graph --decorate --since="1 week ago"
+    skillswap-branch = branch --sort=-committerdate
+    skillswap-clean = clean -fd
+    skillswap-reset = reset --hard HEAD
+    skillswap-pull = pull --rebase
+    skillswap-push = push --follow-tags
+    skillswap-commit = commit -m
+    skillswap-add = add -A
+    skillswap-diff = diff --cached
+    skillswap-stash = stash push -m
+    skillswap-unstash = stash pop
+    skillswap-merge = merge --no-ff
+    skillswap-rebase = rebase -i
+    skillswap-fetch = fetch --all --prune
+    skillswap-tag = tag -a
+    skillswap-delete = branch -D
+    skillswap-remote = remote -v
+    skillswap-config = config --list
+    skillswap-help = help
+
+[user]
+    # These should be set per user, not in project config
+    # name = Your Name
+    # email = your.email@example.com
+
+[credential]
+    # Use credential helper
+    helper = manager-core
+    # Cache credentials for 1 hour
+    cache = 3600
+
+[filter "lfs"]
+    # Git LFS configuration
+    clean = git-lfs clean -- %f
+    smudge = git-lfs smudge -- %f
+    process = git-lfs filter-process
+    required = true
+
+[url "https://github.com/"]
+    # Use SSH instead of HTTPS for GitHub
+    insteadOf = git@github.com:
+
+[init]
+    # Set default branch name
+    defaultBranch = main
+
+[branch]
+    # Set up tracking
+    autosetupmerge = true
+    autosetuprebase = always
+
+[remote "origin"]
+    # Set default remote
+    url = https://github.com/yourusername/skillswap.git
+    fetch = +refs/heads/*:refs/remotes/origin/*
+
+[submodule]
+    # Initialize submodules
+    recurse = true
+
+[gc]
+    # Garbage collection settings
+    auto = 256
+    prune = now
+    reflogExpire = 90.days
+    reflogExpireUnreachable = 30.days
+
+[pack]
+    # Pack settings
+    windowMemory = 256m
+    packSizeLimit = 2g
+    threads = 0
+
+[receive]
+    # Receive settings
+    denyCurrentBranch = updateInstead
+    denyNonFastForwards = false
+
+[transfer]
+    # Transfer settings
+    fsckObjects = true
+    unpackLimit = 1
+
+[repack]
+    # Repack settings
+    useDeltaBaseOffset = true
+    writeBitmaps = true
+
+[maintenance]
+    # Maintenance settings
+    auto = true
+    schedule = daily
+
+[maintenance "gc"]
+    # GC maintenance
+    enabled = true
+
+[maintenance "commit-graph"]
+    # Commit graph maintenance
+    enabled = true
+
+[maintenance "loose-objects"]
+    # Loose objects maintenance
+    enabled = true
+
+[maintenance "incremental-repack"]
+    # Incremental repack maintenance
+    enabled = true
+
+[maintenance "prefetch"]
+    # Prefetch maintenance
+    enabled = true
+
+[maintenance "pack-refs"]
+    # Pack refs maintenance
+    enabled = true
+
+[maintenance "reflog"]
+    # Reflog maintenance
+    enabled = true
+
+[maintenance "index"]
+    # Index maintenance
+    enabled = true
+
+[maintenance "config"]
+    # Config maintenance
+    enabled = true
+
+[maintenance "commit-graph"]
+    # Commit graph maintenance
+    enabled = true
+
+[maintenance "loose-objects"]
+    # Loose objects maintenance
+    enabled = true
+
+[maintenance "incremental-repack"]
+    # Incremental repack maintenance
+    enabled = true
+
+[maintenance "prefetch"]
+    # Prefetch maintenance
+    enabled = true
+
+[maintenance "pack-refs"]
+    # Pack refs maintenance
+    enabled = true
+
+[maintenance "reflog"]
+    # Reflog maintenance
+    enabled = true
+
+[maintenance "index"]
+    # Index maintenance
+    enabled = true
+
+[maintenance "config"]
+    # Config maintenance
+    enabled = true

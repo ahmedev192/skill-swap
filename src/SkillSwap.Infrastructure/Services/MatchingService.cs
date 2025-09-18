@@ -87,7 +87,11 @@ public class MatchingService : IMatchingService
         var userSkills = await _unitOfWork.UserSkills.FindAsync(us => 
             us.UserId == userId && us.Type == SkillType.Requested);
 
-        var userCategories = userSkills.Select(us => us.Skill.Category).Distinct();
+        var userCategories = userSkills
+            .Where(us => us.Skill != null && us.Skill.Category != null)
+            .Select(us => us.Skill.Category)
+            .Distinct()
+            .ToList();
 
         var recommendedSkills = await _unitOfWork.UserSkills.FindAsync(us => 
             us.Type == SkillType.Offered && 

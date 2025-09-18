@@ -1,0 +1,6 @@
+# Git blame ignore revisions
+# Add commit hashes here to ignore them in git blame
+# This is useful for large refactoring commits or formatting changes
+# Example:
+# abc123def456789
+# def456ghi789012

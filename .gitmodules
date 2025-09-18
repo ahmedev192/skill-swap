@@ -1,0 +1,7 @@
+# Git submodules configuration
+# Add submodules here if needed
+# Example:
+# [submodule "external-library"]
+#     path = external/external-library
+#     url = https://github.com/owner/external-library.git
+#     branch = main

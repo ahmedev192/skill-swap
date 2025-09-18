@@ -1,0 +1,2 @@
+# This file ensures the database directory is tracked by Git
+# Database scripts, migrations, and seed data will be placed here
