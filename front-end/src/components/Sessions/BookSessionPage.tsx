@@ -1,421 +1,396 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
-import { Calendar, Clock, MapPin, Video, User, DollarSign, MessageSquare, ArrowLeft, BookOpen } from 'lucide-react';
-import { UserSkill } from '../../types';
-import { apiClient } from '../../lib/api';
+import { 
+  Calendar, 
+  Clock, 
+  MapPin, 
+  Video, 
+  User, 
+  Star,
+  CreditCard,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+  ArrowLeft
+} from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { motion } from 'framer-motion';
-import toast from 'react-hot-toast';
+import { sessionsService } from '../../services/sessionsService';
+import { UserSkill, skillsService } from '../../services/skillsService';
 
-const schema = yup.object({
-  scheduledStart: yup.string().required('Start time is required'),
-  scheduledEnd: yup.string().required('End time is required'),
-  notes: yup.string(),
-  isOnline: yup.boolean(),
-  location: yup.string().when('isOnline', {
-    is: false,
-    then: (schema) => schema.required('Location is required for in-person sessions'),
-    otherwise: (schema) => schema.notRequired(),
-  }),
-});
+interface BookSessionPageProps {
+  userSkillId?: string;
+  onBack?: () => void;
+}
 
-type FormData = yup.InferType<typeof schema>;
-
-const BookSessionPage: React.FC = () => {
-  const { userSkillId } = useParams<{ userSkillId: string }>();
-  const navigate = useNavigate();
+const BookSessionPage: React.FC<BookSessionPageProps> = ({ userSkillId, onBack }) => {
   const { user } = useAuth();
   const [userSkill, setUserSkill] = useState<UserSkill | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isBooking, setIsBooking] = useState(false);
+  
+  // Form state
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedTime, setSelectedTime] = useState('');
+  const [duration, setDuration] = useState(60);
+  const [location, setLocation] = useState('');
+  const [meetingLink, setMeetingLink] = useState('');
+  const [notes, setNotes] = useState('');
+  const [sessionType, setSessionType] = useState<'in-person' | 'online'>('online');
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { errors },
-  } = useForm<FormData>({
-    resolver: yupResolver(schema),
-    defaultValues: {
-      isOnline: true,
-    },
-  });
-
-  const isOnline = watch('isOnline');
-  const scheduledStart = watch('scheduledStart');
-  const scheduledEnd = watch('scheduledEnd');
-
+  // Load user skill details
   useEffect(() => {
-    if (userSkillId) {
-      loadUserSkill();
-    }
+    const loadUserSkill = async () => {
+      if (!userSkillId) return;
+      
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        // Fetch the specific user skill
+        const userSkillData = await skillsService.getSkillById(userSkillId);
+        // For now, we'll create a mock user skill since we don't have a direct endpoint
+        const mockUserSkill: UserSkill = {
+          id: userSkillId,
+          userId: 'teacher-id',
+          skillId: userSkillData.id,
+          skill: userSkillData,
+          type: 'Offering',
+          level: 'Intermediate',
+          hourlyRate: 2,
+          creditsPerHour: 2,
+          isAvailable: true,
+          description: 'I can teach React development with hands-on projects',
+          createdAt: new Date().toISOString()
+        };
+        
+        setUserSkill(mockUserSkill);
+      } catch (err) {
+        setError('Failed to load skill details');
+        console.error('Error loading user skill:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUserSkill();
   }, [userSkillId]);
 
-  const loadUserSkill = async () => {
-    if (!userSkillId) return;
-
-    try {
-      setIsLoading(true);
-      // In a real app, you'd have an endpoint to get a specific user skill
-      // For now, we'll simulate this by searching
-      const skills = await apiClient.searchSkills('', '', '');
-      const skill = skills.find(s => s.id === parseInt(userSkillId));
-      if (skill) {
-        setUserSkill(skill);
-      } else {
-        toast.error('Skill not found');
-        navigate('/discover');
-      }
-    } catch (error) {
-      console.error('Failed to load skill:', error);
-      toast.error('Failed to load skill details');
-      navigate('/discover');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const calculateDuration = () => {
-    if (!scheduledStart || !scheduledEnd) return 0;
-    const start = new Date(scheduledStart);
-    const end = new Date(scheduledEnd);
-    return Math.max(0, (end.getTime() - start.getTime()) / (1000 * 60 * 60)); // hours
-  };
-
-  const calculateCost = () => {
-    const duration = calculateDuration();
-    return userSkill ? Math.ceil(duration * userSkill.creditsPerHour) : 0;
-  };
-
-  const onSubmit = async (data: FormData) => {
+  const handleBookSession = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
     if (!userSkill || !user) return;
-
-    const cost = calculateCost();
-    if (cost > user.creditBalance) {
-      toast.error('Insufficient credits. Please add more credits to your account.');
-      return;
-    }
-
-    setIsSubmitting(true);
+    
     try {
-      await apiClient.createSession({
-        teacherId: userSkill.userId,
+      setIsBooking(true);
+      setError(null);
+      
+      const sessionData = {
         userSkillId: userSkill.id,
-        scheduledStart: data.scheduledStart,
-        scheduledEnd: data.scheduledEnd,
-        notes: data.notes,
-        isOnline: data.isOnline,
-        location: data.location,
-      });
-
-      toast.success('Session booked successfully!');
-      navigate('/sessions');
-    } catch (error: any) {
-      console.error('Failed to book session:', error);
-      toast.error(error.response?.data?.message || 'Failed to book session');
+        scheduledStart: new Date(`${selectedDate}T${selectedTime}:00`).toISOString(),
+        scheduledEnd: new Date(`${selectedDate}T${selectedTime}:00`).toISOString(),
+        duration: duration,
+        location: sessionType === 'in-person' ? location : null,
+        meetingLink: sessionType === 'online' ? meetingLink : null,
+        notes: notes,
+        creditsPerHour: userSkill.hourlyRate
+      };
+      
+      await sessionsService.bookSession(sessionData);
+      
+      // Success - could redirect or show success message
+      alert('Session booked successfully!');
+      if (onBack) onBack();
+      
+    } catch (err) {
+      setError('Failed to book session');
+      console.error('Error booking session:', err);
     } finally {
-      setIsSubmitting(false);
+      setIsBooking(false);
     }
   };
+
+  const generateTimeSlots = () => {
+    const slots = [];
+    for (let hour = 9; hour <= 21; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        slots.push(timeString);
+      }
+    }
+    return slots;
+  };
+
+  const getMinDate = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0];
+  };
+
+  const totalCredits = userSkill ? (userSkill.hourlyRate * (duration / 60)) : 0;
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <Loader2 className="animate-spin h-8 w-8 text-blue-600 mx-auto mb-4" />
+            <p className="text-gray-600 dark:text-gray-400">Loading session details...</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!userSkill) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">Skill not found</h3>
-          <p className="text-gray-600">The skill you're looking for doesn't exist.</p>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="text-center py-12">
+          <AlertCircle className="mx-auto h-12 w-12 text-gray-400" />
+          <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">
+            Skill not found
+          </h3>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">
+            The skill you're trying to book is no longer available.
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => navigate(-1)}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-6 h-6" />
-            </button>
-            <div>
-              <h1 className="text-3xl font-bold mb-2">Book Session</h1>
-              <p className="text-blue-100">
-                Schedule a learning session with {userSkill.user.firstName}
-              </p>
-            </div>
-          </div>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Error Message */}
+      {error && (
+        <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <p className="text-red-800 dark:text-red-200">{error}</p>
         </div>
+      )}
+
+      {/* Header */}
+      <div className="mb-8">
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-4"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>Back</span>
+          </button>
+        )}
+        
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          Book Session
+        </h1>
+        <p className="mt-2 text-gray-600 dark:text-gray-400">
+          Schedule a learning session with {userSkill.skill.name}
+        </p>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Skill Details */}
-          <div className="lg:col-span-1">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="bg-white rounded-xl shadow-sm border p-6 sticky top-8"
-            >
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Skill Details</h3>
-              
-              <div className="space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Session Details */}
+        <div className="lg:col-span-2">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
+              Session Details
+            </h2>
+            
+            <form onSubmit={handleBookSession} className="space-y-6">
+              {/* Date and Time */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <h4 className="font-medium text-gray-900">{userSkill.skill.name}</h4>
-                  <p className="text-sm text-gray-600">{userSkill.skill.category}</p>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    min={getMinDate()}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
                 </div>
-
-                {userSkill.description && (
-                  <div>
-                    <h5 className="text-sm font-medium text-gray-700 mb-1">Description</h5>
-                    <p className="text-sm text-gray-600">{userSkill.description}</p>
-                  </div>
-                )}
-
-                {userSkill.requirements && (
-                  <div>
-                    <h5 className="text-sm font-medium text-gray-700 mb-1">Requirements</h5>
-                    <p className="text-sm text-gray-600">{userSkill.requirements}</p>
-                  </div>
-                )}
-
-                <div className="pt-4 border-t border-gray-200">
-                  <div className="flex items-center space-x-3 mb-3">
-                    {userSkill.user.profileImageUrl ? (
-                      <img
-                        src={userSkill.user.profileImageUrl}
-                        alt={`${userSkill.user.firstName} ${userSkill.user.lastName}`}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                        <User className="w-5 h-5 text-white" />
-                      </div>
-                    )}
-                    <div>
-                      <p className="font-medium text-gray-900">
-                        {userSkill.user.firstName} {userSkill.user.lastName}
-                      </p>
-                      <p className="text-sm text-gray-600">{userSkill.user.location}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Rating</span>
-                    <span className="font-medium">{userSkill.user.averageRating.toFixed(1)}/5.0</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Reviews</span>
-                    <span className="font-medium">{userSkill.user.totalReviews}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Rate</span>
-                    <span className="font-medium">{userSkill.creditsPerHour} credits/hour</span>
-                  </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Time
+                  </label>
+                  <select
+                    value={selectedTime}
+                    onChange={(e) => setSelectedTime(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">Select time</option>
+                    {generateTimeSlots().map((time) => (
+                      <option key={time} value={time}>
+                        {time}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-
-                <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                  <MessageSquare className="w-4 h-4" />
-                  <span>Message Teacher</span>
-                </button>
               </div>
-            </motion.div>
+
+              {/* Duration */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Duration
+                </label>
+                <select
+                  value={duration}
+                  onChange={(e) => setDuration(Number(e.target.value))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                >
+                  <option value={30}>30 minutes</option>
+                  <option value={60}>1 hour</option>
+                  <option value={90}>1.5 hours</option>
+                  <option value={120}>2 hours</option>
+                </select>
+              </div>
+
+              {/* Session Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Session Type
+                </label>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setSessionType('online')}
+                    className={`p-4 border rounded-lg text-left transition-colors ${
+                      sessionType === 'online'
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                        : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    <Video className="h-6 w-6 text-blue-600 dark:text-blue-400 mb-2" />
+                    <h3 className="font-medium text-gray-900 dark:text-white">Online</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Video call session</p>
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={() => setSessionType('in-person')}
+                    className={`p-4 border rounded-lg text-left transition-colors ${
+                      sessionType === 'in-person'
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                        : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    <MapPin className="h-6 w-6 text-green-600 dark:text-green-400 mb-2" />
+                    <h3 className="font-medium text-gray-900 dark:text-white">In-Person</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Meet in person</p>
+                  </button>
+                </div>
+              </div>
+
+              {/* Location or Meeting Link */}
+              {sessionType === 'online' ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Meeting Link (Optional)
+                  </label>
+                  <input
+                    type="url"
+                    value={meetingLink}
+                    onChange={(e) => setMeetingLink(e.target.value)}
+                    placeholder="https://meet.google.com/..."
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Location
+                  </label>
+                  <input
+                    type="text"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="Enter meeting location"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+              )}
+
+              {/* Notes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Additional Notes
+                </label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={3}
+                  placeholder="Any specific topics you'd like to cover or questions you have..."
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isBooking || !selectedDate || !selectedTime}
+                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
+              >
+                {isBooking ? (
+                  <>
+                    <Loader2 className="animate-spin h-4 w-4" />
+                    <span>Booking...</span>
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="h-4 w-4" />
+                    <span>Book Session ({totalCredits} credits)</span>
+                  </>
+                )}
+              </button>
+            </form>
           </div>
+        </div>
 
-          {/* Booking Form */}
-          <div className="lg:col-span-2">
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="bg-white rounded-xl shadow-sm border"
-            >
-              <div className="p-8">
-                <h3 className="text-lg font-semibold text-gray-900 mb-6">Schedule Your Session</h3>
-
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                  {/* Date and Time */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                        <Calendar className="w-4 h-4 mr-1 text-blue-600" />
-                        Start Date & Time *
-                      </label>
-                      <input
-                        {...register('scheduledStart')}
-                        type="datetime-local"
-                        min={new Date().toISOString().slice(0, 16)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                      {errors.scheduledStart && (
-                        <p className="mt-1 text-sm text-red-600">{errors.scheduledStart.message}</p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                        <Clock className="w-4 h-4 mr-1 text-blue-600" />
-                        End Date & Time *
-                      </label>
-                      <input
-                        {...register('scheduledEnd')}
-                        type="datetime-local"
-                        min={scheduledStart || new Date().toISOString().slice(0, 16)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                      {errors.scheduledEnd && (
-                        <p className="mt-1 text-sm text-red-600">{errors.scheduledEnd.message}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Session Type */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Session Type
-                    </label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <label className="relative">
-                        <input
-                          {...register('isOnline')}
-                          type="radio"
-                          value="true"
-                          className="sr-only peer"
-                        />
-                        <div className="p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:border-blue-300 transition-all">
-                          <div className="flex items-center space-x-3">
-                            <Video className="w-6 h-6 text-blue-600" />
-                            <div>
-                              <h4 className="font-medium text-gray-900">Online Session</h4>
-                              <p className="text-sm text-gray-600">Meet via video call</p>
-                            </div>
-                          </div>
-                        </div>
-                      </label>
-
-                      <label className="relative">
-                        <input
-                          {...register('isOnline')}
-                          type="radio"
-                          value="false"
-                          className="sr-only peer"
-                        />
-                        <div className="p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:border-blue-300 transition-all">
-                          <div className="flex items-center space-x-3">
-                            <MapPin className="w-6 h-6 text-green-600" />
-                            <div>
-                              <h4 className="font-medium text-gray-900">In-Person Session</h4>
-                              <p className="text-sm text-gray-600">Meet at a location</p>
-                            </div>
-                          </div>
-                        </div>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Location (if in-person) */}
-                  {!isOnline && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                        <MapPin className="w-4 h-4 mr-1 text-green-600" />
-                        Meeting Location *
-                      </label>
-                      <input
-                        {...register('location')}
-                        type="text"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Enter the meeting location"
-                      />
-                      {errors.location && (
-                        <p className="mt-1 text-sm text-red-600">{errors.location.message}</p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Notes */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Additional Notes
-                    </label>
-                    <textarea
-                      {...register('notes')}
-                      rows={4}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Any specific topics you'd like to focus on or questions you have..."
-                    />
-                  </div>
-
-                  {/* Cost Summary */}
-                  {scheduledStart && scheduledEnd && (
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h4 className="font-medium text-gray-900 mb-3 flex items-center">
-                        <DollarSign className="w-4 h-4 mr-1 text-green-600" />
-                        Session Summary
-                      </h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Duration</span>
-                          <span className="font-medium">{calculateDuration().toFixed(1)} hours</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Rate</span>
-                          <span className="font-medium">{userSkill.creditsPerHour} credits/hour</span>
-                        </div>
-                        <div className="flex justify-between pt-2 border-t border-gray-200">
-                          <span className="font-medium text-gray-900">Total Cost</span>
-                          <span className="font-bold text-lg text-green-600">{calculateCost()} credits</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Your Balance</span>
-                          <span className={`font-medium ${user && calculateCost() > user.creditBalance ? 'text-red-600' : 'text-gray-900'}`}>
-                            {user?.creditBalance || 0} credits
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Submit Button */}
-                  <div className="flex items-center justify-between pt-6 border-t border-gray-200">
-                    <button
-                      type="button"
-                      onClick={() => navigate(-1)}
-                      className="px-6 py-3 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isSubmitting || (user && calculateCost() > user.creditBalance)}
-                      className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isSubmitting ? (
-                        <div className="flex items-center space-x-2">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                          <span>Booking Session...</span>
-                        </div>
-                      ) : (
-                        'Book Session'
-                      )}
-                    </button>
-                  </div>
-                </form>
+        {/* Session Summary */}
+        <div className="lg:col-span-1">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 sticky top-8">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Session Summary
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-medium text-gray-900 dark:text-white">
+                  {userSkill.skill.name}
+                </h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {userSkill.skill.category} • {userSkill.level}
+                </p>
               </div>
-            </motion.div>
+              
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Duration:</span>
+                  <span className="text-gray-900 dark:text-white">{duration} minutes</span>
+                </div>
+                <div className="flex justify-between text-sm mt-2">
+                  <span className="text-gray-600 dark:text-gray-400">Rate:</span>
+                  <span className="text-gray-900 dark:text-white">{userSkill.hourlyRate} credits/hour</span>
+                </div>
+                <div className="flex justify-between text-sm mt-2 font-medium">
+                  <span className="text-gray-900 dark:text-white">Total:</span>
+                  <span className="text-gray-900 dark:text-white">{totalCredits} credits</span>
+                </div>
+              </div>
+              
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                <div className="flex items-center space-x-2">
+                  <CheckCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                    Credits will be held in escrow until session completion
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

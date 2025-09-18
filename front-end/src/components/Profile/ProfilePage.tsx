@@ -1,403 +1,403 @@
 import React, { useState, useEffect } from 'react';
-import { User, Edit3, MapPin, Calendar, Star, Award, BookOpen, Clock, Save, X } from 'lucide-react';
-import { UserSkill, Review, SkillType, SkillLevel } from '../../types';
-import { apiClient } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { motion } from 'framer-motion';
-import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
-import toast from 'react-hot-toast';
-
-const schema = yup.object({
-  firstName: yup.string().required('First name is required'),
-  lastName: yup.string().required('Last name is required'),
-  bio: yup.string(),
-  location: yup.string(),
-});
-
-type FormData = yup.InferType<typeof schema>;
+import { 
+  Edit, 
+  MapPin, 
+  Globe, 
+  Star, 
+  Award, 
+  Calendar,
+  User,
+  Mail,
+  Phone,
+  CheckCircle,
+  XCircle,
+  Camera,
+  Save,
+  X,
+  Plus,
+  Loader2
+} from 'lucide-react';
+import { skillsService, UserSkill } from '../../services/skillsService';
+import { reviewsService, Review } from '../../services/reviewsService';
 
 const ProfilePage: React.FC = () => {
   const { user, updateUser } = useAuth();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState({
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
+    bio: user?.bio || '',
+    location: user?.location || '',
+    languages: user?.languages || [],
+  });
   const [userSkills, setUserSkills] = useState<UserSkill[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'offered' | 'requested' | 'reviews'>('offered');
+  const [error, setError] = useState<string | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset
-  } = useForm<FormData>({
-    resolver: yupResolver(schema),
-  });
-
+  // Load user data
   useEffect(() => {
+    const loadUserData = async () => {
+      if (!user) return;
+      
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        const [skills, userReviews] = await Promise.all([
+          skillsService.getUserSkills(user.id).catch(() => []),
+          reviewsService.getReviewsForUser(user.id).catch(() => [])
+        ]);
+        
+        setUserSkills(skills);
+        setReviews(userReviews);
+      } catch (err) {
+        setError('Failed to load profile data');
+        console.error('Error loading profile data:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUserData();
+  }, [user]);
+
+  const handleSave = async () => {
     if (user) {
-      loadProfileData();
-      reset({
-        firstName: user.firstName,
-        lastName: user.lastName,
-        bio: user.bio || '',
-        location: user.location || '',
-      });
-    }
-  }, [user, reset]);
-
-  const loadProfileData = async () => {
-    if (!user) return;
-    
-    try {
-      setIsLoading(true);
-      const [skillsData, reviewsData] = await Promise.all([
-        apiClient.getUserSkills(user.id),
-        apiClient.getUserReviews(user.id)
-      ]);
-      setUserSkills(skillsData);
-      setReviews(reviewsData);
-    } catch (error) {
-      console.error('Failed to load profile data:', error);
-    } finally {
-      setIsLoading(false);
+      try {
+        await updateUser(editData);
+        setIsEditing(false);
+      } catch (error) {
+        console.error('Error updating profile:', error);
+        setError('Failed to update profile');
+      }
     }
   };
 
-  const onSubmit = async (data: FormData) => {
-    try {
-      await updateUser(data);
-      setIsEditing(false);
-      toast.success('Profile updated successfully!');
-    } catch (error) {
-      console.error('Failed to update profile:', error);
-      toast.error('Failed to update profile');
-    }
+  const handleCancel = () => {
+    setEditData({
+      firstName: user?.firstName || '',
+      lastName: user?.lastName || '',
+      bio: user?.bio || '',
+      location: user?.location || '',
+      languages: user?.languages || [],
+    });
+    setIsEditing(false);
   };
 
-  const getSkillLevelText = (level: SkillLevel) => {
-    switch (level) {
-      case SkillLevel.Beginner: return 'Beginner';
-      case SkillLevel.Intermediate: return 'Intermediate';
-      case SkillLevel.Expert: return 'Expert';
-      default: return 'Unknown';
-    }
-  };
+  // Separate skills by type
+  const skillsOffered = userSkills.filter(skill => skill.type === 'Offering');
+  const skillsRequested = userSkills.filter(skill => skill.type === 'Requesting');
 
-  const getSkillLevelColor = (level: SkillLevel) => {
-    switch (level) {
-      case SkillLevel.Beginner: return 'bg-green-100 text-green-800';
-      case SkillLevel.Intermediate: return 'bg-yellow-100 text-yellow-800';
-      case SkillLevel.Expert: return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const offeredSkills = userSkills.filter(skill => skill.type === SkillType.Offered);
-  const requestedSkills = userSkills.filter(skill => skill.type === SkillType.Requested);
-
-  const tabs = [
-    { id: 'offered' as const, label: 'Skills I Offer', count: offeredSkills.length },
-    { id: 'requested' as const, label: 'Skills I Want', count: requestedSkills.length },
-    { id: 'reviews' as const, label: 'Reviews', count: reviews.length },
+  const achievements = [
+    { id: 1, name: 'Super Tutor', description: '50+ successful sessions', icon: Award, color: 'text-yellow-600' },
+    { id: 2, name: 'Verified Expert', description: 'Identity and skills verified', icon: CheckCircle, color: 'text-green-600' },
+    { id: 3, name: 'Community Helper', description: 'Highly rated by peers', icon: Star, color: 'text-blue-600' }
   ];
+
+  if (!user) return null;
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <Loader2 className="animate-spin h-8 w-8 text-blue-600 mx-auto mb-4" />
+            <p className="text-gray-600 dark:text-gray-400">Loading profile...</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Profile Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-xl shadow-sm border overflow-hidden mb-8"
-        >
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 h-32"></div>
-          <div className="relative px-6 pb-6">
-            <div className="flex items-end space-x-6 -mt-16">
-              {user?.profileImageUrl ? (
-                <img
-                  src={user.profileImageUrl}
-                  alt={`${user.firstName} ${user.lastName}`}
-                  className="w-32 h-32 rounded-full border-4 border-white object-cover"
-                />
-              ) : (
-                <div className="w-32 h-32 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full border-4 border-white flex items-center justify-center">
-                  <User className="w-16 h-16 text-white" />
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Error Message */}
+      {error && (
+        <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <p className="text-red-800 dark:text-red-200">{error}</p>
+        </div>
+      )}
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column - Profile Info */}
+        <div className="lg:col-span-1">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            {/* Profile Photo */}
+            <div className="text-center mb-6">
+              <div className="relative inline-block">
+                <div className="w-32 h-32 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto">
+                  <User className="h-16 w-16 text-gray-400" />
                 </div>
-              )}
-              <div className="flex-1 pt-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h1 className="text-2xl font-bold text-gray-900">
-                      {user?.firstName} {user?.lastName}
-                    </h1>
-                    <div className="flex items-center space-x-4 mt-2 text-gray-600">
-                      {user?.location && (
-                        <div className="flex items-center space-x-1">
-                          <MapPin className="w-4 h-4" />
-                          <span>{user.location}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center space-x-1">
-                        <Calendar className="w-4 h-4" />
-                        <span>Joined {new Date(user?.createdAt || '').toLocaleDateString()}</span>
-                      </div>
-                    </div>
+                <button className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition-colors">
+                  <Camera className="h-4 w-4" />
+                </button>
+              </div>
+              
+              <div className="mt-4">
+                {isEditing ? (
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      value={editData.firstName}
+                      onChange={(e) => setEditData({...editData, firstName: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                      placeholder="First Name"
+                    />
+                    <input
+                      type="text"
+                      value={editData.lastName}
+                      onChange={(e) => setEditData({...editData, lastName: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                      placeholder="Last Name"
+                    />
                   </div>
+                ) : (
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {user.firstName} {user.lastName}
+                  </h1>
+                )}
+              </div>
+
+              {/* Rating and Stats */}
+              <div className="flex justify-center space-x-6 mt-4">
+                <div className="text-center">
+                  <div className="flex items-center justify-center space-x-1">
+                    <Star className="h-5 w-5 text-yellow-400 fill-current" />
+                    <span className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {user.rating.toFixed(1)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Rating</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {user.totalSessions}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Sessions</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {user.peerEndorsements}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Endorsements</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Contact Info */}
+            <div className="space-y-4 border-t border-gray-200 dark:border-gray-700 pt-6">
+              <div className="flex items-center space-x-3">
+                <Mail className="h-5 w-5 text-gray-400" />
+                <span className="text-sm text-gray-600 dark:text-gray-400">{user.email}</span>
+                {user.isEmailVerified ? (
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                ) : (
+                  <XCircle className="h-4 w-4 text-red-600" />
+                )}
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <MapPin className="h-5 w-5 text-gray-400" />
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editData.location}
+                    onChange={(e) => setEditData({...editData, location: e.target.value})}
+                    className="flex-1 px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm"
+                    placeholder="Location"
+                  />
+                ) : (
+                  <span className="text-sm text-gray-600 dark:text-gray-400">{user.location}</span>
+                )}
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <Globe className="h-5 w-5 text-gray-400" />
+                <div className="flex flex-wrap gap-1">
+                  {user.languages.map((lang) => (
+                    <span key={lang} className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300">
+                      {lang}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <Calendar className="h-5 w-5 text-gray-400" />
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  Joined {new Date(user.joinedAt).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="mt-6 space-y-2">
+              {isEditing ? (
+                <div className="flex space-x-2">
                   <button
-                    onClick={() => setIsEditing(!isEditing)}
-                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    onClick={handleSave}
+                    className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
                   >
-                    {isEditing ? <X className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
-                    <span>{isEditing ? 'Cancel' : 'Edit Profile'}</span>
+                    <Save className="h-4 w-4" />
+                    <span>Save</span>
+                  </button>
+                  <button
+                    onClick={handleCancel}
+                    className="flex-1 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <X className="h-4 w-4" />
+                    <span>Cancel</span>
                   </button>
                 </div>
-              </div>
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center justify-center mb-2">
-                  <Award className="w-5 h-5 text-yellow-600 mr-1" />
-                  <span className="text-2xl font-bold text-gray-900">{user?.creditBalance || 0}</span>
-                </div>
-                <p className="text-sm text-gray-600">Credits</p>
-              </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center justify-center mb-2">
-                  <Star className="w-5 h-5 text-yellow-600 mr-1" />
-                  <span className="text-2xl font-bold text-gray-900">{user?.averageRating.toFixed(1) || '0.0'}</span>
-                </div>
-                <p className="text-sm text-gray-600">Rating</p>
-              </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center justify-center mb-2">
-                  <BookOpen className="w-5 h-5 text-blue-600 mr-1" />
-                  <span className="text-2xl font-bold text-gray-900">{offeredSkills.length}</span>
-                </div>
-                <p className="text-sm text-gray-600">Skills Offered</p>
-              </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center justify-center mb-2">
-                  <Clock className="w-5 h-5 text-green-600 mr-1" />
-                  <span className="text-2xl font-bold text-gray-900">{user?.totalReviews || 0}</span>
-                </div>
-                <p className="text-sm text-gray-600">Reviews</p>
-              </div>
-            </div>
-
-            {/* Bio */}
-            <div className="mt-6">
-              {isEditing ? (
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        First Name
-                      </label>
-                      <input
-                        {...register('firstName')}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                      {errors.firstName && (
-                        <p className="mt-1 text-sm text-red-600">{errors.firstName.message}</p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Last Name
-                      </label>
-                      <input
-                        {...register('lastName')}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                      {errors.lastName && (
-                        <p className="mt-1 text-sm text-red-600">{errors.lastName.message}</p>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Location
-                    </label>
-                    <input
-                      {...register('location')}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Bio
-                    </label>
-                    <textarea
-                      {...register('bio')}
-                      rows={4}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Tell us about yourself..."
-                    />
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <button
-                      type="submit"
-                      className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                    >
-                      <Save className="w-4 h-4" />
-                      <span>Save Changes</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsEditing(false)}
-                      className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
               ) : (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">About</h3>
-                  <p className="text-gray-700">
-                    {user?.bio || 'No bio available. Click "Edit Profile" to add one.'}
-                  </p>
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+                >
+                  <Edit className="h-4 w-4" />
+                  <span>Edit Profile</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Achievements */}
+          <div className="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Achievements
+            </h2>
+            <div className="space-y-3">
+              {achievements.map((achievement) => {
+                const Icon = achievement.icon;
+                return (
+                  <div key={achievement.id} className="flex items-center space-x-3">
+                    <div className={`${achievement.color} bg-gray-100 dark:bg-gray-700 p-2 rounded-lg`}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+                        {achievement.name}
+                      </h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {achievement.description}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column - Skills and Bio */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Bio Section */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              About Me
+            </h2>
+            {isEditing ? (
+              <textarea
+                value={editData.bio}
+                onChange={(e) => setEditData({...editData, bio: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                rows={4}
+                placeholder="Tell others about yourself, your interests, and what you're passionate about..."
+              />
+            ) : (
+              <p className="text-gray-600 dark:text-gray-400">
+                {user.bio || 'No bio available. Click "Edit Profile" to add one!'}
+              </p>
+            )}
+          </div>
+
+          {/* Skills Offered */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Skills I Offer
+              </h2>
+              <button 
+                onClick={() => {
+                  // This would typically navigate to the manage skills page
+                  console.log('Navigate to manage skills');
+                }}
+                className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
+              >
+                Add Skill
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {skillsOffered.length > 0 ? (
+                skillsOffered.map((skill) => (
+                  <div key={skill.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <h3 className="font-medium text-gray-900 dark:text-white">{skill.skill.name}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{skill.skill.category}</p>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300">
+                        {skill.level}
+                      </span>
+                      {skill.hourlyRate && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {skill.hourlyRate} credits/hr
+                        </span>
+                      )}
+                    </div>
+                    {skill.description && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        {skill.description}
+                      </p>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-2 text-center py-8">
+                  <p className="text-gray-500 dark:text-gray-400">No skills offered yet</p>
                 </div>
               )}
             </div>
           </div>
-        </motion.div>
 
-        {/* Tabs */}
-        <div className="bg-white rounded-xl shadow-sm border mb-8">
-          <div className="border-b border-gray-200">
-            <nav className="flex space-x-8 px-6">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  {tab.label} ({tab.count})
-                </button>
-              ))}
-            </nav>
-          </div>
-
-          <div className="p-6">
-            {activeTab === 'offered' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {offeredSkills.length > 0 ? (
-                  offeredSkills.map((skill) => (
-                    <div key={skill.id} className="p-4 border border-gray-200 rounded-lg">
-                      <div className="flex items-start justify-between mb-2">
-                        <h4 className="font-medium text-gray-900">{skill.skill.name}</h4>
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getSkillLevelColor(skill.level)}`}>
-                          {getSkillLevelText(skill.level)}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-2">{skill.skill.category}</p>
-                      {skill.description && (
-                        <p className="text-sm text-gray-700 mb-2">{skill.description}</p>
-                      )}
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">{skill.creditsPerHour} credits/hour</span>
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          skill.isAvailable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {skill.isAvailable ? 'Available' : 'Unavailable'}
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="col-span-2 text-center py-8">
-                    <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No skills offered yet</p>
+          {/* Skills Requested */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Skills I Want to Learn
+              </h2>
+              <button 
+                onClick={() => {
+                  // This would typically navigate to the manage skills page
+                  console.log('Navigate to manage skills');
+                }}
+                className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
+              >
+                Add Request
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {skillsRequested.length > 0 ? (
+                skillsRequested.map((skill) => (
+                  <div key={skill.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <h3 className="font-medium text-gray-900 dark:text-white">{skill.skill.name}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{skill.skill.category}</p>
+                    <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300 mt-2">
+                      Looking for {skill.level} level
+                    </span>
+                    {skill.description && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        {skill.description}
+                      </p>
+                    )}
                   </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'requested' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {requestedSkills.length > 0 ? (
-                  requestedSkills.map((skill) => (
-                    <div key={skill.id} className="p-4 border border-gray-200 rounded-lg">
-                      <h4 className="font-medium text-gray-900 mb-2">{skill.skill.name}</h4>
-                      <p className="text-sm text-gray-600 mb-2">{skill.skill.category}</p>
-                      {skill.description && (
-                        <p className="text-sm text-gray-700 mb-2">{skill.description}</p>
-                      )}
-                      <div className="text-sm text-gray-600">
-                        Looking for {getSkillLevelText(skill.level).toLowerCase()} level
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="col-span-2 text-center py-8">
-                    <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No skills requested yet</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'reviews' && (
-              <div className="space-y-4">
-                {reviews.length > 0 ? (
-                  reviews.map((review) => (
-                    <div key={review.id} className="p-4 border border-gray-200 rounded-lg">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                            <User className="w-5 h-5 text-white" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900">
-                              {review.reviewer.firstName} {review.reviewer.lastName}
-                            </p>
-                            <div className="flex items-center space-x-1">
-                              {[...Array(5)].map((_, i) => (
-                                <Star
-                                  key={i}
-                                  className={`w-4 h-4 ${
-                                    i < review.rating ? 'text-yellow-400' : 'text-gray-300'
-                                  }`}
-                                  fill="currentColor"
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                        <span className="text-sm text-gray-500">
-                          {new Date(review.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                      {review.comment && (
-                        <p className="text-gray-700">{review.comment}</p>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8">
-                    <Star className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No reviews yet</p>
-                  </div>
-                )}
-              </div>
-            )}
+                ))
+              ) : (
+                <div className="col-span-2 text-center py-8">
+                  <p className="text-gray-500 dark:text-gray-400">No skills requested yet</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

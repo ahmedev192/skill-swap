@@ -1,169 +1,206 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
-import { Eye, EyeOff, Mail, Lock, LogIn } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import toast from 'react-hot-toast';
+import { Mail, Lock, Eye, EyeOff, Loader2, Wifi } from 'lucide-react';
+import { healthService } from '../../services/healthService';
 
-const schema = yup.object({
-  email: yup.string().email('Invalid email').required('Email is required'),
-  password: yup.string().required('Password is required'),
-});
+interface LoginFormProps {
+  onSwitchToRegister: () => void;
+}
 
-type FormData = yup.InferType<typeof schema>;
-
-const LoginForm: React.FC = () => {
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
-  const navigate = useNavigate();
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<FormData>({
-    resolver: yupResolver(schema),
+const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
+  const { login, isLoading } = useAuth();
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
 
-  const onSubmit = async (data: FormData) => {
-    setIsLoading(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validation
+    const newErrors: { [key: string]: string } = {};
+    
+    if (!formData.email) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Email is invalid';
+    }
+    
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
+
+    setErrors(newErrors);
+    
+    if (Object.keys(newErrors).length === 0) {
+      try {
+        await login(formData.email, formData.password);
+      } catch (error) {
+        setErrors({ general: 'Invalid email or password' });
+      }
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const testApiConnection = async () => {
+    setIsTestingConnection(true);
     try {
-      await login(data.email, data.password);
-      toast.success('Welcome back!');
-      navigate('/dashboard');
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Login failed');
+      // First test with fetch
+      console.log('Testing with fetch...');
+      const fetchResponse = await fetch('http://localhost:51423/api/health');
+      console.log('Fetch response:', fetchResponse);
+      
+      if (fetchResponse.ok) {
+        const fetchData = await fetchResponse.json();
+        console.log('Fetch data:', fetchData);
+        alert(`Fetch Test Successful! Status: ${fetchData.status}`);
+      } else {
+        alert(`Fetch Test Failed: ${fetchResponse.status} ${fetchResponse.statusText}`);
+      }
+      
+      // Then test with axios
+      console.log('Testing with axios...');
+      const result = await healthService.checkHealth();
+      alert(`Axios Test Successful! Status: ${result.status}`);
+    } catch (error) {
+      console.error('Connection test failed:', error);
+      alert(`API Connection Failed: ${error}`);
     } finally {
-      setIsLoading(false);
+      setIsTestingConnection(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <div className="flex justify-center">
-            <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-              <LogIn className="w-7 h-7 text-white" />
-            </div>
-          </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
+            Welcome back to SkillSwap
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <Link
-              to="/register"
-              className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
-            >
-              create a new account
-            </Link>
+          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+            Sign in to your account and continue learning
           </p>
         </div>
-
-        <div className="bg-white py-8 px-6 shadow-xl rounded-xl">
-          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+        
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Email address
               </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                </div>
+              <div className="mt-1 relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                 <input
-                  {...register('email')}
+                  id="email"
+                  name="email"
                   type="email"
                   autoComplete="email"
-                  className={`block w-full pl-10 pr-3 py-3 border ${
-                    errors.email ? 'border-red-300' : 'border-gray-300'
-                  } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className={`pl-10 appearance-none relative block w-full px-3 py-3 border ${
+                    errors.email ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
+                  } placeholder-gray-500 text-gray-900 dark:text-white dark:bg-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`}
                   placeholder="Enter your email"
                 />
               </div>
               {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
               )}
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Password
               </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
+              <div className="mt-1 relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                 <input
-                  {...register('password')}
+                  id="password"
+                  name="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
-                  className={`block w-full pl-10 pr-10 py-3 border ${
-                    errors.password ? 'border-red-300' : 'border-gray-300'
-                  } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  className={`pl-10 pr-10 appearance-none relative block w-full px-3 py-3 border ${
+                    errors.password ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
+                  } placeholder-gray-500 text-gray-900 dark:text-white dark:bg-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`}
                   placeholder="Enter your password"
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
                   onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <Eye className="h-5 w-5 text-gray-400" />
-                  )}
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                <p className="mt-1 text-sm text-red-600">{errors.password}</p>
               )}
             </div>
+          </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                  Remember me
-                </label>
-              </div>
-
-              <div className="text-sm">
-                <Link
-                  to="/forgot-password"
-                  className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
-                >
-                  Forgot your password?
-                </Link>
-              </div>
+          {errors.general && (
+            <div className="text-center text-sm text-red-600">
+              {errors.general}
             </div>
+          )}
 
-            <div>
+          <div className="space-y-3">
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {isLoading ? (
+                <Loader2 className="animate-spin" size={20} />
+              ) : (
+                'Sign in'
+              )}
+            </button>
+            
+            <button
+              type="button"
+              onClick={testApiConnection}
+              disabled={isTestingConnection}
+              className="w-full flex justify-center items-center py-2 px-4 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {isTestingConnection ? (
+                <Loader2 className="animate-spin" size={16} />
+              ) : (
+                <>
+                  <Wifi className="mr-2" size={16} />
+                  Test API Connection
+                </>
+              )}
+            </button>
+          </div>
+
+          <div className="text-center">
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              Don't have an account?{' '}
               <button
-                type="submit"
-                disabled={isLoading}
-                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                type="button"
+                onClick={onSwitchToRegister}
+                className="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 transition-colors"
               >
-                {isLoading ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Signing in...
-                  </div>
-                ) : (
-                  'Sign in'
-                )}
+                Sign up
               </button>
-            </div>
-          </form>
-        </div>
+            </span>
+          </div>
+        </form>
       </div>
     </div>
   );

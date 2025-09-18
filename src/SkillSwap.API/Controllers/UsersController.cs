@@ -12,11 +12,13 @@ namespace SkillSwap.API.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
+    private readonly ICreditService _creditService;
     private readonly ILogger<UsersController> _logger;
 
-    public UsersController(IUserService userService, ILogger<UsersController> logger)
+    public UsersController(IUserService userService, ICreditService creditService, ILogger<UsersController> logger)
     {
         _userService = userService;
+        _creditService = creditService;
         _logger = logger;
     }
 
@@ -229,6 +231,32 @@ public class UsersController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting user credits for {UserId}", id);
+            return StatusCode(500, new { message = "An unexpected error occurred" });
+        }
+    }
+
+    /// <summary>
+    /// Get user credit transaction history
+    /// </summary>
+    [HttpGet("{id}/credits/transactions")]
+    public async Task<ActionResult<IEnumerable<CreditTransactionDto>>> GetUserCreditTransactions(string id)
+    {
+        try
+        {
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            // Users can only view their own transactions unless they're admin
+            if (currentUserId != id && !User.IsInRole("Admin"))
+            {
+                return Forbid();
+            }
+
+            var transactions = await _creditService.GetUserTransactionHistoryAsync(id);
+            return Ok(transactions);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting credit transactions for user {UserId}", id);
             return StatusCode(500, new { message = "An unexpected error occurred" });
         }
     }

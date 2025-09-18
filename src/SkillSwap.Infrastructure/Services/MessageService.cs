@@ -20,8 +20,12 @@ public class MessageService : IMessageService
 
     public async Task<IEnumerable<ConversationDto>> GetUserConversationsAsync(string userId)
     {
-        var messages = await _unitOfWork.Messages.FindAsync(m => m.SenderId == userId || m.ReceiverId == userId);
-        
+        var messages = await _unitOfWork.Messages.FindAsync(
+            m => m.SenderId == userId || m.ReceiverId == userId,
+            m => m.Sender,
+            m => m.Receiver
+        );
+
         var conversations = messages
             .GroupBy(m => m.SenderId == userId ? m.ReceiverId : m.SenderId)
             .Select(g => new ConversationDto

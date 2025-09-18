@@ -1,118 +1,176 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types';
-import { apiClient } from '../lib/api';
+import { authService, User as ApiUser } from '../services/authService';
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (data: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    password: string;
-    bio?: string;
-    location?: string;
-  }) => Promise<void>;
-  logout: () => Promise<void>;
-  updateUser: (data: Partial<User>) => Promise<void>;
+  register: (userData: RegisterData) => Promise<void>;
+  logout: () => void;
+  updateUser: (userData: Partial<User>) => Promise<void>;
+  isLoading: boolean;
+}
+
+interface RegisterData {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  location: string;
+  languages: string[];
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+// Helper function to transform API user to local user format
+const transformApiUserToLocalUser = (apiUser: ApiUser): User => {
+  return {
+    id: apiUser.id,
+    email: apiUser.email,
+    firstName: apiUser.firstName,
+    lastName: apiUser.lastName,
+    bio: apiUser.bio,
+    profilePhoto: apiUser.profileImageUrl,
+    location: apiUser.location || '',
+    languages: apiUser.preferredLanguage ? [apiUser.preferredLanguage] : ['English'],
+    timeZone: apiUser.timeZone || 'UTC',
+    isEmailVerified: apiUser.isEmailVerified,
+    isIdVerified: apiUser.isIdVerified,
+    peerEndorsements: 0, // This would need to be added to the API
+    rating: apiUser.averageRating,
+    totalSessions: apiUser.totalReviews, // Using totalReviews as proxy for sessions
+    joinedAt: apiUser.createdAt,
+    isOnline: true, // This would need to be tracked separately
+    lastActive: apiUser.lastActiveAt || new Date().toISOString(),
+  };
 };
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const initAuth = async () => {
-      const storedToken = localStorage.getItem('auth_token');
-      if (storedToken) {
-        setToken(storedToken);
+    const initializeAuth = async () => {
+      const token = localStorage.getItem('token');
+      const refreshToken = localStorage.getItem('refreshToken');
+      
+      if (token && refreshToken) {
         try {
-          const currentUser = await apiClient.getCurrentUser();
-          setUser(currentUser);
+          // Try to get current user with existing token
+          const userData = await authService.getCurrentUser();
+          setUser(transformApiUserToLocalUser(userData));
         } catch (error) {
-          // Token is invalid, remove it
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('refresh_token');
+          // Token might be expired, try to refresh
+          try {
+            const authResponse = await authService.refreshToken(refreshToken);
+            localStorage.setItem('token', authResponse.token);
+            localStorage.setItem('refreshToken', authResponse.refreshToken);
+            setUser(transformApiUserToLocalUser(authResponse.user));
+          } catch (refreshError) {
+            // Both tokens are invalid, clear them
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
+          }
         }
       }
       setIsLoading(false);
     };
 
-    initAuth();
+    initializeAuth();
   }, []);
 
   const login = async (email: string, password: string) => {
-    const response = await apiClient.login(email, password);
-    setToken(response.token);
-    setUser(response.user);
-    localStorage.setItem('auth_token', response.token);
-    localStorage.setItem('refresh_token', response.refreshToken);
+    setIsLoading(true);
+    try {
+      console.log('AuthContext: Starting login process');
+      const authResponse = await authService.login({ email, password });
+      console.log('AuthContext: Login successful, storing tokens');
+      localStorage.setItem('token', authResponse.token);
+      localStorage.setItem('refreshToken', authResponse.refreshToken);
+      setUser(transformApiUserToLocalUser(authResponse.user));
+    } catch (error) {
+      console.error('AuthContext: Login failed:', error);
+      setIsLoading(false);
+      throw error;
+    }
+    setIsLoading(false);
   };
 
-  const register = async (data: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    password: string;
-    bio?: string;
-    location?: string;
-  }) => {
-    const response = await apiClient.register(data);
-    setToken(response.token);
-    setUser(response.user);
-    localStorage.setItem('auth_token', response.token);
-    localStorage.setItem('refresh_token', response.refreshToken);
+  const register = async (userData: RegisterData) => {
+    setIsLoading(true);
+    try {
+      const authResponse = await authService.register({
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        email: userData.email,
+        password: userData.password,
+        location: userData.location,
+        preferredLanguage: userData.languages[0] || 'English',
+      });
+      localStorage.setItem('token', authResponse.token);
+      localStorage.setItem('refreshToken', authResponse.refreshToken);
+      setUser(transformApiUserToLocalUser(authResponse.user));
+    } catch (error) {
+      setIsLoading(false);
+      throw error;
+    }
+    setIsLoading(false);
   };
 
   const logout = async () => {
-    const refreshToken = localStorage.getItem('refresh_token');
+    const refreshToken = localStorage.getItem('refreshToken');
     if (refreshToken) {
       try {
-        await apiClient.logout(refreshToken);
+        await authService.logout(refreshToken);
       } catch (error) {
         // Ignore logout errors
       }
     }
-    
     setUser(null);
-    setToken(null);
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
   };
 
-  const updateUser = async (data: Partial<User>) => {
-    const updatedUser = await apiClient.updateCurrentUser(data);
-    setUser(updatedUser);
+  const updateUser = async (userData: Partial<User>) => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      const updatedUser = await authService.updateUser({
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        bio: userData.bio,
+        location: userData.location,
+        profileImageUrl: userData.profilePhoto,
+        timeZone: userData.timeZone,
+        preferredLanguage: userData.languages?.[0],
+      });
+      setUser(transformApiUserToLocalUser(updatedUser));
+    } catch (error) {
+      setIsLoading(false);
+      throw error;
+    }
+    setIsLoading(false);
   };
 
-  const value: AuthContextType = {
-    user,
-    token,
-    isAuthenticated: !!user && !!token,
-    isLoading,
-    login,
-    register,
-    logout,
-    updateUser,
-  };
+  return (
+    <AuthContext.Provider value={{
+      user,
+      login,
+      register,
+      logout,
+      updateUser,
+      isLoading
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };
