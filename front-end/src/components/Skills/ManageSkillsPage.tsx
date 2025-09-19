@@ -112,7 +112,7 @@ const ManageSkillsPage: React.FC = () => {
       level: levelMapping[formData.get('level') as string] || 1,
       type: typeMapping[formData.get('type') as string] || 1,
       description: formData.get('description') as string,
-      creditsPerHour: formData.get('hourlyRate') ? parseFloat(formData.get('hourlyRate') as string) : 1.0,
+      creditsPerHour: formData.get('creditsPerHour') ? parseFloat(formData.get('creditsPerHour') as string) : 1.0,
     };
 
     try {
@@ -442,7 +442,7 @@ const ManageSkillsPage: React.FC = () => {
                   Hourly Rate (Credits)
                 </label>
                 <input
-                  name="hourlyRate"
+                  name="creditsPerHour"
                   type="number"
                   min="0"
                   step="0.1"

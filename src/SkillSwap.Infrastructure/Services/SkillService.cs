@@ -83,14 +83,8 @@ public class SkillService : ISkillService
 
     public async Task<UserSkillDto?> GetUserSkillByIdAsync(int userSkillId)
     {
-        var userSkill = await _unitOfWork.UserSkills.GetByIdAsync(userSkillId);
-        if (userSkill == null) return null;
-        
-        // Load related entities
-        await _unitOfWork.UserSkills.LoadRelatedAsync(userSkill, us => us.Skill);
-        await _unitOfWork.UserSkills.LoadRelatedAsync(userSkill, us => us.User);
-        
-        return _mapper.Map<UserSkillDto>(userSkill);
+        var userSkill = await _unitOfWork.UserSkills.GetByIdAsync(userSkillId, us => us.Skill, us => us.User);
+        return userSkill != null ? _mapper.Map<UserSkillDto>(userSkill) : null;
     }
 
     public async Task<IEnumerable<UserSkillDto>> GetOfferedSkillsAsync(string userId)
