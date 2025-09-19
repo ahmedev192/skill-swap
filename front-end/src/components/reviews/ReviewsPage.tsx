@@ -14,9 +14,11 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { reviewsService, Review } from '../../services/reviewsService';
 import { sessionsService } from '../../services/sessionsService';
+import { useErrorHandler } from '../../utils/errorHandler';
 
 const ReviewsPage: React.FC = () => {
   const { user } = useAuth();
+  const { handleError } = useErrorHandler();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,9 +50,9 @@ const ReviewsPage: React.FC = () => {
           !userReviews.some(review => review.sessionId === session.id)
         );
         setSessions(reviewableSessions);
-      } catch (err) {
-        setError('Failed to load data');
-        console.error('Error loading data:', err);
+      } catch (err: any) {
+        const errorResult = handleError(err, 'loadReviewsData');
+        setError(errorResult.userNotification.message);
       } finally {
         setIsLoading(false);
       }
@@ -60,7 +62,7 @@ const ReviewsPage: React.FC = () => {
   }, [user]);
 
   const filteredReviews = reviews.filter(review => {
-    const matchesSearch = review.content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = review.comment?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          review.session?.userSkill?.skill?.name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRating = filterRating === 'all' || review.rating.toString() === filterRating;
     return matchesSearch && matchesRating;
@@ -72,9 +74,9 @@ const ReviewsPage: React.FC = () => {
     try {
       await reviewsService.deleteReview(reviewId);
       setReviews(reviews.filter(r => r.id !== reviewId));
-    } catch (error) {
-      console.error('Error deleting review:', error);
-      setError('Failed to delete review');
+    } catch (error: any) {
+      const errorResult = handleError(error, 'deleteReview');
+      setError(errorResult.userNotification.message);
     }
   };
 
@@ -84,6 +86,25 @@ const ReviewsPage: React.FC = () => {
 
     const formData = new FormData(e.currentTarget as HTMLFormElement);
     const sessionId = parseInt(formData.get('sessionId') as string);
+    const rating = parseInt(formData.get('rating') as string);
+    const comment = formData.get('content') as string;
+    
+    // Validation
+    if (!sessionId || sessionId <= 0) {
+      setError('Please select a valid session');
+      return;
+    }
+
+    if (!rating || rating < 1 || rating > 5) {
+      setError('Please select a valid rating (1-5 stars)');
+      return;
+    }
+
+    if (comment && comment.length > 1000) {
+      setError('Comment cannot exceed 1000 characters');
+      return;
+    }
+
     const selectedSession = sessions.find(s => s.id === sessionId);
     
     if (!selectedSession) {
@@ -94,8 +115,8 @@ const ReviewsPage: React.FC = () => {
     const reviewData = {
       sessionId: sessionId,
       revieweeId: selectedSession.teacherId || selectedSession.studentId, // Depending on who is being reviewed
-      rating: parseInt(formData.get('rating') as string),
-      content: formData.get('content') as string,
+      rating: rating,
+      comment: comment || undefined,
     };
 
     try {
@@ -106,7 +127,7 @@ const ReviewsPage: React.FC = () => {
         // Update existing review
         const updatedReview = await reviewsService.updateReview(editingReview.id, {
           rating: reviewData.rating,
-          content: reviewData.content
+          comment: reviewData.comment
         });
         setReviews(reviews.map(r => r.id === editingReview.id ? updatedReview : r));
       } else {
@@ -118,9 +139,9 @@ const ReviewsPage: React.FC = () => {
       // Close modal and reset form
       setShowAddModal(false);
       setEditingReview(null);
-    } catch (error) {
-      console.error('Error saving review:', error);
-      setError('Failed to save review');
+    } catch (error: any) {
+      const errorResult = handleError(error, 'saveReview');
+      setError(errorResult.userNotification.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -243,9 +264,9 @@ const ReviewsPage: React.FC = () => {
                     {review.session?.userSkill?.skill?.name || 'Session Review'}
                   </h3>
                   
-                  {review.content && (
+                  {review.comment && (
                     <p className="text-gray-600 dark:text-gray-400 mb-4">
-                      {review.content}
+                      {review.comment}
                     </p>
                   )}
                 </div>
@@ -371,10 +392,14 @@ const ReviewsPage: React.FC = () => {
                 <textarea
                   name="content"
                   rows={4}
-                  defaultValue={editingReview?.content || ''}
+                  maxLength={1000}
+                  defaultValue={editingReview?.comment || ''}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   placeholder="Share your experience..."
                 />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {editingReview?.comment?.length || 0}/1000 characters
+                </p>
               </div>
               
               <div className="flex items-center justify-end space-x-3 mt-6">

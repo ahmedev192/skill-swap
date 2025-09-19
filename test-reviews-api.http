@@ -1,0 +1,87 @@
+### Test Reviews API Endpoints
+### Make sure to replace {token} with a valid JWT token and {userId} with a valid user ID
+
+@baseUrl = https://localhost:7001/api
+@token = your-jwt-token-here
+@userId = your-user-id-here
+
+### 1. Get My Reviews
+GET {{baseUrl}}/reviews/my-reviews
+Authorization: Bearer {{token}}
+
+### 2. Get Reviews for a User
+GET {{baseUrl}}/reviews/user/{{userId}}
+Authorization: Bearer {{token}}
+
+### 3. Get User Rating
+GET {{baseUrl}}/reviews/user/{{userId}}/rating
+Authorization: Bearer {{token}}
+
+### 4. Create a Review
+POST {{baseUrl}}/reviews
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "revieweeId": "{{userId}}",
+  "sessionId": 1,
+  "rating": 5,
+  "comment": "Great session! Very helpful and professional."
+}
+
+### 5. Get Review by ID
+GET {{baseUrl}}/reviews/1
+Authorization: Bearer {{token}}
+
+### 6. Update Review
+PUT {{baseUrl}}/reviews/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "rating": 4,
+  "comment": "Updated review - still great but room for improvement."
+}
+
+### 7. Get Session Reviews
+GET {{baseUrl}}/reviews/session/1
+Authorization: Bearer {{token}}
+
+### 8. Delete Review
+DELETE {{baseUrl}}/reviews/1
+Authorization: Bearer {{token}}
+
+### Test Error Cases
+
+### 9. Create Review with Invalid Data (should return 400)
+POST {{baseUrl}}/reviews
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "revieweeId": "",
+  "sessionId": 0,
+  "rating": 6,
+  "comment": "This should fail validation"
+}
+
+### 10. Get Review with Invalid ID (should return 400)
+GET {{baseUrl}}/reviews/0
+Authorization: Bearer {{token}}
+
+### 11. Update Non-existent Review (should return 404)
+PUT {{baseUrl}}/reviews/99999
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "rating": 3,
+  "comment": "This review doesn't exist"
+}
+
+### 12. Delete Non-existent Review (should return 404)
+DELETE {{baseUrl}}/reviews/99999
+Authorization: Bearer {{token}}
+
+### 13. Access without Authentication (should return 401)
+GET {{baseUrl}}/reviews/my-reviews

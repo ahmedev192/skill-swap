@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace SkillSwap.Core.DTOs;
 
 public class ReviewDto
@@ -18,14 +20,26 @@ public class ReviewDto
 
 public class CreateReviewDto
 {
+    [Required(ErrorMessage = "Reviewee ID is required")]
     public string RevieweeId { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Session ID is required")]
+    [Range(1, int.MaxValue, ErrorMessage = "Session ID must be a positive number")]
     public int SessionId { get; set; }
+
+    [Required(ErrorMessage = "Rating is required")]
+    [Range(1, 5, ErrorMessage = "Rating must be between 1 and 5")]
     public int Rating { get; set; }
+
+    [StringLength(1000, ErrorMessage = "Comment cannot exceed 1000 characters")]
     public string? Comment { get; set; }
 }
 
 public class UpdateReviewDto
 {
+    [Range(1, 5, ErrorMessage = "Rating must be between 1 and 5")]
     public int? Rating { get; set; }
+
+    [StringLength(1000, ErrorMessage = "Comment cannot exceed 1000 characters")]
     public string? Comment { get; set; }
 }

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SkillSwap.Core.DTOs;
 using SkillSwap.Core.Interfaces.Services;
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 
 namespace SkillSwap.API.Controllers;
@@ -9,15 +10,13 @@ namespace SkillSwap.API.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class ReviewsController : ControllerBase
+public class ReviewsController : BaseController
 {
     private readonly IReviewService _reviewService;
-    private readonly ILogger<ReviewsController> _logger;
 
-    public ReviewsController(IReviewService reviewService, ILogger<ReviewsController> logger)
+    public ReviewsController(IReviewService reviewService, ILogger<ReviewsController> logger) : base(logger)
     {
         _reviewService = reviewService;
-        _logger = logger;
     }
 
     /// <summary>
@@ -28,10 +27,10 @@ public class ReviewsController : ControllerBase
     {
         try
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
             {
-                return Unauthorized();
+                return Unauthorized("User not authenticated", "USER_NOT_AUTHENTICATED");
             }
 
             var reviews = await _reviewService.GetUserReviewsAsync(userId);
@@ -39,8 +38,7 @@ public class ReviewsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting user reviews");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get user reviews");
         }
     }
 
@@ -52,13 +50,17 @@ public class ReviewsController : ControllerBase
     {
         try
         {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return BadRequest("User ID is required", "INVALID_USER_ID");
+            }
+
             var reviews = await _reviewService.GetReviewsForUserAsync(userId);
             return Ok(reviews);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting reviews for user {UserId}", userId);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get reviews for user", new { userId });
         }
     }
 
@@ -70,18 +72,22 @@ public class ReviewsController : ControllerBase
     {
         try
         {
+            if (id <= 0)
+            {
+                return BadRequest("Invalid review ID", "INVALID_REVIEW_ID");
+            }
+
             var review = await _reviewService.GetReviewByIdAsync(id);
             if (review == null)
             {
-                return NotFound();
+                return NotFound("Review not found", "REVIEW_NOT_FOUND");
             }
 
             return Ok(review);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting review {ReviewId}", id);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get review", new { reviewId = id });
         }
     }
 
@@ -93,10 +99,26 @@ public class ReviewsController : ControllerBase
     {
         try
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (createReviewDto == null)
+            {
+                return BadRequest("Review data is required", "INVALID_REQUEST_DATA");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var validationErrors = ModelState
+                    .Where(x => x.Value?.Errors.Count > 0)
+                    .ToDictionary(
+                        kvp => kvp.Key,
+                        kvp => kvp.Value?.Errors.Select(e => e.ErrorMessage).ToArray() ?? new string[0]
+                    );
+                return ValidationError("Validation failed", validationErrors, "VALIDATION_ERROR");
+            }
+
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
             {
-                return Unauthorized();
+                return Unauthorized("User not authenticated", "USER_NOT_AUTHENTICATED");
             }
 
             var review = await _reviewService.CreateReviewAsync(userId, createReviewDto);
@@ -104,23 +126,19 @@ public class ReviewsController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning("Review creation failed: {Message}", ex.Message);
-            return BadRequest(new { message = ex.Message });
+            return BadRequest(ex.Message, "INVALID_REVIEW_DATA");
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning("Review creation failed: {Message}", ex.Message);
-            return BadRequest(new { message = ex.Message });
+            return BadRequest(ex.Message, "REVIEW_OPERATION_FAILED");
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogWarning("Unauthorized review creation: {Message}", ex.Message);
-            return Forbid();
+            return Forbidden(ex.Message, "UNAUTHORIZED_REVIEW_ACCESS");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating review");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "create review", createReviewDto);
         }
     }
 
@@ -132,18 +150,59 @@ public class ReviewsController : ControllerBase
     {
         try
         {
+            if (id <= 0)
+            {
+                return BadRequest("Invalid review ID", "INVALID_REVIEW_ID");
+            }
+
+            if (updateReviewDto == null)
+            {
+                return BadRequest("Update data is required", "INVALID_REQUEST_DATA");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var validationErrors = ModelState
+                    .Where(x => x.Value?.Errors.Count > 0)
+                    .ToDictionary(
+                        kvp => kvp.Key,
+                        kvp => kvp.Value?.Errors.Select(e => e.ErrorMessage).ToArray() ?? new string[0]
+                    );
+                return ValidationError("Validation failed", validationErrors, "VALIDATION_ERROR");
+            }
+
+            var userId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("User not authenticated", "USER_NOT_AUTHENTICATED");
+            }
+
+            // Check if user owns the review
+            var existingReview = await _reviewService.GetReviewByIdAsync(id);
+            if (existingReview == null)
+            {
+                return NotFound("Review not found", "REVIEW_NOT_FOUND");
+            }
+
+            if (existingReview.ReviewerId != userId)
+            {
+                return Forbidden("You can only update your own reviews", "UNAUTHORIZED_REVIEW_UPDATE");
+            }
+
             var review = await _reviewService.UpdateReviewAsync(id, updateReviewDto);
             return Ok(review);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning("Review not found: {Message}", ex.Message);
-            return NotFound(new { message = ex.Message });
+            return NotFound(ex.Message, "REVIEW_NOT_FOUND");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Forbidden(ex.Message, "UNAUTHORIZED_REVIEW_UPDATE");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating review {ReviewId}", id);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "update review", new { reviewId = id, updateData = updateReviewDto });
         }
     }
 
@@ -155,17 +214,43 @@ public class ReviewsController : ControllerBase
     {
         try
         {
+            if (id <= 0)
+            {
+                return BadRequest("Invalid review ID", "INVALID_REVIEW_ID");
+            }
+
+            var userId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("User not authenticated", "USER_NOT_AUTHENTICATED");
+            }
+
+            // Check if user owns the review
+            var existingReview = await _reviewService.GetReviewByIdAsync(id);
+            if (existingReview == null)
+            {
+                return NotFound("Review not found", "REVIEW_NOT_FOUND");
+            }
+
+            if (existingReview.ReviewerId != userId)
+            {
+                return Forbidden("You can only delete your own reviews", "UNAUTHORIZED_REVIEW_DELETE");
+            }
+
             var result = await _reviewService.DeleteReviewAsync(id);
             if (result)
             {
                 return Ok(new { message = "Review deleted successfully" });
             }
-            return NotFound(new { message = "Review not found" });
+            return NotFound("Review not found", "REVIEW_NOT_FOUND");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Forbidden(ex.Message, "UNAUTHORIZED_REVIEW_DELETE");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting review {ReviewId}", id);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "delete review", new { reviewId = id });
         }
     }
 
@@ -177,6 +262,11 @@ public class ReviewsController : ControllerBase
     {
         try
         {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return BadRequest("User ID is required", "INVALID_USER_ID");
+            }
+
             var averageRating = await _reviewService.GetUserAverageRatingAsync(userId);
             var reviewCount = await _reviewService.GetUserReviewCountAsync(userId);
 
@@ -184,8 +274,7 @@ public class ReviewsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting user rating for {UserId}", userId);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get user rating", new { userId });
         }
     }
 
@@ -197,13 +286,17 @@ public class ReviewsController : ControllerBase
     {
         try
         {
+            if (sessionId <= 0)
+            {
+                return BadRequest("Invalid session ID", "INVALID_SESSION_ID");
+            }
+
             var reviews = await _reviewService.GetSessionReviewsAsync(sessionId);
             return Ok(reviews);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting session reviews for {SessionId}", sessionId);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get session reviews", new { sessionId });
         }
     }
 }
