@@ -4,13 +4,11 @@ import {
   Edit, 
   Trash2, 
   Star, 
-  Clock, 
   DollarSign,
   CheckCircle,
   XCircle,
   Loader2,
-  Search,
-  Filter
+  Search
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { skillsService, UserSkill } from '../../services/skillsService';
@@ -67,24 +65,26 @@ const ManageSkillsPage: React.FC = () => {
     if (!confirm('Are you sure you want to delete this skill?')) return;
     
     try {
-      await skillsService.deleteUserSkill(skillId.toString());
+      await skillsService.deleteUserSkill(skillId);
       setUserSkills(userSkills.filter(s => s.id !== skillId));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting skill:', error);
-      setError('Failed to delete skill');
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to delete skill';
+      setError(errorMessage);
     }
   };
 
   const handleToggleAvailability = async (skill: UserSkill) => {
     try {
       const updatedSkill = { ...skill, isAvailable: !skill.isAvailable };
-      await skillsService.updateUserSkill(skill.id.toString(), { isAvailable: !skill.isAvailable });
+      await skillsService.updateUserSkill(skill.id, { isAvailable: !skill.isAvailable });
       setUserSkills(userSkills.map(s => 
         s.id === skill.id ? updatedSkill : s
       ));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating skill availability:', error);
-      setError('Failed to update skill availability');
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to update skill availability';
+      setError(errorMessage);
     }
   };
 
@@ -107,12 +107,34 @@ const ManageSkillsPage: React.FC = () => {
       'Expert': 3
     };
 
+    const skillId = parseInt(formData.get('skillId') as string);
+    const level = levelMapping[formData.get('level') as string] || 1;
+    const type = typeMapping[formData.get('type') as string] || 1;
+    const description = formData.get('description') as string;
+    const creditsPerHour = formData.get('creditsPerHour') ? parseFloat(formData.get('creditsPerHour') as string) : 1.0;
+
+    // Validation
+    if (!skillId || skillId <= 0) {
+      setError('Please select a valid skill');
+      return;
+    }
+
+    if (!description || description.trim().length === 0) {
+      setError('Please provide a description');
+      return;
+    }
+
+    if (creditsPerHour < 0.1 || creditsPerHour > 1000) {
+      setError('Credits per hour must be between 0.1 and 1000');
+      return;
+    }
+
     const skillData = {
-      skillId: parseInt(formData.get('skillId') as string),
-      level: levelMapping[formData.get('level') as string] || 1,
-      type: typeMapping[formData.get('type') as string] || 1,
-      description: formData.get('description') as string,
-      creditsPerHour: formData.get('creditsPerHour') ? parseFloat(formData.get('creditsPerHour') as string) : 1.0,
+      skillId,
+      level,
+      type,
+      description: description.trim(),
+      creditsPerHour,
     };
 
     try {
@@ -121,7 +143,7 @@ const ManageSkillsPage: React.FC = () => {
 
       if (editingSkill) {
         // Update existing skill
-        const updatedSkill = await skillsService.updateUserSkill(editingSkill.id.toString(), skillData);
+        const updatedSkill = await skillsService.updateUserSkill(editingSkill.id, skillData);
         setUserSkills(userSkills.map(s => s.id === editingSkill.id ? updatedSkill : s));
       } else {
         // Create new skill
@@ -132,9 +154,10 @@ const ManageSkillsPage: React.FC = () => {
       // Close modal and reset form
       setShowAddModal(false);
       setEditingSkill(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving skill:', error);
-      setError('Failed to save skill');
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to save skill';
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

@@ -1,4 +1,5 @@
 import api from './api';
+import { ErrorHandler } from '../utils/errorHandler';
 
 export interface Skill {
   id: number;
@@ -57,8 +58,12 @@ export interface UpdateSkillRequest {
 
 class SkillsService {
   async getAllSkills(): Promise<Skill[]> {
-    const response = await api.get<Skill[]>('/skills');
-    return response.data;
+    try {
+      const response = await api.get<Skill[]>('/skills');
+      return response.data;
+    } catch (error) {
+      throw ErrorHandler.fromAxiosError(error, 'Failed to get skills');
+    }
   }
 
   async getSkillById(id: number): Promise<Skill> {
@@ -86,8 +91,12 @@ class SkillsService {
   }
 
   async getUserSkills(userId: string): Promise<UserSkill[]> {
-    const response = await api.get<UserSkill[]>(`/skills/user/${userId}`);
-    return response.data;
+    try {
+      const response = await api.get<UserSkill[]>(`/skills/user/${userId}`);
+      return response.data;
+    } catch (error) {
+      throw ErrorHandler.fromAxiosError(error, 'Failed to get user skills');
+    }
   }
 
   async getUserSkillById(userSkillId: number): Promise<UserSkill> {
@@ -106,31 +115,51 @@ class SkillsService {
   }
 
   async createUserSkill(userSkillData: CreateUserSkillRequest): Promise<UserSkill> {
-    const response = await api.post<UserSkill>('/skills/user', userSkillData);
-    return response.data;
+    try {
+      const response = await api.post<UserSkill>('/skills/user', userSkillData);
+      return response.data;
+    } catch (error) {
+      throw ErrorHandler.fromAxiosError(error, 'Failed to create user skill');
+    }
   }
 
   async updateUserSkill(userSkillId: number, userSkillData: UpdateUserSkillRequest): Promise<UserSkill> {
-    const response = await api.put<UserSkill>(`/skills/user/${userSkillId}`, userSkillData);
-    return response.data;
+    try {
+      const response = await api.put<UserSkill>(`/skills/user/${userSkillId}`, userSkillData);
+      return response.data;
+    } catch (error) {
+      throw ErrorHandler.fromAxiosError(error, 'Failed to update user skill');
+    }
   }
 
   async deleteUserSkill(userSkillId: number): Promise<void> {
-    await api.delete(`/skills/user/${userSkillId}`);
+    try {
+      await api.delete(`/skills/user/${userSkillId}`);
+    } catch (error) {
+      throw ErrorHandler.fromAxiosError(error, 'Failed to delete user skill');
+    }
   }
 
   async searchSkills(searchTerm: string, category?: string, location?: string): Promise<UserSkill[]> {
-    const params = new URLSearchParams({ searchTerm });
-    if (category) params.append('category', category);
-    if (location) params.append('location', location);
-    
-    const response = await api.get<UserSkill[]>(`/skills/search?${params}`);
-    return response.data;
+    try {
+      const params = new URLSearchParams({ searchTerm });
+      if (category) params.append('category', category);
+      if (location) params.append('location', location);
+      
+      const response = await api.get<UserSkill[]>(`/skills/search?${params}`);
+      return response.data;
+    } catch (error) {
+      throw ErrorHandler.fromAxiosError(error, 'Failed to search skills');
+    }
   }
 
   async getAllOfferedSkills(): Promise<UserSkill[]> {
-    const response = await api.get<UserSkill[]>('/skills/offered');
-    return response.data;
+    try {
+      const response = await api.get<UserSkill[]>('/skills/offered');
+      return response.data;
+    } catch (error) {
+      throw ErrorHandler.fromAxiosError(error, 'Failed to get offered skills');
+    }
   }
 
   async getAllAvailableUserSkills(): Promise<UserSkill[]> {

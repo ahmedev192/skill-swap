@@ -186,6 +186,122 @@ export const authValidationRules = {
 };
 
 /**
+ * Skills form validation rules
+ */
+export const skillsValidationRules = {
+  createUserSkill: {
+    skillId: {
+      required: true,
+      custom: (value: any) => {
+        if (!value || value <= 0) {
+          return 'Please select a valid skill';
+        }
+        return null;
+      },
+    },
+    type: {
+      required: true,
+      custom: (value: any) => {
+        if (!value || (value !== 1 && value !== 2)) {
+          return 'Please select a skill type';
+        }
+        return null;
+      },
+    },
+    level: {
+      required: true,
+      custom: (value: any) => {
+        if (!value || value < 1 || value > 3) {
+          return 'Please select a valid skill level';
+        }
+        return null;
+      },
+    },
+    description: {
+      required: true,
+      minLength: 10,
+      maxLength: 1000,
+      custom: (value: any) => {
+        if (!value || value.trim().length < 10) {
+          return 'Description must be at least 10 characters long';
+        }
+        return null;
+      },
+    },
+    creditsPerHour: {
+      required: true,
+      custom: (value: any) => {
+        const numValue = parseFloat(value);
+        if (isNaN(numValue) || numValue < 0.1 || numValue > 1000) {
+          return 'Credits per hour must be between 0.1 and 1000';
+        }
+        return null;
+      },
+    },
+  },
+  updateUserSkill: {
+    level: {
+      custom: (value: any) => {
+        if (value !== undefined && (value < 1 || value > 3)) {
+          return 'Please select a valid skill level';
+        }
+        return null;
+      },
+    },
+    description: {
+      maxLength: 1000,
+      custom: (value: any) => {
+        if (value && value.trim().length < 10) {
+          return 'Description must be at least 10 characters long';
+        }
+        return null;
+      },
+    },
+    creditsPerHour: {
+      custom: (value: any) => {
+        if (value !== undefined) {
+          const numValue = parseFloat(value);
+          if (isNaN(numValue) || numValue < 0.1 || numValue > 1000) {
+            return 'Credits per hour must be between 0.1 and 1000';
+          }
+        }
+        return null;
+      },
+    },
+  },
+  createSkill: {
+    name: {
+      required: true,
+      minLength: 2,
+      maxLength: 100,
+    },
+    description: {
+      required: true,
+      minLength: 10,
+      maxLength: 500,
+    },
+    category: {
+      required: true,
+      minLength: 2,
+      maxLength: 50,
+    },
+  },
+  updateSkill: {
+    name: {
+      minLength: 2,
+      maxLength: 100,
+    },
+    description: {
+      maxLength: 500,
+    },
+    category: {
+      minLength: 2,
+      maxLength: 50,
+    },
+  },
+};
+
+/**
  * Session form validation rules
  */
 export const sessionValidationRules = {

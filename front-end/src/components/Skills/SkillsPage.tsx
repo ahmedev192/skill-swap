@@ -104,8 +104,8 @@ const SkillsPage: React.FC = () => {
         </div>
         <button 
           onClick={() => {
-            // TODO: Navigate to add skill page or open add skill modal
-            alert('Add Your Skill feature coming soon!');
+            // Navigate to manage skills page
+            window.location.href = '/manage-skills';
           }}
           className="mt-4 lg:mt-0 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
@@ -278,8 +278,8 @@ const SkillsPage: React.FC = () => {
               {/* Action Button */}
               <button 
                 onClick={() => {
-                  // This would typically navigate to the booking page with the skill ID
-                  console.log('Book session for skill:', skill.id);
+                  // Navigate to sessions page with the skill ID
+                  window.location.href = `/sessions?skillId=${skill.id}&teacherId=${skill.userId}`;
                 }}
                 className="w-full mt-4 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
               >

@@ -1,0 +1,128 @@
+### Test Skills API Integration
+### This file tests all skills-related endpoints
+
+### Variables
+@baseUrl = https://localhost:7001
+@token = your-jwt-token-here
+
+### 1. Get all skills (public endpoint)
+GET {{baseUrl}}/api/skills
+Content-Type: application/json
+
+### 2. Get skill by ID
+GET {{baseUrl}}/api/skills/1
+Content-Type: application/json
+
+### 3. Get skills by category
+GET {{baseUrl}}/api/skills/category/Technology
+Content-Type: application/json
+
+### 4. Search skills
+GET {{baseUrl}}/api/skills/search?searchTerm=programming
+Content-Type: application/json
+
+### 5. Get all offered skills (requires auth)
+GET {{baseUrl}}/api/skills/offered
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### 6. Get user skills (requires auth)
+GET {{baseUrl}}/api/skills/user/user-id-here
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### 7. Get user offered skills
+GET {{baseUrl}}/api/skills/user/user-id-here/offered
+Content-Type: application/json
+
+### 8. Get user requested skills
+GET {{baseUrl}}/api/skills/user/user-id-here/requested
+Content-Type: application/json
+
+### 9. Get user skill by ID
+GET {{baseUrl}}/api/skills/user-skill/1
+Content-Type: application/json
+
+### 10. Create user skill (requires auth)
+POST {{baseUrl}}/api/skills/user
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "skillId": 1,
+  "type": 1,
+  "level": 2,
+  "description": "I have 5 years of experience in web development",
+  "requirements": "Basic understanding of HTML/CSS",
+  "creditsPerHour": 15.0
+}
+
+### 11. Update user skill (requires auth)
+PUT {{baseUrl}}/api/skills/user/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "level": 3,
+  "description": "Updated description with more experience",
+  "creditsPerHour": 20.0,
+  "isAvailable": true
+}
+
+### 12. Delete user skill (requires auth)
+DELETE {{baseUrl}}/api/skills/user/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### 13. Create skill (Admin only)
+POST {{baseUrl}}/api/skills
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "React Development",
+  "description": "Modern React development with hooks and functional components",
+  "category": "Technology",
+  "subCategory": "Frontend Development"
+}
+
+### 14. Update skill (Admin only)
+PUT {{baseUrl}}/api/skills/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Updated React Development",
+  "description": "Updated description",
+  "category": "Technology"
+}
+
+### 15. Delete skill (Admin only)
+DELETE {{baseUrl}}/api/skills/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### Test validation errors
+### 16. Create user skill with invalid data
+POST {{baseUrl}}/api/skills/user
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "skillId": 0,
+  "type": 5,
+  "level": 10,
+  "description": "Short",
+  "creditsPerHour": -5.0
+}
+
+### 17. Create skill with invalid data (Admin only)
+POST {{baseUrl}}/api/skills
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "",
+  "description": "Short",
+  "category": ""
+}

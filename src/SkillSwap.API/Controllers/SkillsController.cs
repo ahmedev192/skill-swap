@@ -8,15 +8,13 @@ namespace SkillSwap.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class SkillsController : ControllerBase
+public class SkillsController : BaseController
 {
     private readonly ISkillService _skillService;
-    private readonly ILogger<SkillsController> _logger;
 
-    public SkillsController(ISkillService skillService, ILogger<SkillsController> logger)
+    public SkillsController(ISkillService skillService, ILogger<SkillsController> logger) : base(logger)
     {
         _skillService = skillService;
-        _logger = logger;
     }
 
     /// <summary>
@@ -32,8 +30,7 @@ public class SkillsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting skills");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get skills");
         }
     }
 
@@ -48,14 +45,13 @@ public class SkillsController : ControllerBase
             var skill = await _skillService.GetSkillByIdAsync(id);
             if (skill == null)
             {
-                return NotFound();
+                return NotFound("Skill not found", "SKILL_NOT_FOUND");
             }
             return Ok(skill);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting skill {SkillId}", id);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get skill", new { skillId = id });
         }
     }
 
@@ -67,13 +63,17 @@ public class SkillsController : ControllerBase
     {
         try
         {
+            if (string.IsNullOrEmpty(category))
+            {
+                return BadRequest("Category is required", "INVALID_CATEGORY");
+            }
+            
             var skills = await _skillService.GetSkillsByCategoryAsync(category);
             return Ok(skills);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting skills by category {Category}", category);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get skills by category", new { category });
         }
     }
 
@@ -86,13 +86,28 @@ public class SkillsController : ControllerBase
     {
         try
         {
+            if (createSkillDto == null)
+            {
+                return BadRequest("Invalid skill data", "INVALID_REQUEST_DATA");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var validationErrors = ModelState
+                    .Where(x => x.Value?.Errors.Count > 0)
+                    .ToDictionary(
+                        kvp => kvp.Key,
+                        kvp => kvp.Value?.Errors.Select(e => e.ErrorMessage).ToArray() ?? new string[0]
+                    );
+                return ValidationError("Validation failed", validationErrors, "VALIDATION_ERROR");
+            }
+
             var skill = await _skillService.CreateSkillAsync(createSkillDto);
             return CreatedAtAction(nameof(GetSkill), new { id = skill.Id }, skill);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating skill");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "create skill");
         }
     }
 
@@ -105,18 +120,32 @@ public class SkillsController : ControllerBase
     {
         try
         {
+            if (updateSkillDto == null)
+            {
+                return BadRequest("Invalid skill data", "INVALID_REQUEST_DATA");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var validationErrors = ModelState
+                    .Where(x => x.Value?.Errors.Count > 0)
+                    .ToDictionary(
+                        kvp => kvp.Key,
+                        kvp => kvp.Value?.Errors.Select(e => e.ErrorMessage).ToArray() ?? new string[0]
+                    );
+                return ValidationError("Validation failed", validationErrors, "VALIDATION_ERROR");
+            }
+
             var skill = await _skillService.UpdateSkillAsync(id, updateSkillDto);
             return Ok(skill);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning("Skill not found: {Message}", ex.Message);
-            return NotFound(new { message = ex.Message });
+            return NotFound(ex.Message, "SKILL_NOT_FOUND");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating skill {SkillId}", id);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "update skill", new { skillId = id });
         }
     }
 
@@ -134,12 +163,11 @@ public class SkillsController : ControllerBase
             {
                 return Ok(new { message = "Skill deleted successfully" });
             }
-            return NotFound(new { message = "Skill not found" });
+            return NotFound("Skill not found", "SKILL_NOT_FOUND");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting skill {SkillId}", id);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "delete skill", new { skillId = id });
         }
     }
 
@@ -152,12 +180,17 @@ public class SkillsController : ControllerBase
     {
         try
         {
-            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return BadRequest("User ID is required", "INVALID_USER_ID");
+            }
+
+            var currentUserId = GetCurrentUserId();
             
             // Users can only view their own skills unless they're admin
-            if (currentUserId != userId && !User.IsInRole("Admin"))
+            if (currentUserId != userId && !HasRole("Admin"))
             {
-                return Forbid();
+                return Forbidden("Access denied", "ACCESS_DENIED");
             }
 
             var userSkills = await _skillService.GetUserSkillsAsync(userId);
@@ -165,8 +198,7 @@ public class SkillsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting user skills for {UserId}", userId);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get user skills", new { userId });
         }
     }
 
@@ -178,13 +210,17 @@ public class SkillsController : ControllerBase
     {
         try
         {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return BadRequest("User ID is required", "INVALID_USER_ID");
+            }
+
             var userSkills = await _skillService.GetOfferedSkillsAsync(userId);
             return Ok(userSkills);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting offered skills for {UserId}", userId);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get offered skills", new { userId });
         }
     }
 
@@ -196,13 +232,17 @@ public class SkillsController : ControllerBase
     {
         try
         {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return BadRequest("User ID is required", "INVALID_USER_ID");
+            }
+
             var userSkills = await _skillService.GetRequestedSkillsAsync(userId);
             return Ok(userSkills);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting requested skills for {UserId}", userId);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get requested skills", new { userId });
         }
     }
 
@@ -217,14 +257,13 @@ public class SkillsController : ControllerBase
             var userSkill = await _skillService.GetUserSkillByIdAsync(userSkillId);
             if (userSkill == null)
             {
-                return NotFound();
+                return NotFound("User skill not found", "USER_SKILL_NOT_FOUND");
             }
             return Ok(userSkill);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting user skill {UserSkillId}", userSkillId);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get user skill", new { userSkillId });
         }
     }
 
@@ -237,10 +276,26 @@ public class SkillsController : ControllerBase
     {
         try
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (createUserSkillDto == null)
+            {
+                return BadRequest("Invalid user skill data", "INVALID_REQUEST_DATA");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var validationErrors = ModelState
+                    .Where(x => x.Value?.Errors.Count > 0)
+                    .ToDictionary(
+                        kvp => kvp.Key,
+                        kvp => kvp.Value?.Errors.Select(e => e.ErrorMessage).ToArray() ?? new string[0]
+                    );
+                return ValidationError("Validation failed", validationErrors, "VALIDATION_ERROR");
+            }
+
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
             {
-                return Unauthorized();
+                return Unauthorized("User not authenticated", "UNAUTHORIZED");
             }
 
             var userSkill = await _skillService.CreateUserSkillAsync(userId, createUserSkillDto);
@@ -248,8 +303,7 @@ public class SkillsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating user skill");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "create user skill");
         }
     }
 
@@ -262,18 +316,32 @@ public class SkillsController : ControllerBase
     {
         try
         {
+            if (updateUserSkillDto == null)
+            {
+                return BadRequest("Invalid user skill data", "INVALID_REQUEST_DATA");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var validationErrors = ModelState
+                    .Where(x => x.Value?.Errors.Count > 0)
+                    .ToDictionary(
+                        kvp => kvp.Key,
+                        kvp => kvp.Value?.Errors.Select(e => e.ErrorMessage).ToArray() ?? new string[0]
+                    );
+                return ValidationError("Validation failed", validationErrors, "VALIDATION_ERROR");
+            }
+
             var userSkill = await _skillService.UpdateUserSkillAsync(userSkillId, updateUserSkillDto);
             return Ok(userSkill);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning("User skill not found: {Message}", ex.Message);
-            return NotFound(new { message = ex.Message });
+            return NotFound(ex.Message, "USER_SKILL_NOT_FOUND");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating user skill {UserSkillId}", userSkillId);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "update user skill", new { userSkillId });
         }
     }
 
@@ -291,12 +359,11 @@ public class SkillsController : ControllerBase
             {
                 return Ok(new { message = "User skill deleted successfully" });
             }
-            return NotFound(new { message = "User skill not found" });
+            return NotFound("User skill not found", "USER_SKILL_NOT_FOUND");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting user skill {UserSkillId}", userSkillId);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "delete user skill", new { userSkillId });
         }
     }
 
@@ -309,14 +376,13 @@ public class SkillsController : ControllerBase
     {
         try
         {
-            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var currentUserId = GetCurrentUserId();
             var offeredSkills = await _skillService.GetAllOfferedSkillsAsync(currentUserId);
             return Ok(offeredSkills);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting all offered skills");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get all offered skills");
         }
     }
 
@@ -330,7 +396,7 @@ public class SkillsController : ControllerBase
         {
             if (string.IsNullOrEmpty(searchTerm))
             {
-                return BadRequest(new { message = "Search term is required" });
+                return BadRequest("Search term is required", "INVALID_SEARCH_TERM");
             }
 
             var skills = await _skillService.SearchSkillsAsync(searchTerm, category, location);
@@ -338,8 +404,7 @@ public class SkillsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error searching skills");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "search skills", new { searchTerm, category, location });
         }
     }
 }
