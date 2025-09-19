@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useErrorContext } from '../../contexts/ErrorContext';
 import { Mail, Lock, User, MapPin, Eye, EyeOff, Loader2 } from 'lucide-react';
 import ReferralCodeInput from '../referral/ReferralCodeInput';
 
@@ -9,6 +10,7 @@ interface RegisterFormProps {
 
 const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
   const { register, isLoading } = useAuth();
+  const { handleError } = useErrorContext();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -81,6 +83,11 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
           languages: formData.languages,
         });
       } catch (error) {
+        const handlingResult = handleError(error, 'registration');
+        if (handlingResult.shouldLogout) {
+          // Already handled by the error handler
+          return;
+        }
         setErrors({ general: 'Registration failed. Please try again.' });
       }
     }

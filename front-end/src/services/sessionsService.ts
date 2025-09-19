@@ -197,6 +197,15 @@ class SessionsService {
     const response = await api.get<Session[]>(`/sessions/status/${status}`);
     return response.data;
   }
+
+  // Additional methods that are called by the frontend but were missing
+  async acceptSession(id: number): Promise<void> {
+    await api.post(`/sessions/${id}/confirm`, { confirmed: true });
+  }
+
+  async declineSession(id: number): Promise<void> {
+    await api.post(`/sessions/${id}/cancel`, { reason: "Declined by teacher" });
+  }
 }
 
 export const sessionsService = new SessionsService();

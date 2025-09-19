@@ -9,6 +9,7 @@ import {
   Shield
 } from 'lucide-react';
 import { useConnection } from '../../contexts/ConnectionContext';
+import { useErrorContext } from '../../contexts/ErrorContext';
 import ConnectionRequestModal from './ConnectionRequestModal';
 
 interface ConnectionButtonProps {
@@ -31,6 +32,7 @@ const ConnectionButton: React.FC<ConnectionButtonProps> = ({
   showText = true,
   onConnectionChange
 }) => {
+  const { handleError } = useErrorContext();
   const { 
     getConnectionStatus, 
     respondToConnectionRequest, 
@@ -68,7 +70,7 @@ const ConnectionButton: React.FC<ConnectionButtonProps> = ({
         onConnectionChange?.();
       }
     } catch (error) {
-      console.error('Error accepting connection request:', error);
+      handleError(error, 'accept connection request');
     }
   };
 
@@ -86,7 +88,7 @@ const ConnectionButton: React.FC<ConnectionButtonProps> = ({
         onConnectionChange?.();
       }
     } catch (error) {
-      console.error('Error declining connection request:', error);
+      handleError(error, 'decline connection request');
     }
   };
 
@@ -103,7 +105,7 @@ const ConnectionButton: React.FC<ConnectionButtonProps> = ({
         onConnectionChange?.();
       }
     } catch (error) {
-      console.error('Error removing connection:', error);
+      handleError(error, 'remove connection');
     }
   };
 
@@ -114,7 +116,7 @@ const ConnectionButton: React.FC<ConnectionButtonProps> = ({
         setConnectionStatus('none');
         onConnectionChange?.();
       } catch (error) {
-        console.error('Error blocking user:', error);
+        handleError(error, 'block user');
       }
     }
   };

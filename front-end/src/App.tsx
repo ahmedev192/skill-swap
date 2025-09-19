@@ -3,6 +3,9 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { MessagingProvider } from './contexts/MessagingContext';
 import { ConnectionProvider } from './contexts/ConnectionContext';
+import { ErrorProvider } from './contexts/ErrorContext';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { NotificationContainer } from './components/common/NotificationContainer';
 import Navigation from './components/layout/Navigation';
 import LoginForm from './components/auth/LoginForm';
 import RegisterForm from './components/auth/RegisterForm';
@@ -90,21 +93,26 @@ const AppContent: React.FC = () => {
       <main>
         {renderCurrentView()}
       </main>
+      <NotificationContainer />
     </div>
   );
 };
 
 function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <MessagingProvider>
-          <ConnectionProvider>
-            <AppContent />
-          </ConnectionProvider>
-        </MessagingProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <ErrorProvider>
+          <AuthProvider>
+            <MessagingProvider>
+              <ConnectionProvider>
+                <AppContent />
+              </ConnectionProvider>
+            </MessagingProvider>
+          </AuthProvider>
+        </ErrorProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

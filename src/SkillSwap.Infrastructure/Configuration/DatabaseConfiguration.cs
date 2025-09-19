@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SkillSwap.Infrastructure.Data;
@@ -12,7 +13,13 @@ public static class DatabaseConfiguration
         var connectionString = configuration.GetConnectionString("DefaultConnection");
         
         services.AddDbContext<SkillSwapDbContext>(options =>
-            options.UseSqlServer(connectionString, b => b.MigrationsAssembly("SkillSwap.Infrastructure")));
+            options.UseSqlServer(connectionString, b => 
+            {
+                b.MigrationsAssembly("SkillSwap.Infrastructure");
+                b.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null);
+                b.CommandTimeout(30);
+            })
+            .ConfigureWarnings(warnings => warnings.Throw(RelationalEventId.MultipleCollectionIncludeWarning)));
 
         return services;
     }

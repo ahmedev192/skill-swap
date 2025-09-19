@@ -115,13 +115,13 @@ const BookSessionModal: React.FC<BookSessionModalProps> = ({ isOpen, onClose, on
       setIsLoading(true);
       
       const sessionData: CreateSessionRequest = {
-        TeacherId: selectedSkill.user.id,
-        UserSkillId: selectedSkill.id,
-        ScheduledStart: new Date(`${selectedDate}T${selectedTime}:00`).toISOString(),
-        ScheduledEnd: new Date(new Date(`${selectedDate}T${selectedTime}:00`).getTime() + duration * 60000).toISOString(),
-        IsOnline: meetingType === 'online',
-        Location: meetingType === 'in-person' ? location : undefined,
-        Notes: notes || undefined
+        teacherId: selectedSkill.user.id,
+        userSkillId: selectedSkill.id,
+        scheduledStart: new Date(`${selectedDate}T${selectedTime}:00`).toISOString(),
+        scheduledEnd: new Date(new Date(`${selectedDate}T${selectedTime}:00`).getTime() + duration * 60000).toISOString(),
+        isOnline: meetingType === 'online',
+        location: meetingType === 'in-person' ? location : undefined,
+        notes: notes || undefined
       };
 
       console.log('Sending session data:', sessionData);

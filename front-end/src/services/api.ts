@@ -14,13 +14,33 @@ const api: AxiosInstance = axios.create({
   },
 });
 
+// Track concurrent requests to prevent overwhelming the server
+let concurrentRequests = 0;
+const MAX_CONCURRENT_REQUESTS = 10;
+
 // Debug logging
 console.log('API Base URL:', API_BASE_URL);
 console.log('API Config:', API_CONFIG);
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token and manage concurrent requests
 api.interceptors.request.use(
   (config) => {
+    // Check concurrent request limit
+    if (concurrentRequests >= MAX_CONCURRENT_REQUESTS) {
+      console.warn('Too many concurrent requests, queuing request');
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          concurrentRequests++;
+          const token = localStorage.getItem('token');
+          if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+          }
+          resolve(config);
+        }, 100);
+      });
+    }
+    
+    concurrentRequests++;
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -28,6 +48,7 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    concurrentRequests = Math.max(0, concurrentRequests - 1);
     return Promise.reject(error);
   }
 );
@@ -35,29 +56,35 @@ api.interceptors.request.use(
 // Response interceptor to handle errors
 api.interceptors.response.use(
   (response: AxiosResponse) => {
+    concurrentRequests = Math.max(0, concurrentRequests - 1);
     return response;
   },
   (error) => {
+    concurrentRequests = Math.max(0, concurrentRequests - 1);
+    
+    // Log the error for debugging
     console.error('API Error:', error);
     console.error('Error response:', error.response);
     console.error('Error config:', error.config);
     
+    // Handle authentication errors
     if (error.response?.status === 401) {
       // Token expired or invalid
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
-      window.location.href = '/login';
-    } else if (error.response?.status === 403) {
-      // Forbidden - user doesn't have permission
-      console.warn('Access forbidden:', error.response.data?.message || 'You do not have permission to perform this action');
-    } else if (error.response?.status === 404) {
-      // Not found
-      console.warn('Resource not found:', error.response.data?.message || 'The requested resource was not found');
-    } else if (error.response?.status >= 500) {
-      // Server error
-      console.error('Server error:', error.response.data?.message || 'An internal server error occurred');
+      // Don't redirect here - let the component handle it
     }
     
+    // Handle network errors specifically
+    if (error.code === 'ERR_NETWORK' || error.code === 'ERR_INSUFFICIENT_RESOURCES') {
+      console.warn('Network error detected, this might be due to too many concurrent requests');
+      // Add a small delay to prevent rapid retries
+      return new Promise((_, reject) => {
+        setTimeout(() => reject(error), 1000);
+      });
+    }
+    
+    // Return the error as-is for components to handle with the new error handling system
     return Promise.reject(error);
   }
 );

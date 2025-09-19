@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
+import { useErrorContext } from './ErrorContext';
 import { connectionService, UserConnection, ConnectionStats, CreateConnectionRequest, RespondToConnection } from '../services/connectionService';
 
 interface ConnectionContextType {
@@ -39,6 +40,7 @@ interface ConnectionProviderProps {
 
 export const ConnectionProvider: React.FC<ConnectionProviderProps> = ({ children }) => {
   const { user } = useAuth();
+  const { handleError } = useErrorContext();
   const [connections, setConnections] = useState<UserConnection[]>([]);
   const [pendingRequests, setPendingRequests] = useState<UserConnection[]>([]);
   const [sentRequests, setSentRequests] = useState<UserConnection[]>([]);
@@ -47,14 +49,45 @@ export const ConnectionProvider: React.FC<ConnectionProviderProps> = ({ children
   const [isSendingRequest, setIsSendingRequest] = useState(false);
   const [isResponding, setIsResponding] = useState(false);
 
-  // Load initial data
-  useEffect(() => {
-    if (user) {
-      loadConnectionData();
+  // Define refresh functions first
+  const refreshConnections = useCallback(async (): Promise<void> => {
+    try {
+      const data = await connectionService.getConnections();
+      setConnections(data);
+    } catch (error) {
+      handleError(error, 'refresh connections');
     }
-  }, [user]);
+  }, [handleError]);
 
-  const loadConnectionData = async () => {
+  const refreshPendingRequests = useCallback(async (): Promise<void> => {
+    try {
+      const data = await connectionService.getConnectionRequests();
+      setPendingRequests(data);
+    } catch (error) {
+      handleError(error, 'refresh pending requests');
+    }
+  }, [handleError]);
+
+  const refreshSentRequests = useCallback(async (): Promise<void> => {
+    try {
+      const data = await connectionService.getSentConnectionRequests();
+      setSentRequests(data);
+    } catch (error) {
+      handleError(error, 'refresh sent requests');
+    }
+  }, [handleError]);
+
+  const refreshConnectionStats = useCallback(async (): Promise<void> => {
+    try {
+      const data = await connectionService.getConnectionStats();
+      setConnectionStats(data);
+    } catch (error) {
+      handleError(error, 'refresh connection stats');
+    }
+  }, [handleError]);
+
+  // Define loadConnectionData after refresh functions
+  const loadConnectionData = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -66,13 +99,20 @@ export const ConnectionProvider: React.FC<ConnectionProviderProps> = ({ children
         refreshConnectionStats()
       ]);
     } catch (error) {
-      console.error('Error loading connection data:', error);
+      handleError(error, 'load connection data');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, refreshConnections, refreshPendingRequests, refreshSentRequests, refreshConnectionStats, handleError]);
 
-  const sendConnectionRequest = async (request: CreateConnectionRequest): Promise<UserConnection> => {
+  // Load initial data
+  useEffect(() => {
+    if (user) {
+      loadConnectionData();
+    }
+  }, [user, loadConnectionData]);
+
+  const sendConnectionRequest = useCallback(async (request: CreateConnectionRequest): Promise<UserConnection> => {
     try {
       setIsSendingRequest(true);
       const newConnection = await connectionService.sendConnectionRequest(request);
@@ -89,9 +129,9 @@ export const ConnectionProvider: React.FC<ConnectionProviderProps> = ({ children
     } finally {
       setIsSendingRequest(false);
     }
-  };
+  }, [connectionStats]);
 
-  const respondToConnectionRequest = async (response: RespondToConnection): Promise<UserConnection> => {
+  const respondToConnectionRequest = useCallback(async (response: RespondToConnection): Promise<UserConnection> => {
     try {
       setIsResponding(true);
       const updatedConnection = await connectionService.respondToConnectionRequest(response);
@@ -120,9 +160,9 @@ export const ConnectionProvider: React.FC<ConnectionProviderProps> = ({ children
     } finally {
       setIsResponding(false);
     }
-  };
+  }, [connectionStats]);
 
-  const removeConnection = async (connectionId: number): Promise<void> => {
+  const removeConnection = useCallback(async (connectionId: number): Promise<void> => {
     try {
       await connectionService.removeConnection(connectionId);
       
@@ -134,12 +174,12 @@ export const ConnectionProvider: React.FC<ConnectionProviderProps> = ({ children
         setConnectionStats(prev => prev ? { ...prev, totalConnections: prev.totalConnections - 1 } : null);
       }
     } catch (error) {
-      console.error('Error removing connection:', error);
+      handleError(error, 'remove connection');
       throw error;
     }
-  };
+  }, [connectionStats, handleError]);
 
-  const blockUser = async (targetUserId: string): Promise<void> => {
+  const blockUser = useCallback(async (targetUserId: string): Promise<void> => {
     try {
       await connectionService.blockUser(targetUserId);
       
@@ -154,76 +194,40 @@ export const ConnectionProvider: React.FC<ConnectionProviderProps> = ({ children
       // Refresh stats
       await refreshConnectionStats();
     } catch (error) {
-      console.error('Error blocking user:', error);
+      handleError(error, 'block user');
       throw error;
     }
-  };
+  }, [refreshConnectionStats, handleError]);
 
-  const unblockUser = async (targetUserId: string): Promise<void> => {
+  const unblockUser = useCallback(async (targetUserId: string): Promise<void> => {
     try {
       await connectionService.unblockUser(targetUserId);
       // Refresh stats
       await refreshConnectionStats();
     } catch (error) {
-      console.error('Error unblocking user:', error);
+      handleError(error, 'unblock user');
       throw error;
     }
-  };
+  }, [refreshConnectionStats, handleError]);
 
-  const refreshConnections = async (): Promise<void> => {
-    try {
-      const data = await connectionService.getConnections();
-      setConnections(data);
-    } catch (error) {
-      console.error('Error refreshing connections:', error);
-    }
-  };
-
-  const refreshPendingRequests = async (): Promise<void> => {
-    try {
-      const data = await connectionService.getConnectionRequests();
-      setPendingRequests(data);
-    } catch (error) {
-      console.error('Error refreshing pending requests:', error);
-    }
-  };
-
-  const refreshSentRequests = async (): Promise<void> => {
-    try {
-      const data = await connectionService.getSentConnectionRequests();
-      setSentRequests(data);
-    } catch (error) {
-      console.error('Error refreshing sent requests:', error);
-    }
-  };
-
-  const refreshConnectionStats = async (): Promise<void> => {
-    try {
-      const data = await connectionService.getConnectionStats();
-      setConnectionStats(data);
-    } catch (error) {
-      console.error('Error refreshing connection stats:', error);
-    }
-  };
-
-  const isConnected = (userId: string): boolean => {
+  const isConnected = useCallback((userId: string): boolean => {
     return connections.some(conn => 
       (conn.requesterId === userId && conn.receiverId === user?.id) ||
       (conn.requesterId === user?.id && conn.receiverId === userId)
     );
-  };
+  }, [connections, user?.id]);
 
-  const hasPendingRequest = (userId: string): boolean => {
+  const hasPendingRequest = useCallback((userId: string): boolean => {
     return pendingRequests.some(req => req.requesterId === userId) ||
            sentRequests.some(req => req.receiverId === userId);
-  };
+  }, [pendingRequests, sentRequests]);
 
-  const getConnectionStatus = (userId: string): 'connected' | 'pending' | 'sent' | 'none' => {
+  const getConnectionStatus = useCallback((userId: string): 'connected' | 'pending' | 'sent' | 'none' => {
     if (isConnected(userId)) return 'connected';
     if (pendingRequests.some(req => req.requesterId === userId)) return 'pending';
     if (sentRequests.some(req => req.receiverId === userId)) return 'sent';
     return 'none';
-  };
+  }, [isConnected, pendingRequests, sentRequests]);
 
   const value: ConnectionContextType = {
     connections,

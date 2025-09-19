@@ -71,11 +71,14 @@ const BookSessionPage: React.FC<BookSessionPageProps> = ({ userSkillId, onBack }
       setIsBooking(true);
       setError(null);
       
+      const startTime = new Date(`${selectedDate}T${selectedTime}:00`);
+      const endTime = new Date(startTime.getTime() + duration * 60000); // Add duration in milliseconds
+      
       const sessionData = {
         teacherId: userSkill.userId,
         userSkillId: userSkill.id,
-        scheduledStart: new Date(`${selectedDate}T${selectedTime}:00`).toISOString(),
-        scheduledEnd: new Date(`${selectedDate}T${selectedTime}:00`).toISOString(),
+        scheduledStart: startTime.toISOString(),
+        scheduledEnd: endTime.toISOString(),
         notes: notes,
         isOnline: sessionType === 'online',
         location: sessionType === 'in-person' ? location : undefined

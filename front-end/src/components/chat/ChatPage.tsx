@@ -75,16 +75,15 @@ const ChatPage: React.FC<ChatPageProps> = ({ onViewChange }) => {
         // Clear the sessionStorage after setting the chat
         sessionStorage.removeItem('chatUser');
       } catch (error) {
-        console.error('Error parsing chat user data:', error);
+        // Invalid chat user data, clear it
         sessionStorage.removeItem('chatUser');
       }
     }
   }, []);
 
-  // Debug connections data
+  // Update connections data
   useEffect(() => {
-    console.log('ChatPage connections:', connections);
-    console.log('ChatPage connections length:', connections.length);
+    // Connections data is automatically updated by the context
   }, [connections]);
 
   // Initialize chat and set up message handlers

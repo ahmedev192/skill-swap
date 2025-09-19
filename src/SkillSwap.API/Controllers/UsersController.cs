@@ -10,17 +10,15 @@ namespace SkillSwap.API.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class UsersController : ControllerBase
+public class UsersController : BaseController
 {
     private readonly IUserService _userService;
     private readonly ICreditService _creditService;
-    private readonly ILogger<UsersController> _logger;
 
-    public UsersController(IUserService userService, ICreditService creditService, ILogger<UsersController> logger)
+    public UsersController(IUserService userService, ICreditService creditService, ILogger<UsersController> logger) : base(logger)
     {
         _userService = userService;
         _creditService = creditService;
-        _logger = logger;
     }
 
     /// <summary>
@@ -31,7 +29,7 @@ public class UsersController : ControllerBase
     {
         try
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();
@@ -40,15 +38,14 @@ public class UsersController : ControllerBase
             var user = await _userService.GetUserByIdAsync(userId);
             if (user == null)
             {
-                return NotFound();
+                return NotFound("User profile not found", "USER_NOT_FOUND");
             }
 
             return Ok(user);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting current user");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get current user");
         }
     }
 
@@ -63,15 +60,14 @@ public class UsersController : ControllerBase
             var user = await _userService.GetUserByIdAsync(id);
             if (user == null)
             {
-                return NotFound();
+                return NotFound("User not found", "USER_NOT_FOUND");
             }
 
             return Ok(user);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting user {UserId}", id);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get user", new { userId = id });
         }
     }
 
@@ -96,8 +92,7 @@ public class UsersController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting users");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get users", new { page, pageSize });
         }
     }
 
@@ -109,7 +104,7 @@ public class UsersController : ControllerBase
     {
         try
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();
@@ -118,20 +113,9 @@ public class UsersController : ControllerBase
             var user = await _userService.UpdateUserAsync(userId, updateUserDto);
             return Ok(user);
         }
-        catch (ArgumentException ex)
-        {
-            _logger.LogWarning("User not found: {Message}", ex.Message);
-            return NotFound(new { message = ex.Message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning("Update failed: {Message}", ex.Message);
-            return BadRequest(new { message = ex.Message });
-        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating user");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "update current user", new { userId = GetCurrentUserId() });
         }
     }
 
@@ -147,20 +131,9 @@ public class UsersController : ControllerBase
             var user = await _userService.UpdateUserAsync(id, updateUserDto);
             return Ok(user);
         }
-        catch (ArgumentException ex)
-        {
-            _logger.LogWarning("User not found: {Message}", ex.Message);
-            return NotFound(new { message = ex.Message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning("Update failed: {Message}", ex.Message);
-            return BadRequest(new { message = ex.Message });
-        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating user {UserId}", id);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "update user", new { userId = id });
         }
     }
 
@@ -178,12 +151,11 @@ public class UsersController : ControllerBase
             {
                 return Ok(new { message = "User deleted successfully" });
             }
-            return NotFound(new { message = "User not found" });
+            return NotFound("User not found", "USER_NOT_FOUND");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting user {UserId}", id);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "delete user", new { userId = id });
         }
     }
 
@@ -197,7 +169,7 @@ public class UsersController : ControllerBase
         {
             if (string.IsNullOrEmpty(searchTerm))
             {
-                return BadRequest(new { message = "Search term is required" });
+                return BadRequest("Search term is required", "SEARCH_TERM_REQUIRED");
             }
 
             var users = await _userService.SearchUsersAsync(searchTerm, location);
@@ -205,8 +177,7 @@ public class UsersController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error searching users");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "search users", new { searchTerm, location });
         }
     }
 

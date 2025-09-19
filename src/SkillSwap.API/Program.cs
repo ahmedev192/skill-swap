@@ -34,6 +34,9 @@ builder.Host.UseSerilog();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
+// Add response caching
+builder.Services.AddResponseCaching();
+
 // Configure Swagger/OpenAPI
 builder.Services.AddSwaggerGen(c =>
 {
@@ -231,6 +234,9 @@ if (!app.Environment.IsDevelopment())
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Add response caching middleware
+app.UseResponseCaching();
 
 app.MapControllers();
 app.MapHub<NotificationHub>("/notificationHub");

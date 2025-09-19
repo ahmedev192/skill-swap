@@ -7,15 +7,13 @@ namespace SkillSwap.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController : ControllerBase
+public class AuthController : BaseController
 {
     private readonly IAuthService _authService;
-    private readonly ILogger<AuthController> _logger;
 
-    public AuthController(IAuthService authService, ILogger<AuthController> logger)
+    public AuthController(IAuthService authService, ILogger<AuthController> logger) : base(logger)
     {
         _authService = authService;
-        _logger = logger;
     }
 
     /// <summary>
@@ -30,15 +28,9 @@ public class AuthController : ControllerBase
             _logger.LogInformation("User registered successfully: {Email}", createUserDto.Email);
             return Ok(result);
         }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning("Registration failed: {Message}", ex.Message);
-            return BadRequest(new { message = ex.Message });
-        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error during registration");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "user registration", new { email = createUserDto.Email });
         }
     }
 
@@ -54,15 +46,9 @@ public class AuthController : ControllerBase
             _logger.LogInformation("User logged in successfully: {Email}", loginDto.Email);
             return Ok(result);
         }
-        catch (UnauthorizedAccessException ex)
-        {
-            _logger.LogWarning("Login failed: {Message}", ex.Message);
-            return Unauthorized(new { message = ex.Message });
-        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error during login");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "user login", new { email = loginDto.Email });
         }
     }
 
@@ -77,15 +63,9 @@ public class AuthController : ControllerBase
             var result = await _authService.RefreshTokenAsync(refreshTokenDto.RefreshToken);
             return Ok(result);
         }
-        catch (UnauthorizedAccessException ex)
-        {
-            _logger.LogWarning("Token refresh failed: {Message}", ex.Message);
-            return Unauthorized(new { message = ex.Message });
-        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error during token refresh");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "token refresh");
         }
     }
 
@@ -104,8 +84,7 @@ public class AuthController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error during logout");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "user logout");
         }
     }
 
@@ -122,12 +101,11 @@ public class AuthController : ControllerBase
             {
                 return Ok(new { message = "Email verified successfully" });
             }
-            return BadRequest(new { message = "Invalid verification token" });
+            return BadRequest("Invalid verification token", "INVALID_VERIFICATION_TOKEN");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error during email verification");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "email verification", new { userId = verifyEmailDto.UserId });
         }
     }
 
@@ -144,12 +122,11 @@ public class AuthController : ControllerBase
             {
                 return Ok(new { message = "Password reset email sent" });
             }
-            return BadRequest(new { message = "User not found" });
+            return BadRequest("User not found", "USER_NOT_FOUND");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error during password reset request");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "password reset request", new { email = forgotPasswordDto.Email });
         }
     }
 
@@ -166,12 +143,11 @@ public class AuthController : ControllerBase
             {
                 return Ok(new { message = "Password reset successfully" });
             }
-            return BadRequest(new { message = "Invalid reset token" });
+            return BadRequest("Invalid reset token", "INVALID_RESET_TOKEN");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error during password reset");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "password reset", new { userId = resetPasswordDto.UserId });
         }
     }
 }

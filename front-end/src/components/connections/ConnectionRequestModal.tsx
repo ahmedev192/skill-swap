@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Send, User, MessageCircle } from 'lucide-react';
 import { useConnection } from '../../contexts/ConnectionContext';
+import { useErrorContext } from '../../contexts/ErrorContext';
 
 interface ConnectionRequestModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ const ConnectionRequestModal: React.FC<ConnectionRequestModalProps> = ({
   targetUser
 }) => {
   const { sendConnectionRequest, isSendingRequest } = useConnection();
+  const { handleError } = useErrorContext();
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -41,8 +43,8 @@ const ConnectionRequestModal: React.FC<ConnectionRequestModalProps> = ({
       setMessage('');
       onClose();
     } catch (err) {
+      handleError(err, 'send connection request');
       setError('Failed to send connection request. Please try again.');
-      console.error('Error sending connection request:', err);
     }
   };
 

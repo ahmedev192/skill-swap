@@ -10,15 +10,13 @@ namespace SkillSwap.API.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class SessionsController : ControllerBase
+public class SessionsController : BaseController
 {
     private readonly ISessionService _sessionService;
-    private readonly ILogger<SessionsController> _logger;
 
-    public SessionsController(ISessionService sessionService, ILogger<SessionsController> logger)
+    public SessionsController(ISessionService sessionService, ILogger<SessionsController> logger) : base(logger)
     {
         _sessionService = sessionService;
-        _logger = logger;
     }
 
     /// <summary>
@@ -29,7 +27,7 @@ public class SessionsController : ControllerBase
     {
         try
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();
@@ -40,8 +38,7 @@ public class SessionsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting user sessions");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get user sessions");
         }
     }
 
@@ -53,7 +50,7 @@ public class SessionsController : ControllerBase
     {
         try
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();
@@ -64,8 +61,7 @@ public class SessionsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting teaching sessions");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get teaching sessions");
         }
     }
 
@@ -77,7 +73,7 @@ public class SessionsController : ControllerBase
     {
         try
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();
@@ -88,8 +84,7 @@ public class SessionsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting learning sessions");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get learning sessions");
         }
     }
 
@@ -107,7 +102,7 @@ public class SessionsController : ControllerBase
                 return NotFound();
             }
 
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = GetCurrentUserId();
             if (session.TeacherId != userId && session.StudentId != userId && !User.IsInRole("Admin"))
             {
                 return Forbid();
@@ -130,7 +125,7 @@ public class SessionsController : ControllerBase
     {
         try
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();
@@ -139,20 +134,9 @@ public class SessionsController : ControllerBase
             var session = await _sessionService.CreateSessionAsync(userId, createSessionDto);
             return CreatedAtAction(nameof(GetSession), new { id = session.Id }, session);
         }
-        catch (ArgumentException ex)
-        {
-            _logger.LogWarning("Session creation failed: {Message}", ex.Message);
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning("Session creation failed: {Message}", ex.Message);
-            return BadRequest(new { message = ex.Message });
-        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating session");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "create session", new { teacherId = createSessionDto.TeacherId });
         }
     }
 
@@ -219,7 +203,7 @@ public class SessionsController : ControllerBase
     {
         try
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();
@@ -257,7 +241,7 @@ public class SessionsController : ControllerBase
     {
         try
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();
@@ -314,7 +298,7 @@ public class SessionsController : ControllerBase
     {
         try
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();
@@ -325,8 +309,7 @@ public class SessionsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting upcoming sessions");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get upcoming sessions");
         }
     }
 

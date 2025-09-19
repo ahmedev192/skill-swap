@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useErrorContext } from '../../contexts/ErrorContext';
 import { 
   Edit, 
   MapPin, 
@@ -23,6 +24,7 @@ import { reviewsService, Review } from '../../services/reviewsService';
 
 const ProfilePage: React.FC = () => {
   const { user, updateUser } = useAuth();
+  const { handleError } = useErrorContext();
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({
     firstName: user?.firstName || '',
@@ -53,8 +55,8 @@ const ProfilePage: React.FC = () => {
         setUserSkills(skills);
         setReviews(userReviews);
       } catch (err) {
+        handleError(err, 'load profile data');
         setError('Failed to load profile data');
-        console.error('Error loading profile data:', err);
       } finally {
         setIsLoading(false);
       }
@@ -69,7 +71,7 @@ const ProfilePage: React.FC = () => {
         await updateUser(editData);
         setIsEditing(false);
       } catch (error) {
-        console.error('Error updating profile:', error);
+        handleError(error, 'update profile');
         setError('Failed to update profile');
       }
     }

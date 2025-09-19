@@ -26,7 +26,7 @@ const BookingsPage: React.FC = () => {
   const [showBookModal, setShowBookModal] = useState(false);
 
   // Session action handlers
-  const handleJoinSession = (sessionId: string) => {
+  const handleJoinSession = (sessionId: number) => {
     // Open the meeting link in a new tab
     const session = sessions.find(s => s.id === sessionId);
     if (session?.meetingLink) {
@@ -36,15 +36,15 @@ const BookingsPage: React.FC = () => {
     }
   };
 
-  const handleReschedule = (sessionId: string) => {
+  const handleReschedule = (sessionId: number) => {
     // For now, show an alert. In a real implementation, this would open a reschedule modal
     alert(`Reschedule functionality for session ${sessionId} will be implemented soon.`);
   };
 
-  const handleCancelSession = async (sessionId: string) => {
+  const handleCancelSession = async (sessionId: number) => {
     if (confirm('Are you sure you want to cancel this session?')) {
       try {
-        await sessionsService.cancelSession(sessionId);
+        await sessionsService.cancelSession(sessionId, { reason: "Cancelled by user" });
         setSessions(sessions.filter(s => s.id !== sessionId));
         alert('Session cancelled successfully');
       } catch (error) {
@@ -54,11 +54,11 @@ const BookingsPage: React.FC = () => {
     }
   };
 
-  const handleAcceptRequest = async (sessionId: string) => {
+  const handleAcceptRequest = async (sessionId: number) => {
     try {
       await sessionsService.acceptSession(sessionId);
       setSessions(sessions.map(s => 
-        s.id === sessionId ? { ...s, status: 'Confirmed' } : s
+        s.id === sessionId ? { ...s, status: 2 } : s // 2 = Confirmed
       ));
       alert('Session request accepted');
     } catch (error) {
@@ -67,7 +67,7 @@ const BookingsPage: React.FC = () => {
     }
   };
 
-  const handleDeclineRequest = async (sessionId: string) => {
+  const handleDeclineRequest = async (sessionId: number) => {
     if (confirm('Are you sure you want to decline this session request?')) {
       try {
         await sessionsService.declineSession(sessionId);
@@ -80,7 +80,7 @@ const BookingsPage: React.FC = () => {
     }
   };
 
-  const handleRateAndReview = (sessionId: string) => {
+  const handleRateAndReview = (sessionId: number) => {
     // Navigate to reviews page with the session ID
     window.location.href = `/reviews?sessionId=${sessionId}`;
   };
@@ -112,15 +112,15 @@ const BookingsPage: React.FC = () => {
     loadSessions();
   }, [user]);
 
-  // Separate sessions by status
+  // Separate sessions by status (1=Pending, 2=Confirmed, 3=InProgress, 4=Completed, 5=Cancelled, 6=Disputed)
   const upcomingSessions = sessions.filter(session => 
-    session.status === 'Confirmed' && new Date(session.scheduledStart) > new Date()
+    session.status === 2 && new Date(session.scheduledStart) > new Date() // Confirmed
   );
   const pastSessions = sessions.filter(session => 
-    session.status === 'Completed' || session.status === 'Cancelled'
+    session.status === 4 || session.status === 5 // Completed or Cancelled
   );
   const pendingSessions = sessions.filter(session => 
-    session.status === 'Pending'
+    session.status === 1 // Pending
   );
 
   const bookings = {
@@ -130,33 +130,41 @@ const BookingsPage: React.FC = () => {
   };
 
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: number) => {
     switch (status) {
-      case 'Confirmed':
+      case 2: // Confirmed
         return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'Pending':
+      case 1: // Pending
         return <AlertCircle className="h-4 w-4 text-yellow-600" />;
-      case 'Completed':
+      case 4: // Completed
         return <CheckCircle className="h-4 w-4 text-blue-600" />;
-      case 'Cancelled':
+      case 5: // Cancelled
         return <XCircle className="h-4 w-4 text-red-600" />;
+      case 3: // InProgress
+        return <Clock className="h-4 w-4 text-blue-600" />;
+      case 6: // Disputed
+        return <AlertCircle className="h-4 w-4 text-red-600" />;
       default:
         return <Clock className="h-4 w-4 text-gray-400" />;
     }
   };
 
-  const getStatusText = (status: string) => {
+  const getStatusText = (status: number) => {
     switch (status) {
-      case 'Confirmed':
-        return 'Confirmed';
-      case 'Pending':
+      case 1:
         return 'Pending';
-      case 'Completed':
+      case 2:
+        return 'Confirmed';
+      case 3:
+        return 'In Progress';
+      case 4:
         return 'Completed';
-      case 'Cancelled':
+      case 5:
         return 'Cancelled';
+      case 6:
+        return 'Disputed';
       default:
-        return status;
+        return 'Unknown';
     }
   };
 
@@ -309,7 +317,7 @@ const BookingsPage: React.FC = () => {
       {/* Action Buttons */}
       {showActions && (
         <div className="flex space-x-3">
-          {status === 'Confirmed' && (
+          {status === 2 && ( // Confirmed
             <>
               {meetingUrl && (
                 <button 
@@ -334,7 +342,7 @@ const BookingsPage: React.FC = () => {
             </>
           )}
           
-          {status === 'Pending' && (
+          {status === 1 && ( // Pending
             <>
               <button 
                 onClick={() => handleAcceptRequest(session.id)}
@@ -351,7 +359,7 @@ const BookingsPage: React.FC = () => {
             </>
           )}
           
-          {status === 'Completed' && (
+          {status === 4 && ( // Completed
             <button 
               onClick={() => handleRateAndReview(session.id)}
               className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm"

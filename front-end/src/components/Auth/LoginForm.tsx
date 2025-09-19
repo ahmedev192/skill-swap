@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useErrorContext } from '../../contexts/ErrorContext';
 import { Mail, Lock, Eye, EyeOff, Loader2, Wifi } from 'lucide-react';
 import { healthService } from '../../services/healthService';
 
@@ -9,6 +10,7 @@ interface LoginFormProps {
 
 const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
   const { login, isLoading } = useAuth();
+  const { handleError } = useErrorContext();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -41,6 +43,11 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
       try {
         await login(formData.email, formData.password);
       } catch (error) {
+        const handlingResult = handleError(error, 'login');
+        if (handlingResult.shouldLogout) {
+          // Already handled by the error handler
+          return;
+        }
         setErrors({ general: 'Invalid email or password' });
       }
     }

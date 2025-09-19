@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Users, 
   UserPlus, 
@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useConnection } from '../../contexts/ConnectionContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useErrorContext } from '../../contexts/ErrorContext';
 import ConnectionButton from './ConnectionButton';
 
 interface ConnectionsPageProps {
@@ -23,6 +24,7 @@ interface ConnectionsPageProps {
 
 const ConnectionsPage: React.FC<ConnectionsPageProps> = ({ onViewChange }) => {
   const { user } = useAuth();
+  const { handleError } = useErrorContext();
   const { 
     connections, 
     pendingRequests, 
@@ -39,15 +41,36 @@ const ConnectionsPage: React.FC<ConnectionsPageProps> = ({ onViewChange }) => {
   
   const [activeTab, setActiveTab] = useState<'connections' | 'pending' | 'sent'>('connections');
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [isResponding, setIsResponding] = useState(false);
 
+  // Debounce search term to prevent excessive filtering
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Memoize the data loading function to prevent infinite loops
+  const loadInitialData = useCallback(async () => {
     if (user) {
-      refreshConnections();
-      refreshPendingRequests();
-      refreshSentRequests();
+      try {
+        await Promise.all([
+          refreshConnections(),
+          refreshPendingRequests(),
+          refreshSentRequests()
+        ]);
+      } catch (error) {
+        handleError(error, 'load initial connection data');
+      }
     }
-  }, [user, refreshConnections, refreshPendingRequests, refreshSentRequests]);
+  }, [user, refreshConnections, refreshPendingRequests, refreshSentRequests, handleError]);
+
+  useEffect(() => {
+    loadInitialData();
+  }, [loadInitialData]);
 
   const handleAcceptRequest = async (connectionId: number) => {
     try {
@@ -57,7 +80,7 @@ const ConnectionsPage: React.FC<ConnectionsPageProps> = ({ onViewChange }) => {
         status: 2 // Accepted
       });
     } catch (error) {
-      console.error('Error accepting request:', error);
+      handleError(error, 'accept connection request');
     } finally {
       setIsResponding(false);
     }
@@ -71,7 +94,7 @@ const ConnectionsPage: React.FC<ConnectionsPageProps> = ({ onViewChange }) => {
         status: 3 // Declined
       });
     } catch (error) {
-      console.error('Error declining request:', error);
+      handleError(error, 'decline connection request');
     } finally {
       setIsResponding(false);
     }
@@ -82,7 +105,7 @@ const ConnectionsPage: React.FC<ConnectionsPageProps> = ({ onViewChange }) => {
       try {
         await removeConnection(connectionId);
       } catch (error) {
-        console.error('Error removing connection:', error);
+        handleError(error, 'remove connection');
       }
     }
   };
@@ -92,7 +115,7 @@ const ConnectionsPage: React.FC<ConnectionsPageProps> = ({ onViewChange }) => {
       try {
         await blockUser(userId);
       } catch (error) {
-        console.error('Error blocking user:', error);
+        handleError(error, 'block user');
       }
     }
   };
@@ -104,16 +127,16 @@ const ConnectionsPage: React.FC<ConnectionsPageProps> = ({ onViewChange }) => {
     sessionStorage.setItem('chatUser', JSON.stringify({ userId, userName }));
   };
 
-  const getFilteredConnections = () => {
+  const getFilteredConnections = useCallback(() => {
     const allConnections = [...connections, ...pendingRequests, ...sentRequests];
     return allConnections.filter(conn => {
       const otherUser = conn.requesterId === user?.id ? conn.receiver : conn.requester;
       if (!otherUser) return false;
       
       const fullName = `${otherUser.firstName} ${otherUser.lastName}`.toLowerCase();
-      return fullName.includes(searchTerm.toLowerCase());
+      return fullName.includes(debouncedSearchTerm.toLowerCase());
     });
-  };
+  }, [connections, pendingRequests, sentRequests, user?.id, debouncedSearchTerm]);
 
   const renderUserCard = (connection: any, type: 'connection' | 'pending' | 'sent') => {
     const otherUser = connection.requesterId === user?.id ? connection.receiver : connection.requester;

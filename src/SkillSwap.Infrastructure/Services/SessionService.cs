@@ -49,66 +49,55 @@ public class SessionService : ISessionService
 
     public async Task<SessionDto> CreateSessionAsync(string studentId, CreateSessionDto createSessionDto)
     {
-        await _unitOfWork.BeginTransactionAsync();
-        try
+        // Get the user skill to calculate credits
+        var userSkill = await _unitOfWork.UserSkills.GetByIdAsync(createSessionDto.UserSkillId, us => us.Skill, us => us.User);
+        if (userSkill == null)
         {
-            // Get the user skill to calculate credits
-            var userSkill = await _unitOfWork.UserSkills.GetByIdAsync(createSessionDto.UserSkillId, us => us.Skill, us => us.User);
-            if (userSkill == null)
-            {
-                throw new ArgumentException("User skill not found");
-            }
-
-            if (userSkill.Type != SkillType.Offered)
-            {
-                throw new InvalidOperationException("Can only book sessions for offered skills");
-            }
-
-            if (userSkill.UserId == studentId)
-            {
-                throw new InvalidOperationException("Cannot book a session with yourself");
-            }
-
-            // Validate that the teacherId in the DTO matches the userSkill's owner
-            if (!string.IsNullOrEmpty(createSessionDto.TeacherId) && createSessionDto.TeacherId != userSkill.UserId)
-            {
-                throw new ArgumentException("Teacher ID does not match the skill owner");
-            }
-
-            // Calculate session duration and credits
-            var duration = createSessionDto.ScheduledEnd - createSessionDto.ScheduledStart;
-            var creditsCost = (decimal)duration.TotalHours * userSkill.CreditsPerHour;
-
-            // Check if student has enough credits
-            var studentBalance = await _creditService.GetUserCreditBalanceAsync(studentId);
-            if (studentBalance < creditsCost)
-            {
-                throw new InvalidOperationException("Insufficient credits");
-            }
-
-            // Create session
-            var session = _mapper.Map<Session>(createSessionDto);
-            session.StudentId = studentId;
-            session.TeacherId = userSkill.UserId;
-            session.CreditsCost = creditsCost;
-            session.Status = SessionStatus.Pending;
-            session.CreatedAt = DateTime.UtcNow;
-
-            await _unitOfWork.Sessions.AddAsync(session);
-            await _unitOfWork.SaveChangesAsync();
-
-            // Hold credits in escrow
-            await _creditService.HoldCreditsAsync(studentId, creditsCost, session.Id, "Session booking");
-
-            await _unitOfWork.CommitTransactionAsync();
-
-            return _mapper.Map<SessionDto>(session);
+            throw new ArgumentException("User skill not found");
         }
-        catch
+
+        if (userSkill.Type != SkillType.Offered)
         {
-            await _unitOfWork.RollbackTransactionAsync();
-            throw;
+            throw new InvalidOperationException("Can only book sessions for offered skills");
         }
+
+        if (userSkill.UserId == studentId)
+        {
+            throw new InvalidOperationException("Cannot book a session with yourself");
+        }
+
+        // Validate that the teacherId in the DTO matches the userSkill's owner
+        if (!string.IsNullOrEmpty(createSessionDto.TeacherId) && createSessionDto.TeacherId != userSkill.UserId)
+        {
+            throw new ArgumentException("Teacher ID does not match the skill owner");
+        }
+
+        // Calculate session duration and credits
+        var duration = createSessionDto.ScheduledEnd - createSessionDto.ScheduledStart;
+        var creditsCost = (decimal)duration.TotalHours * userSkill.CreditsPerHour;
+
+        // Check if student has enough credits
+        var studentBalance = await _creditService.GetUserCreditBalanceAsync(studentId);
+        if (studentBalance < creditsCost)
+        {
+            throw new InvalidOperationException("Insufficient credits");
+        }
+
+        // Create session
+        var session = _mapper.Map<Session>(createSessionDto);
+        session.StudentId = studentId;
+        session.TeacherId = userSkill.UserId;
+        session.CreditsCost = creditsCost;
+        session.Status = SessionStatus.Pending;
+        session.CreatedAt = DateTime.UtcNow;
+
+        await _unitOfWork.Sessions.AddAsync(session);
+        await _unitOfWork.SaveChangesAsync();
+
+        // Hold credits in escrow
+        await _creditService.HoldCreditsAsync(studentId, creditsCost, session.Id, "Session booking");
+
+        return _mapper.Map<SessionDto>(session);
     }
 
     public async Task<SessionDto> UpdateSessionAsync(int sessionId, UpdateSessionDto updateSessionDto)
@@ -135,43 +124,33 @@ public class SessionService : ISessionService
 
     public async Task<bool> CancelSessionAsync(int sessionId, string cancellationReason)
     {
-        await _unitOfWork.BeginTransactionAsync();
-        try
+        var session = await _unitOfWork.Sessions.GetByIdAsync(sessionId);
+        if (session == null)
         {
-            var session = await _unitOfWork.Sessions.GetByIdAsync(sessionId);
-            if (session == null)
-            {
-                return false;
-            }
-
-            if (session.Status == SessionStatus.Completed || session.Status == SessionStatus.Cancelled)
-            {
-                throw new InvalidOperationException("Cannot cancel completed or already cancelled session");
-            }
-
-            session.Status = SessionStatus.Cancelled;
-            session.CancelledAt = DateTime.UtcNow;
-            session.CancellationReason = cancellationReason;
-            session.UpdatedAt = DateTime.UtcNow;
-
-            await _unitOfWork.Sessions.UpdateAsync(session);
-
-            // Refund credits if they were held
-            if (session.Status == SessionStatus.Pending || session.Status == SessionStatus.Confirmed)
-            {
-                await _creditService.RefundCreditsAsync(session.StudentId, session.CreditsCost, session.Id, "Session cancelled");
-            }
-
-            await _unitOfWork.SaveChangesAsync();
-            await _unitOfWork.CommitTransactionAsync();
-
-            return true;
+            return false;
         }
-        catch
+
+        if (session.Status == SessionStatus.Completed || session.Status == SessionStatus.Cancelled)
         {
-            await _unitOfWork.RollbackTransactionAsync();
-            throw;
+            throw new InvalidOperationException("Cannot cancel completed or already cancelled session");
         }
+
+        session.Status = SessionStatus.Cancelled;
+        session.CancelledAt = DateTime.UtcNow;
+        session.CancellationReason = cancellationReason;
+        session.UpdatedAt = DateTime.UtcNow;
+
+        await _unitOfWork.Sessions.UpdateAsync(session);
+
+        // Refund credits if they were held
+        if (session.Status == SessionStatus.Pending || session.Status == SessionStatus.Confirmed)
+        {
+            await _creditService.RefundCreditsAsync(session.StudentId, session.CreditsCost, session.Id, "Session cancelled");
+        }
+
+        await _unitOfWork.SaveChangesAsync();
+
+        return true;
     }
 
     public async Task<bool> ConfirmSessionAsync(int sessionId, string userId, ConfirmSessionDto confirmSessionDto)
@@ -216,44 +195,34 @@ public class SessionService : ISessionService
 
     public async Task<bool> CompleteSessionAsync(int sessionId, string userId)
     {
-        await _unitOfWork.BeginTransactionAsync();
-        try
+        var session = await _unitOfWork.Sessions.GetByIdAsync(sessionId);
+        if (session == null)
         {
-            var session = await _unitOfWork.Sessions.GetByIdAsync(sessionId);
-            if (session == null)
-            {
-                return false;
-            }
-
-            if (session.Status != SessionStatus.Confirmed)
-            {
-                throw new InvalidOperationException("Can only complete confirmed sessions");
-            }
-
-            if (userId != session.TeacherId && userId != session.StudentId)
-            {
-                throw new UnauthorizedAccessException("Not authorized to complete this session");
-            }
-
-            session.Status = SessionStatus.Completed;
-            session.ActualEnd = DateTime.UtcNow;
-            session.UpdatedAt = DateTime.UtcNow;
-
-            await _unitOfWork.Sessions.UpdateAsync(session);
-
-            // Transfer credits from escrow to teacher
-            await _creditService.TransferCreditsAsync(session.StudentId, session.TeacherId, session.CreditsCost, session.Id, "Session completed");
-
-            await _unitOfWork.SaveChangesAsync();
-            await _unitOfWork.CommitTransactionAsync();
-
-            return true;
+            return false;
         }
-        catch
+
+        if (session.Status != SessionStatus.Confirmed)
         {
-            await _unitOfWork.RollbackTransactionAsync();
-            throw;
+            throw new InvalidOperationException("Can only complete confirmed sessions");
         }
+
+        if (userId != session.TeacherId && userId != session.StudentId)
+        {
+            throw new UnauthorizedAccessException("Not authorized to complete this session");
+        }
+
+        session.Status = SessionStatus.Completed;
+        session.ActualEnd = DateTime.UtcNow;
+        session.UpdatedAt = DateTime.UtcNow;
+
+        await _unitOfWork.Sessions.UpdateAsync(session);
+
+        // Transfer credits from escrow to teacher
+        await _creditService.TransferCreditsAsync(session.StudentId, session.TeacherId, session.CreditsCost, session.Id, "Session completed");
+
+        await _unitOfWork.SaveChangesAsync();
+
+        return true;
     }
 
     public async Task<IEnumerable<SessionDto>> GetSessionsByStatusAsync(SessionStatus status)

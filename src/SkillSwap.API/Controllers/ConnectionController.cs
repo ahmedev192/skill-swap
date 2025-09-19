@@ -9,15 +9,13 @@ namespace SkillSwap.API.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class ConnectionController : ControllerBase
+public class ConnectionController : BaseController
 {
     private readonly IConnectionService _connectionService;
-    private readonly ILogger<ConnectionController> _logger;
 
-    public ConnectionController(IConnectionService connectionService, ILogger<ConnectionController> logger)
+    public ConnectionController(IConnectionService connectionService, ILogger<ConnectionController> logger) : base(logger)
     {
         _connectionService = connectionService;
-        _logger = logger;
     }
 
     /// <summary>
@@ -28,7 +26,7 @@ public class ConnectionController : ControllerBase
     {
         try
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();
@@ -37,20 +35,9 @@ public class ConnectionController : ControllerBase
             var connection = await _connectionService.SendConnectionRequestAsync(userId, request);
             return Ok(connection);
         }
-        catch (ArgumentException ex)
-        {
-            _logger.LogWarning(ex, "Invalid connection request");
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning(ex, "Connection request conflict");
-            return Conflict(new { message = ex.Message });
-        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error sending connection request");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "send connection request", new { receiverId = request.ReceiverId });
         }
     }
 
@@ -62,7 +49,7 @@ public class ConnectionController : ControllerBase
     {
         try
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();
@@ -71,20 +58,9 @@ public class ConnectionController : ControllerBase
             var connection = await _connectionService.RespondToConnectionRequestAsync(userId, response);
             return Ok(connection);
         }
-        catch (ArgumentException ex)
-        {
-            _logger.LogWarning(ex, "Invalid connection response");
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning(ex, "Connection response conflict");
-            return Conflict(new { message = ex.Message });
-        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error responding to connection request");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "respond to connection request", new { connectionId = response.ConnectionId });
         }
     }
 
@@ -92,6 +68,7 @@ public class ConnectionController : ControllerBase
     /// Get pending connection requests received by current user
     /// </summary>
     [HttpGet("requests")]
+    [ResponseCache(Duration = 30, VaryByHeader = "Authorization")] // Cache for 30 seconds
     public async Task<ActionResult<IEnumerable<UserConnectionDto>>> GetConnectionRequests()
     {
         try
@@ -116,6 +93,7 @@ public class ConnectionController : ControllerBase
     /// Get connection requests sent by current user
     /// </summary>
     [HttpGet("sent-requests")]
+    [ResponseCache(Duration = 30, VaryByHeader = "Authorization")] // Cache for 30 seconds
     public async Task<ActionResult<IEnumerable<UserConnectionDto>>> GetSentConnectionRequests()
     {
         try
@@ -140,6 +118,7 @@ public class ConnectionController : ControllerBase
     /// Get all connections (accepted) for current user
     /// </summary>
     [HttpGet("connections")]
+    [ResponseCache(Duration = 30, VaryByHeader = "Authorization")] // Cache for 30 seconds
     public async Task<ActionResult<IEnumerable<UserConnectionDto>>> GetConnections()
     {
         try
@@ -164,6 +143,7 @@ public class ConnectionController : ControllerBase
     /// Get connection statistics for current user
     /// </summary>
     [HttpGet("stats")]
+    [ResponseCache(Duration = 30, VaryByHeader = "Authorization")] // Cache for 30 seconds
     public async Task<ActionResult<ConnectionStatsDto>> GetConnectionStats()
     {
         try
