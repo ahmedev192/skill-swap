@@ -14,6 +14,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { User as UserType } from '../../types';
 import { userService } from '../../services/userService';
+import ConnectionButton from '../connections/ConnectionButton';
 
 const UserSearchPage: React.FC = () => {
   const { user: currentUser } = useAuth();
@@ -260,13 +261,27 @@ const UserSearchPage: React.FC = () => {
 
               {/* Action Buttons */}
               <div className="flex space-x-3">
-                <button
-                  onClick={() => handleSendMessage(user.id)}
-                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center justify-center space-x-2"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  <span>Message</span>
-                </button>
+                {currentUser && user.id !== currentUser.id ? (
+                  <ConnectionButton
+                    targetUser={{
+                      id: user.id,
+                      firstName: user.firstName,
+                      lastName: user.lastName,
+                      profileImageUrl: user.profileImageUrl
+                    }}
+                    variant="primary"
+                    size="sm"
+                    showText={true}
+                  />
+                ) : (
+                  <button
+                    onClick={() => handleSendMessage(user.id)}
+                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center justify-center space-x-2"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    <span>Message</span>
+                  </button>
+                )}
                 <button 
                   onClick={() => {
                     // TODO: Navigate to user profile page

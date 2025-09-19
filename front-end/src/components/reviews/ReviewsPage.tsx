@@ -44,7 +44,7 @@ const ReviewsPage: React.FC = () => {
         setReviews(userReviews);
         // Filter sessions that are completed and don't have reviews yet
         const reviewableSessions = userSessions.filter(session => 
-          session.status === 'completed' && 
+          session.status === 4 && // 4=Completed
           !userReviews.some(review => review.sessionId === session.id)
         );
         setSessions(reviewableSessions);
@@ -66,7 +66,7 @@ const ReviewsPage: React.FC = () => {
     return matchesSearch && matchesRating;
   });
 
-  const handleDeleteReview = async (reviewId: string) => {
+  const handleDeleteReview = async (reviewId: number) => {
     if (!confirm('Are you sure you want to delete this review?')) return;
     
     try {
@@ -83,7 +83,7 @@ const ReviewsPage: React.FC = () => {
     if (!user) return;
 
     const formData = new FormData(e.currentTarget as HTMLFormElement);
-    const sessionId = formData.get('sessionId') as string;
+    const sessionId = parseInt(formData.get('sessionId') as string);
     const selectedSession = sessions.find(s => s.id === sessionId);
     
     if (!selectedSession) {

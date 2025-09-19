@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SkillSwap.Core.DTOs;
 using SkillSwap.Core.Interfaces.Services;
+using SkillSwap.Infrastructure.Hubs;
 using System.Security.Claims;
 
 namespace SkillSwap.API.Controllers;
@@ -548,6 +549,94 @@ public class UsersController : ControllerBase
             return StatusCode(500, new { message = "An unexpected error occurred" });
         }
     }
+
+    /// <summary>
+    /// Get list of online users
+    /// </summary>
+    [HttpGet("online")]
+    public ActionResult<object> GetOnlineUsers()
+    {
+        try
+        {
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(currentUserId))
+            {
+                return Unauthorized();
+            }
+
+            var onlineUsers = NotificationHub.GetAllOnlineUsers()
+                .Where(u => u.UserId != currentUserId) // Exclude current user
+                .Select(u => new
+                {
+                    userId = u.UserId,
+                    email = u.Email,
+                    firstName = u.FirstName,
+                    lastName = u.LastName,
+                    connectedAt = u.ConnectedAt,
+                    lastSeen = u.LastSeen
+                })
+                .ToList();
+
+            return Ok(new
+            {
+                onlineUsers,
+                count = onlineUsers.Count
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting online users");
+            return StatusCode(500, new { message = "An unexpected error occurred" });
+        }
+    }
+
+    /// <summary>
+    /// Update notification settings
+    /// </summary>
+    [HttpPut("notification-settings")]
+    public async Task<ActionResult> UpdateNotificationSettings([FromBody] UpdateNotificationSettingsDto settingsDto)
+    {
+        try
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            await _userService.UpdateNotificationSettingsAsync(userId, settingsDto);
+            return Ok(new { message = "Notification settings updated successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating notification settings");
+            return StatusCode(500, new { message = "An unexpected error occurred" });
+        }
+    }
+
+    /// <summary>
+    /// Update privacy settings
+    /// </summary>
+    [HttpPut("privacy-settings")]
+    public async Task<ActionResult> UpdatePrivacySettings([FromBody] UpdatePrivacySettingsDto settingsDto)
+    {
+        try
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            await _userService.UpdatePrivacySettingsAsync(userId, settingsDto);
+            return Ok(new { message = "Privacy settings updated successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating privacy settings");
+            return StatusCode(500, new { message = "An unexpected error occurred" });
+        }
+    }
 }
 
 public class ChangePasswordDto
@@ -578,4 +667,23 @@ public class DeductCreditsDto
 public class UseReferralCodeDto
 {
     public string ReferralCode { get; set; } = string.Empty;
+}
+
+public class UpdateNotificationSettingsDto
+{
+    public bool EmailNotifications { get; set; } = true;
+    public bool PushNotifications { get; set; } = true;
+    public bool SessionReminders { get; set; } = true;
+    public bool MessageNotifications { get; set; } = true;
+    public bool ReviewNotifications { get; set; } = true;
+    public bool MarketingEmails { get; set; } = false;
+}
+
+public class UpdatePrivacySettingsDto
+{
+    public string ProfileVisibility { get; set; } = "public"; // public, members, private
+    public bool ShowEmail { get; set; } = false;
+    public bool ShowLocation { get; set; } = true;
+    public bool ShowSessions { get; set; } = true;
+    public bool AllowMessages { get; set; } = true;
 }

@@ -10,7 +10,7 @@ export interface Session {
   actualStart?: string;
   actualEnd?: string;
   creditsCost: number;
-  status: 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled';
+  status: number; // 1=Pending, 2=Confirmed, 3=InProgress, 4=Completed, 5=Cancelled, 6=Disputed
   notes?: string;
   meetingLink?: string;
   isOnline: boolean;
@@ -193,7 +193,7 @@ class SessionsService {
     return response.data;
   }
 
-  async getSessionsByStatus(status: 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled'): Promise<Session[]> {
+  async getSessionsByStatus(status: number): Promise<Session[]> {
     const response = await api.get<Session[]>(`/sessions/status/${status}`);
     return response.data;
   }

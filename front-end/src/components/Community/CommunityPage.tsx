@@ -12,8 +12,11 @@ import {
 } from 'lucide-react';
 import { UserSkill, skillsService } from '../../services/skillsService';
 import { userService, User as UserType } from '../../services/userService';
+import ConnectionButton from '../connections/ConnectionButton';
+import { useAuth } from '../../contexts/AuthContext';
 
 const CommunityPage: React.FC = () => {
+  const { user: currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState<'users' | 'skills' | 'trending'>('users');
   const [users, setUsers] = useState<UserType[]>([]);
   const [skills, setSkills] = useState<UserSkill[]>([]);
@@ -220,10 +223,24 @@ const CommunityPage: React.FC = () => {
                   </div>
                 </div>
                 
-                <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center justify-center space-x-2">
-                  <MessageCircle className="h-4 w-4" />
-                  <span>Connect</span>
-                </button>
+                {currentUser && user.id !== currentUser.id ? (
+                  <ConnectionButton
+                    targetUser={{
+                      id: user.id,
+                      firstName: user.firstName,
+                      lastName: user.lastName,
+                      profileImageUrl: user.profileImageUrl
+                    }}
+                    variant="primary"
+                    size="sm"
+                    showText={true}
+                  />
+                ) : (
+                  <button className="w-full bg-gray-400 text-white py-2 px-4 rounded-lg cursor-not-allowed text-sm flex items-center justify-center space-x-2">
+                    <MessageCircle className="h-4 w-4" />
+                    <span>Connect</span>
+                  </button>
+                )}
               </div>
             </div>
           ))}

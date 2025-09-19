@@ -390,4 +390,22 @@ public class UserService : IUserService
     {
         return await _unitOfWork.Reviews.CountAsync(r => r.RevieweeId == userId && r.IsVisible);
     }
+
+    public async Task<bool> UpdateNotificationSettingsAsync(string userId, object settings)
+    {
+        // For now, this is a placeholder implementation
+        // In a real application, you would store these settings in a separate table
+        // or as JSON in the user profile
+        await Task.Delay(1); // Simulate async operation
+        return true;
+    }
+
+    public async Task<bool> UpdatePrivacySettingsAsync(string userId, object settings)
+    {
+        // For now, this is a placeholder implementation
+        // In a real application, you would store these settings in a separate table
+        // or as JSON in the user profile
+        await Task.Delay(1); // Simulate async operation
+        return true;
+    }
 }

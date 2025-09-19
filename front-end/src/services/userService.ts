@@ -25,7 +25,10 @@ export interface UpdateUserRequest {
   lastName?: string;
   bio?: string;
   location?: string;
-  languages?: string[];
+  dateOfBirth?: string;
+  profileImageUrl?: string;
+  timeZone?: string;
+  preferredLanguage?: string;
 }
 
 export interface ChangePasswordRequest {
@@ -97,8 +100,8 @@ class UserService {
     return response.data;
   }
 
-  async getUserCredits(userId: string): Promise<{ balance: number; earned: number; spent: number; pending: number }> {
-    const response = await api.get<{ balance: number; earned: number; spent: number; pending: number }>(`/users/${userId}/credits`);
+  async getUserCredits(userId: string): Promise<{ balance: number }> {
+    const response = await api.get<{ balance: number }>(`/users/${userId}/credits`);
     return response.data;
   }
 }

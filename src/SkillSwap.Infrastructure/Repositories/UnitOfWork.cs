@@ -29,6 +29,7 @@ public class UnitOfWork : IUnitOfWork
         GroupEventParticipants = new Repository<GroupEventParticipant>(_context);
         SessionMessages = new Repository<SessionMessage>(_context);
         AuditLogs = new Repository<AuditLog>(_context);
+        UserConnections = new Repository<UserConnection>(_context);
     }
 
     public IRepository<User> Users { get; }
@@ -47,6 +48,7 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<GroupEventParticipant> GroupEventParticipants { get; }
     public IRepository<SessionMessage> SessionMessages { get; }
     public IRepository<AuditLog> AuditLogs { get; }
+    public IRepository<UserConnection> UserConnections { get; }
 
     public async Task<int> SaveChangesAsync()
     {

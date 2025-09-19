@@ -31,8 +31,12 @@ public class MessageService : IMessageService
             .Select(g => new ConversationDto
             {
                 OtherUserId = g.Key,
-                OtherUserName = g.First().SenderId == userId ? g.First().Receiver.FirstName + " " + g.First().Receiver.LastName : g.First().Sender.FirstName + " " + g.First().Sender.LastName,
-                OtherUserProfileImage = g.First().SenderId == userId ? g.First().Receiver.ProfileImageUrl : g.First().Sender.ProfileImageUrl,
+                OtherUserName = g.First().SenderId == userId ? 
+                    $"{g.First().Receiver.FirstName} {g.First().Receiver.LastName}" : 
+                    $"{g.First().Sender.FirstName} {g.First().Sender.LastName}",
+                OtherUserProfileImage = g.First().SenderId == userId ? 
+                    g.First().Receiver.ProfileImageUrl : 
+                    g.First().Sender.ProfileImageUrl,
                 LastMessage = g.OrderByDescending(m => m.SentAt).First().Content,
                 LastMessageTime = g.OrderByDescending(m => m.SentAt).First().SentAt,
                 UnreadCount = g.Count(m => m.ReceiverId == userId && !m.IsRead)
@@ -47,7 +51,10 @@ public class MessageService : IMessageService
     {
         var messages = await _unitOfWork.Messages.FindAsync(m => 
             (m.SenderId == userId && m.ReceiverId == otherUserId) || 
-            (m.SenderId == otherUserId && m.ReceiverId == userId));
+            (m.SenderId == otherUserId && m.ReceiverId == userId),
+            m => m.Sender,
+            m => m.Receiver,
+            m => m.Session);
 
         var paginatedMessages = messages
             .OrderBy(m => m.SentAt)
@@ -67,22 +74,34 @@ public class MessageService : IMessageService
         await _unitOfWork.Messages.AddAsync(message);
         await _unitOfWork.SaveChangesAsync();
 
-        return _mapper.Map<MessageDto>(message);
+        // Load the message with navigation properties
+        var messageWithNav = await _unitOfWork.Messages.FindAsync(
+            m => m.Id == message.Id,
+            m => m.Sender,
+            m => m.Receiver,
+            m => m.Session
+        );
+
+        return _mapper.Map<MessageDto>(messageWithNav.First());
     }
 
-    public async Task MarkMessagesAsReadAsync(string userId, string senderId)
+    public async Task<IEnumerable<int>> MarkMessagesAsReadAsync(string userId, string senderId)
     {
         var unreadMessages = await _unitOfWork.Messages.FindAsync(m => 
             m.ReceiverId == userId && m.SenderId == senderId && !m.IsRead);
 
+        var messageIds = unreadMessages.Select(m => m.Id).ToList();
+        var readAt = DateTime.UtcNow;
+        
         foreach (var message in unreadMessages)
         {
             message.IsRead = true;
-            message.ReadAt = DateTime.UtcNow;
+            message.ReadAt = readAt;
             await _unitOfWork.Messages.UpdateAsync(message);
         }
 
         await _unitOfWork.SaveChangesAsync();
+        return messageIds;
     }
 
     public async Task<int> GetUnreadMessageCountAsync(string userId)

@@ -6,6 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SkillSwap - Learn & Teach Skills Together</title>
     <meta name="description" content="Exchange skills and knowledge with others through time credits. Learn new skills while teaching what you know best.">
+    <!-- Content Security Policy - Allow SignalR to work -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self' 'unsafe-eval' 'unsafe-inline' https://unpkg.com;
+      style-src 'self' 'unsafe-inline';
+      img-src 'self' data: https:;
+      connect-src 'self' ws: wss: http://localhost:51423 https://localhost:51423;
+      font-src 'self' data:;
+      object-src 'none';
+      base-uri 'self';
+      form-action 'self';
+    ">
   </head>
   <body>
     <div id="root"></div>

@@ -12,8 +12,9 @@ using SkillSwap.Infrastructure.Data;
 using SkillSwap.Infrastructure.Mapping;
 using SkillSwap.Infrastructure.Repositories;
 using SkillSwap.Infrastructure.Services;
-using SkillSwap.API.Hubs;
+using SkillSwap.Infrastructure.Hubs;
 using SkillSwap.API.Data;
+using SkillSwap.API.Services;
 using SendGrid;
 using System.Text;
 
@@ -123,6 +124,22 @@ builder.Services.AddAuthentication(options =>
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero
     };
+    
+    // Configure JWT for SignalR
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/notificationHub"))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
+    };
 });
 
 // Add Authorization
@@ -163,8 +180,10 @@ builder.Services.AddScoped<ICreditService, CreditService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IMatchingService, MatchingService>();
+builder.Services.AddScoped<IConnectionService, ConnectionService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<ISignalRNotificationService, SignalRNotificationService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 
 // Add HTTP context accessor
@@ -185,6 +204,24 @@ if (app.Environment.IsDevelopment())
 
 // CORS must be before HTTPS redirection
 app.UseCors("AllowAll");
+
+// Add Content Security Policy headers for SignalR
+app.Use(async (context, next) =>
+{
+    // Allow SignalR to work with CSP
+    context.Response.Headers.Add("Content-Security-Policy", 
+        "default-src 'self'; " +
+        "script-src 'self' 'unsafe-eval' 'unsafe-inline'; " +
+        "style-src 'self' 'unsafe-inline'; " +
+        "img-src 'self' data: https:; " +
+        "connect-src 'self' ws: wss: http://localhost:5173 https://localhost:5173; " +
+        "font-src 'self' data:; " +
+        "object-src 'none'; " +
+        "base-uri 'self'; " +
+        "form-action 'self'");
+    
+    await next();
+});
 
 // Only use HTTPS redirection in production
 if (!app.Environment.IsDevelopment())

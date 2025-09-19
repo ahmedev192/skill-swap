@@ -101,9 +101,9 @@ class MessagesService {
     return response.data;
   }
 
-  async getConversation(otherUserId: string, page: number = 1, pageSize: number = 50): Promise<Message[]> {
+  async getConversation(otherUserId: string, page: number = 1, pageSize: number = 50, markAsRead: boolean = true): Promise<Message[]> {
     const response = await api.get<Message[]>(`/messages/conversation/${otherUserId}`, {
-      params: { page, pageSize }
+      params: { page, pageSize, markAsRead }
     });
     return response.data;
   }

@@ -20,6 +20,7 @@ public interface IUnitOfWork : IDisposable
     IRepository<GroupEventParticipant> GroupEventParticipants { get; }
     IRepository<SessionMessage> SessionMessages { get; }
     IRepository<AuditLog> AuditLogs { get; }
+    IRepository<UserConnection> UserConnections { get; }
 
     Task<int> SaveChangesAsync();
     Task BeginTransactionAsync();

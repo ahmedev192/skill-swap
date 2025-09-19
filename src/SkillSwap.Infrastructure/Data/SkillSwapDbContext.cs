@@ -25,6 +25,7 @@ public class SkillSwapDbContext : IdentityDbContext<User>
     public DbSet<GroupEventParticipant> GroupEventParticipants { get; set; }
     public DbSet<SessionMessage> SessionMessages { get; set; }
     public DbSet<AuditLog> AuditLogs { get; set; }
+    public DbSet<UserConnection> UserConnections { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -259,6 +260,23 @@ public class SkillSwapDbContext : IdentityDbContext<User>
                 .HasForeignKey(al => al.UserId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+        });
+
+        // Configure UserConnection entity
+        builder.Entity<UserConnection>(entity =>
+        {
+            entity.HasOne(uc => uc.Requester)
+                .WithMany(u => u.ConnectionRequestsSent)
+                .HasForeignKey(uc => uc.RequesterId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(uc => uc.Receiver)
+                .WithMany(u => u.ConnectionRequestsReceived)
+                .HasForeignKey(uc => uc.ReceiverId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(uc => new { uc.RequesterId, uc.ReceiverId }).IsUnique();
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
         });
 

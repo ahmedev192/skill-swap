@@ -69,5 +69,9 @@ public class MappingProfile : Profile
 
         // Audit Log mappings
         CreateMap<AuditLog, AuditLogDto>();
+
+        // User Connection mappings
+        CreateMap<UserConnection, UserConnectionDto>()
+            .ForMember(dest => dest.StatusText, opt => opt.MapFrom(src => src.Status.ToString()));
     }
 }

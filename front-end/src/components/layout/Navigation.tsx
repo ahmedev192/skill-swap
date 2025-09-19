@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useMessaging } from '../../contexts/MessagingContext';
 import { 
   Menu, 
   X, 
@@ -18,7 +19,8 @@ import {
   Users,
   Star,
   Shield,
-  BookOpen
+  BookOpen,
+  UserPlus
 } from 'lucide-react';
 import { notificationsService } from '../../services/notificationsService';
 
@@ -30,6 +32,7 @@ interface NavigationProps {
 const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) => {
   const { user, logout } = useAuth();
   const { isDarkMode, toggleTheme } = useTheme();
+  const { unreadCount: messageUnreadCount } = useMessaging();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -54,6 +57,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'community', label: 'Community', icon: Users },
+    { id: 'connections', label: 'Connections', icon: UserPlus },
     { id: 'skills', label: 'Discover Skills', icon: Search },
     { id: 'chat', label: 'Messages', icon: MessageCircle },
     { id: 'bookings', label: 'Bookings', icon: Calendar },
@@ -90,7 +94,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
                   <button
                     key={item.id}
                     onClick={() => onViewChange(item.id)}
-                    className={`px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-2 transition-colors ${
+                    className={`px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-2 transition-colors relative ${
                       currentView === item.id
                         ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
                         : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
@@ -98,6 +102,11 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
                   >
                     <Icon size={18} />
                     <span>{item.label}</span>
+                    {item.id === 'chat' && messageUnreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                        {messageUnreadCount > 99 ? '99+' : messageUnreadCount}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -175,7 +184,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
                     onViewChange(item.id);
                     setIsMenuOpen(false);
                   }}
-                  className={`w-full text-left px-3 py-2 rounded-md text-base font-medium flex items-center space-x-3 transition-colors ${
+                  className={`w-full text-left px-3 py-2 rounded-md text-base font-medium flex items-center space-x-3 transition-colors relative ${
                     currentView === item.id
                       ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
                       : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
@@ -183,6 +192,11 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
                 >
                   <Icon size={20} />
                   <span>{item.label}</span>
+                  {item.id === 'chat' && messageUnreadCount > 0 && (
+                    <span className="absolute right-3 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {messageUnreadCount > 99 ? '99+' : messageUnreadCount}
+                    </span>
+                  )}
                 </button>
               );
             })}

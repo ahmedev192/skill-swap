@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { MessagingProvider } from './contexts/MessagingContext';
+import { ConnectionProvider } from './contexts/ConnectionContext';
 import Navigation from './components/layout/Navigation';
 import LoginForm from './components/auth/LoginForm';
 import RegisterForm from './components/auth/RegisterForm';
@@ -18,6 +20,7 @@ import BookSessionPage from './components/sessions/BookSessionPage';
 import ManageSkillsPage from './components/skills/ManageSkillsPage';
 import SettingsPage from './components/settings/SettingsPage';
 import CommunityPage from './components/community/CommunityPage';
+import ConnectionsPage from './components/connections/ConnectionsPage';
 
 const AppContent: React.FC = () => {
   const { user, isLoading } = useAuth();
@@ -55,7 +58,7 @@ const AppContent: React.FC = () => {
       case 'wallet':
         return <WalletPage />;
       case 'chat':
-        return <ChatPage />;
+        return <ChatPage onViewChange={setCurrentView} />;
       case 'bookings':
         return <BookingsPage />;
       case 'admin':
@@ -74,6 +77,8 @@ const AppContent: React.FC = () => {
         return <SettingsPage />;
       case 'community':
         return <CommunityPage />;
+      case 'connections':
+        return <ConnectionsPage onViewChange={setCurrentView} />;
       default:
         return <Dashboard onViewChange={setCurrentView} />;
     }
@@ -93,7 +98,11 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppContent />
+        <MessagingProvider>
+          <ConnectionProvider>
+            <AppContent />
+          </ConnectionProvider>
+        </MessagingProvider>
       </AuthProvider>
     </ThemeProvider>
   );

@@ -54,6 +54,8 @@ public class User : IdentityUser
     public virtual ICollection<Badge> Badges { get; set; } = new List<Badge>();
     public virtual ICollection<GroupEvent> GroupEvents { get; set; } = new List<GroupEvent>();
     public virtual ICollection<GroupEventParticipant> GroupEventParticipants { get; set; } = new List<GroupEventParticipant>();
+    public virtual ICollection<UserConnection> ConnectionRequestsSent { get; set; } = new List<UserConnection>();
+    public virtual ICollection<UserConnection> ConnectionRequestsReceived { get; set; } = new List<UserConnection>();
 
     // JWT Refresh Token properties
     public string? RefreshToken { get; set; }

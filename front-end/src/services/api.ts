@@ -47,7 +47,17 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
       window.location.href = '/login';
+    } else if (error.response?.status === 403) {
+      // Forbidden - user doesn't have permission
+      console.warn('Access forbidden:', error.response.data?.message || 'You do not have permission to perform this action');
+    } else if (error.response?.status === 404) {
+      // Not found
+      console.warn('Resource not found:', error.response.data?.message || 'The requested resource was not found');
+    } else if (error.response?.status >= 500) {
+      // Server error
+      console.error('Server error:', error.response.data?.message || 'An internal server error occurred');
     }
+    
     return Promise.reject(error);
   }
 );
