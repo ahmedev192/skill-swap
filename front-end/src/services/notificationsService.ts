@@ -1,4 +1,5 @@
 import api from './api';
+import { messageErrorHandler } from '../utils/messageErrorHandler';
 
 export interface Notification {
   id: number;
@@ -44,31 +45,65 @@ export interface CreateNotificationRequest {
 
 class NotificationsService {
   async getNotifications(): Promise<Notification[]> {
-    const response = await api.get<Notification[]>('/notifications');
-    return response.data;
+    try {
+      const response = await api.get<Notification[]>('/notifications');
+      return response.data;
+    } catch (error) {
+      messageErrorHandler.handleError(error, 'getNotifications', 'notification');
+      throw error;
+    }
   }
 
   async getUserNotifications(unreadOnly: boolean = false): Promise<Notification[]> {
-    const response = await api.get<Notification[]>(`/notifications?unreadOnly=${unreadOnly}`);
-    return response.data;
+    try {
+      const response = await api.get<Notification[]>(`/notifications?unreadOnly=${unreadOnly}`);
+      return response.data;
+    } catch (error) {
+      messageErrorHandler.handleError(error, 'getUserNotifications', 'notification');
+      throw error;
+    }
   }
 
   async getUnreadNotifications(): Promise<Notification[]> {
-    const response = await api.get<Notification[]>(`/notifications?unreadOnly=true`);
-    return response.data;
+    try {
+      const response = await api.get<Notification[]>(`/notifications?unreadOnly=true`);
+      return response.data;
+    } catch (error) {
+      messageErrorHandler.handleError(error, 'getUnreadNotifications', 'notification');
+      throw error;
+    }
   }
 
   async markAsRead(id: number): Promise<void> {
-    await api.post(`/notifications/${id}/mark-read`);
+    try {
+      if (!id || id <= 0) {
+        throw new Error('Invalid notification ID');
+      }
+
+      await api.post(`/notifications/${id}/mark-read`);
+    } catch (error) {
+      messageErrorHandler.handleError(error, 'markAsRead', 'notification');
+      throw error;
+    }
   }
 
   async markAllAsRead(): Promise<void> {
-    await api.post('/notifications/mark-all-read');
+    try {
+      await api.post('/notifications/mark-all-read');
+    } catch (error) {
+      messageErrorHandler.handleError(error, 'markAllAsRead', 'notification');
+      throw error;
+    }
   }
 
   async getUnreadCount(): Promise<{ unreadCount: number }> {
-    const response = await api.get<{ unreadCount: number }>('/notifications/unread-count');
-    return response.data;
+    try {
+      const response = await api.get<{ unreadCount: number }>('/notifications/unread-count');
+      return response.data;
+    } catch (error) {
+      messageErrorHandler.handleError(error, 'getUnreadCount', 'notification');
+      throw error;
+    }
   }
 }
 

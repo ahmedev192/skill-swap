@@ -1,4 +1,5 @@
 using SkillSwap.Core.Entities;
+using System.ComponentModel.DataAnnotations;
 
 namespace SkillSwap.Core.DTOs;
 
@@ -21,10 +22,19 @@ public class MessageDto
 
 public class CreateMessageDto
 {
+    [Required]
+    [StringLength(450, MinimumLength = 1)]
     public string ReceiverId { get; set; } = string.Empty;
+    
+    [Required]
+    [StringLength(1000, MinimumLength = 1)]
     public string Content { get; set; } = string.Empty;
+    
     public int? SessionId { get; set; }
+    
     public MessageType Type { get; set; } = MessageType.Text;
+    
+    [StringLength(500)]
     public string? AttachmentUrl { get; set; }
 }
 

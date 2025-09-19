@@ -1,0 +1,110 @@
+### Test Messaging and Notifications API Endpoints
+### Make sure to replace the base URL and token with your actual values
+
+@baseUrl = https://localhost:7001/api
+@token = your-jwt-token-here
+
+### 1. Test Get Conversations
+GET {{baseUrl}}/messages/conversations
+Authorization: Bearer {{token}}
+
+### 2. Test Get Conversation with User
+GET {{baseUrl}}/messages/conversation/user123
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### 3. Test Send Message
+POST {{baseUrl}}/messages
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "receiverId": "user123",
+  "content": "Hello! This is a test message.",
+  "type": 1
+}
+
+### 4. Test Send Message with Invalid Data (should return 400)
+POST {{baseUrl}}/messages
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "receiverId": "",
+  "content": "",
+  "type": 1
+}
+
+### 5. Test Send Message to Self (should return 400)
+POST {{baseUrl}}/messages
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "receiverId": "current-user-id",
+  "content": "Trying to send to myself",
+  "type": 1
+}
+
+### 6. Test Mark Messages as Read
+POST {{baseUrl}}/messages/mark-read
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "senderId": "user123"
+}
+
+### 7. Test Get Unread Message Count
+GET {{baseUrl}}/messages/unread-count
+Authorization: Bearer {{token}}
+
+### 8. Test Get Notifications
+GET {{baseUrl}}/notifications
+Authorization: Bearer {{token}}
+
+### 9. Test Get Unread Notifications Only
+GET {{baseUrl}}/notifications?unreadOnly=true
+Authorization: Bearer {{token}}
+
+### 10. Test Mark Notification as Read
+POST {{baseUrl}}/notifications/1/mark-read
+Authorization: Bearer {{token}}
+
+### 11. Test Mark All Notifications as Read
+POST {{baseUrl}}/notifications/mark-all-read
+Authorization: Bearer {{token}}
+
+### 12. Test Get Unread Notification Count
+GET {{baseUrl}}/notifications/unread-count
+Authorization: Bearer {{token}}
+
+### 13. Test Invalid Notification ID (should return 400)
+POST {{baseUrl}}/notifications/0/mark-read
+Authorization: Bearer {{token}}
+
+### 14. Test Unauthorized Access (should return 401)
+GET {{baseUrl}}/messages/conversations
+
+### 15. Test Invalid User ID in Conversation (should return 400)
+GET {{baseUrl}}/messages/conversation/
+Authorization: Bearer {{token}}
+
+### 16. Test Message with Too Long Content (should return 400)
+POST {{baseUrl}}/messages
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "receiverId": "user123",
+  "content": "This is a very long message that exceeds the 1000 character limit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incididunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim ad minima veniam, quis nostrud exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur? Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla pariatur?",
+  "type": 1
+}
+
+### 17. Test Pagination Parameters
+GET {{baseUrl}}/messages/conversation/user123?page=2&pageSize=25&markAsRead=false
+Authorization: Bearer {{token}}
+
+### 18. Test Invalid Pagination (should be handled gracefully)
+GET {{baseUrl}}/messages/conversation/user123?page=0&pageSize=200
+Authorization: Bearer {{token}}

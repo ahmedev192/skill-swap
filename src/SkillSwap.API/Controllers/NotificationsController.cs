@@ -3,18 +3,19 @@ using Microsoft.AspNetCore.Mvc;
 using SkillSwap.Core.DTOs;
 using SkillSwap.Core.Interfaces.Services;
 using System.Security.Claims;
+using System.ComponentModel.DataAnnotations;
 
 namespace SkillSwap.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class NotificationsController : ControllerBase
+public class NotificationsController : BaseController
 {
     private readonly INotificationService _notificationService;
     private readonly ILogger<NotificationsController> _logger;
 
-    public NotificationsController(INotificationService notificationService, ILogger<NotificationsController> logger)
+    public NotificationsController(INotificationService notificationService, ILogger<NotificationsController> logger) : base(logger)
     {
         _notificationService = notificationService;
         _logger = logger;
@@ -28,19 +29,19 @@ public class NotificationsController : ControllerBase
     {
         try
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId))
+            var authResult = ValidateAuthentication();
+            if (authResult is not OkResult)
             {
-                return Unauthorized();
+                return authResult;
             }
 
-            var notifications = await _notificationService.GetUserNotificationsAsync(userId, unreadOnly);
+            var userId = GetCurrentUserId();
+            var notifications = await _notificationService.GetUserNotificationsAsync(userId!, unreadOnly);
             return Ok(notifications);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting notifications");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get notifications", new { unreadOnly });
         }
     }
 
@@ -52,19 +53,19 @@ public class NotificationsController : ControllerBase
     {
         try
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId))
+            var authResult = ValidateAuthentication();
+            if (authResult is not OkResult)
             {
-                return Unauthorized();
+                return authResult;
             }
 
-            var count = await _notificationService.GetUnreadNotificationCountAsync(userId);
+            var userId = GetCurrentUserId();
+            var count = await _notificationService.GetUnreadNotificationCountAsync(userId!);
             return Ok(new { unreadCount = count });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting unread count");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get unread count");
         }
     }
 
@@ -72,21 +73,31 @@ public class NotificationsController : ControllerBase
     /// Mark notification as read
     /// </summary>
     [HttpPost("{id}/mark-read")]
-    public async Task<ActionResult> MarkAsRead(int id)
+    public async Task<ActionResult> MarkAsRead([Required] int id)
     {
         try
         {
+            var authResult = ValidateAuthentication();
+            if (authResult is not OkResult)
+            {
+                return authResult;
+            }
+
+            if (id <= 0)
+            {
+                return BadRequest("Invalid notification ID", "INVALID_NOTIFICATION_ID");
+            }
+
             var result = await _notificationService.MarkNotificationAsReadAsync(id);
             if (result)
             {
-                return Ok(new { message = "Notification marked as read" });
+                return Ok(new { message = "Notification marked as read", notificationId = id });
             }
-            return NotFound(new { message = "Notification not found" });
+            return NotFound("Notification not found", "NOTIFICATION_NOT_FOUND", new { notificationId = id });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error marking notification {NotificationId} as read", id);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "mark notification as read", new { notificationId = id });
         }
     }
 
@@ -98,19 +109,19 @@ public class NotificationsController : ControllerBase
     {
         try
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId))
+            var authResult = ValidateAuthentication();
+            if (authResult is not OkResult)
             {
-                return Unauthorized();
+                return authResult;
             }
 
-            await _notificationService.MarkAllNotificationsAsReadAsync(userId);
+            var userId = GetCurrentUserId();
+            await _notificationService.MarkAllNotificationsAsReadAsync(userId!);
             return Ok(new { message = "All notifications marked as read" });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error marking all notifications as read");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "mark all notifications as read");
         }
     }
 }

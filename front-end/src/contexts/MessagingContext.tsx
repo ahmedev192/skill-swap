@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
+import { useErrorContext } from './ErrorContext';
 import { signalRService, SignalRMessage, SignalRConversation, OnlineUser } from '../services/signalRService';
 import { messagesService, Message, Conversation } from '../services/messagesService';
 import { onlineUsersService } from '../services/onlineUsersService';
+import { messageErrorHandler } from '../utils/messageErrorHandler';
 
 interface MessagingContextType {
   // Connection state
@@ -39,6 +41,7 @@ interface MessagingProviderProps {
 
 export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }) => {
   const { user } = useAuth();
+  const { addNotification } = useErrorContext();
   const [isConnected, setIsConnected] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -52,6 +55,11 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
   const userOnlineCallbacks = useRef<((user: OnlineUser) => void)[]>([]);
   const userOfflineCallbacks = useRef<((user: OnlineUser) => void)[]>([]);
   const onlineUsersChangedCallbacks = useRef<((users: OnlineUser[]) => void)[]>([]);
+
+  // Initialize error handler
+  useEffect(() => {
+    messageErrorHandler.setErrorContext({ addNotification });
+  }, [addNotification]);
 
   // Initialize SignalR connection
   useEffect(() => {

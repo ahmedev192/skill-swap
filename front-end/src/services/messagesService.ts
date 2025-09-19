@@ -1,4 +1,5 @@
 import api from './api';
+import { messageErrorHandler } from '../utils/messageErrorHandler';
 
 export interface Message {
   id: number;
@@ -97,29 +98,74 @@ export interface MarkMessagesReadRequest {
 
 class MessagesService {
   async getConversations(): Promise<Conversation[]> {
-    const response = await api.get<Conversation[]>('/messages/conversations');
-    return response.data;
+    try {
+      const response = await api.get<Conversation[]>('/messages/conversations');
+      return response.data;
+    } catch (error) {
+      messageErrorHandler.handleError(error, 'getConversations', 'message');
+      throw error;
+    }
   }
 
   async getConversation(otherUserId: string, page: number = 1, pageSize: number = 50, markAsRead: boolean = true): Promise<Message[]> {
-    const response = await api.get<Message[]>(`/messages/conversation/${otherUserId}`, {
-      params: { page, pageSize, markAsRead }
-    });
-    return response.data;
+    try {
+      if (!otherUserId || otherUserId.trim() === '') {
+        throw new Error('Other user ID is required');
+      }
+
+      const response = await api.get<Message[]>(`/messages/conversation/${otherUserId}`, {
+        params: { page, pageSize, markAsRead }
+      });
+      return response.data;
+    } catch (error) {
+      messageErrorHandler.handleError(error, 'getConversation', 'message');
+      throw error;
+    }
   }
 
   async sendMessage(messageData: CreateMessageRequest): Promise<Message> {
-    const response = await api.post<Message>('/messages', messageData);
-    return response.data;
+    try {
+      if (!messageData.receiverId || messageData.receiverId.trim() === '') {
+        throw new Error('Receiver ID is required');
+      }
+
+      if (!messageData.content || messageData.content.trim() === '') {
+        throw new Error('Message content is required');
+      }
+
+      if (messageData.content.length > 1000) {
+        throw new Error('Message content cannot exceed 1000 characters');
+      }
+
+      const response = await api.post<Message>('/messages', messageData);
+      return response.data;
+    } catch (error) {
+      messageErrorHandler.handleError(error, 'sendMessage', 'message');
+      throw error;
+    }
   }
 
   async markMessagesAsRead(markReadData: MarkMessagesReadRequest): Promise<void> {
-    await api.post('/messages/mark-read', markReadData);
+    try {
+      if (!markReadData.senderId || markReadData.senderId.trim() === '') {
+        throw new Error('Sender ID is required');
+      }
+
+      await api.post('/messages/mark-read', markReadData);
+    } catch (error) {
+      messageErrorHandler.handleError(error, 'markMessagesAsRead', 'message');
+      throw error;
+    }
   }
 
   async getUnreadCount(): Promise<{ unreadCount: number }> {
-    const response = await api.get<{ unreadCount: number }>('/messages/unread-count');
-    return response.data;
+    try {
+      const response = await api.get<{ unreadCount: number }>('/messages/unread-count');
+      return response.data;
+    } catch (error) {
+      messageErrorHandler.handleError(error, 'getUnreadCount', 'message');
+      throw error;
+    }
   }
 }
 

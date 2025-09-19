@@ -54,7 +54,7 @@ const NotificationsPage: React.FC = () => {
     return matchesType && matchesStatus;
   });
 
-  const handleMarkAsRead = async (notificationId: string) => {
+  const handleMarkAsRead = async (notificationId: number) => {
     try {
       await notificationsService.markAsRead(notificationId);
       setNotifications(notifications.map(n => 
@@ -62,6 +62,7 @@ const NotificationsPage: React.FC = () => {
       ));
     } catch (error) {
       console.error('Error marking notification as read:', error);
+      alert('Failed to mark notification as read. Please try again.');
     }
   };
 
@@ -71,6 +72,7 @@ const NotificationsPage: React.FC = () => {
       setNotifications(notifications.map(n => ({ ...n, isRead: true })));
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
+      alert('Failed to mark all notifications as read. Please try again.');
     }
   };
 

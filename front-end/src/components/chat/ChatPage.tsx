@@ -190,6 +190,8 @@ const ChatPage: React.FC<ChatPageProps> = ({ onViewChange }) => {
         scrollToBottom();
       } catch (error) {
         console.error('Error sending message:', error);
+        // Show user-friendly error message
+        alert('Failed to send message. Please try again.');
       }
     }
   };
