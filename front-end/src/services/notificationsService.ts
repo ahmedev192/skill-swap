@@ -1,20 +1,41 @@
 import api from './api';
 
 export interface Notification {
-  id: string;
+  id: number;
   userId: string;
-  type: 'SessionRequest' | 'SessionConfirmed' | 'SessionCancelled' | 'Message' | 'Review' | 'System';
   title: string;
   message: string;
+  type: number; // 1=SessionRequest, 2=SessionConfirmed, 3=SessionReminder, 4=SessionCompleted, 5=NewMessage, 6=NewReview, 7=CreditEarned, 8=CreditSpent, 9=System, 10=MatchFound, 11=GroupEvent
   isRead: boolean;
   createdAt: string;
+  readAt?: string;
+  relatedEntityId?: number;
+  relatedEntityType?: string;
   actionUrl?: string;
-  data?: any;
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    bio?: string;
+    location?: string;
+    dateOfBirth?: string;
+    isEmailVerified: boolean;
+    isIdVerified: boolean;
+    createdAt: string;
+    lastActiveAt?: string;
+    profileImageUrl?: string;
+    timeZone?: string;
+    preferredLanguage?: string;
+    creditBalance: number;
+    averageRating: number;
+    totalReviews: number;
+  };
 }
 
 export interface CreateNotificationRequest {
   userId: string;
-  type: 'SessionRequest' | 'SessionConfirmed' | 'SessionCancelled' | 'Message' | 'Review' | 'System';
+  type: number; // 1=SessionRequest, 2=SessionConfirmed, 3=SessionReminder, 4=SessionCompleted, 5=NewMessage, 6=NewReview, 7=CreditEarned, 8=CreditSpent, 9=System, 10=MatchFound, 11=GroupEvent
   title: string;
   message: string;
   actionUrl?: string;
@@ -37,7 +58,7 @@ class NotificationsService {
     return response.data;
   }
 
-  async markAsRead(id: string): Promise<void> {
+  async markAsRead(id: number): Promise<void> {
     await api.post(`/notifications/${id}/mark-read`);
   }
 

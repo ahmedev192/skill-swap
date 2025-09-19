@@ -10,7 +10,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { sessionsService } from '../../services/sessionsService';
+import { sessionsService, CreateSessionRequest } from '../../services/sessionsService';
 import api from '../../services/api';
 
 interface Skill {
@@ -22,7 +22,7 @@ interface Skill {
 
 interface UserSkill {
   id: number;
-  skill: Skill;
+  skill: Skill | null;
   creditsPerHour: number;
   user: {
     id: string;
@@ -30,7 +30,7 @@ interface UserSkill {
     lastName: string;
     averageRating: number;
     totalReviews: number;
-  };
+  } | null;
 }
 
 interface BookSessionModalProps {
@@ -58,12 +58,10 @@ const BookSessionModal: React.FC<BookSessionModalProps> = ({ isOpen, onClose, on
     const loadAvailableSkills = async () => {
       try {
         setIsLoadingSkills(true);
-        const response = await api.get('/skills');
-        const skills = response.data;
         
-        // Get user skills that are offered (not requested)
-        const userSkillsResponse = await api.get('/skills/user');
-        const userSkills = userSkillsResponse.data.filter((us: any) => us.type === 'Offered');
+        // Get all offered skills from all users
+        const userSkillsResponse = await api.get('/skills/offered');
+        const userSkills = userSkillsResponse.data;
         
         setAvailableSkills(userSkills);
       } catch (error) {
@@ -98,6 +96,11 @@ const BookSessionModal: React.FC<BookSessionModalProps> = ({ isOpen, onClose, on
       return;
     }
 
+    if (!selectedSkill.user?.id) {
+      alert('Invalid skill selection. Please try again.');
+      return;
+    }
+
     if (meetingType === 'online' && !meetingLink) {
       alert('Please provide a meeting link for online sessions');
       return;
@@ -111,16 +114,17 @@ const BookSessionModal: React.FC<BookSessionModalProps> = ({ isOpen, onClose, on
     try {
       setIsLoading(true);
       
-      const sessionData = {
-        userSkillId: selectedSkill.id,
-        scheduledStart: new Date(`${selectedDate}T${selectedTime}:00`).toISOString(),
-        scheduledEnd: new Date(new Date(`${selectedDate}T${selectedTime}:00`).getTime() + duration * 60000).toISOString(),
-        meetingType,
-        meetingLink: meetingType === 'online' ? meetingLink : null,
-        location: meetingType === 'in-person' ? location : null,
-        notes
+      const sessionData: CreateSessionRequest = {
+        TeacherId: selectedSkill.user.id,
+        UserSkillId: selectedSkill.id,
+        ScheduledStart: new Date(`${selectedDate}T${selectedTime}:00`).toISOString(),
+        ScheduledEnd: new Date(new Date(`${selectedDate}T${selectedTime}:00`).getTime() + duration * 60000).toISOString(),
+        IsOnline: meetingType === 'online',
+        Location: meetingType === 'in-person' ? location : undefined,
+        Notes: notes || undefined
       };
 
+      console.log('Sending session data:', sessionData);
       await sessionsService.bookSession(sessionData);
       
       alert('Session booked successfully!');
@@ -128,9 +132,18 @@ const BookSessionModal: React.FC<BookSessionModalProps> = ({ isOpen, onClose, on
       if (onSessionBooked) {
         onSessionBooked();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error booking session:', error);
-      alert('Failed to book session. Please try again.');
+      
+      // Extract error message from response
+      let errorMessage = 'Failed to book session. Please try again.';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(`Error: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }
@@ -175,7 +188,15 @@ const BookSessionModal: React.FC<BookSessionModalProps> = ({ isOpen, onClose, on
                 Select Skill to Learn *
               </label>
               <div className="space-y-2 max-h-48 overflow-y-auto">
-                {availableSkills.map((userSkill) => (
+                {availableSkills.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                    <p>No skills available for booking at the moment.</p>
+                    <p className="text-sm mt-1">Please check back later or contact support.</p>
+                  </div>
+                ) : (
+                  availableSkills
+                    .filter(userSkill => userSkill.skill && userSkill.user) // Filter out any null skills or users
+                    .map((userSkill) => (
                   <div
                     key={userSkill.id}
                     onClick={() => setSelectedSkill(userSkill)}
@@ -188,10 +209,10 @@ const BookSessionModal: React.FC<BookSessionModalProps> = ({ isOpen, onClose, on
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="font-medium text-gray-900 dark:text-white">
-                          {userSkill.skill.name}
+                          {userSkill.skill?.name || 'Unknown Skill'}
                         </h3>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {userSkill.skill.category}
+                          {userSkill.skill?.category || 'No Category'}
                         </p>
                       </div>
                       <div className="text-right">
@@ -201,16 +222,17 @@ const BookSessionModal: React.FC<BookSessionModalProps> = ({ isOpen, onClose, on
                         <div className="flex items-center space-x-1">
                           <Star className="h-3 w-3 text-yellow-400 fill-current" />
                           <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {userSkill.user.averageRating.toFixed(1)} ({userSkill.user.totalReviews})
+                            {userSkill.user?.averageRating?.toFixed(1) || '0.0'} ({userSkill.user?.totalReviews || 0})
                           </span>
                         </div>
                       </div>
                     </div>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                      Teacher: {userSkill.user.firstName} {userSkill.user.lastName}
+                      Teacher: {userSkill.user?.firstName || 'Unknown'} {userSkill.user?.lastName || 'User'}
                     </p>
                   </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
 

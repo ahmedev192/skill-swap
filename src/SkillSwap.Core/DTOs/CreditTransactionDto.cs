@@ -6,6 +6,8 @@ public class CreditTransactionDto
 {
     public int Id { get; set; }
     public string UserId { get; set; } = string.Empty;
+    public string? FromUserId { get; set; }
+    public string? ToUserId { get; set; }
     public TransactionType Type { get; set; }
     public decimal Amount { get; set; }
     public decimal BalanceAfter { get; set; }

@@ -21,21 +21,29 @@ export interface User {
 }
 
 export interface Skill {
-  id: string;
-  userId: string;
-  title: string;
-  description: string;
+  id: number;
+  name: string;
+  description?: string;
   category: string;
-  level: 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert';
-  type: 'offering' | 'requesting';
-  duration: number; // in minutes
-  isOnline: boolean;
-  isInPerson: boolean;
-  availability: string[];
-  creditsPerHour: number;
-  tags: string[];
-  createdAt: string;
+  subCategory?: string;
   isActive: boolean;
+  createdAt: string;
+}
+
+export interface UserSkill {
+  id: number;
+  userId: string;
+  skillId: number;
+  type: number; // 1=Offered, 2=Requested
+  level: number; // 1=Beginner, 2=Intermediate, 3=Expert
+  description?: string;
+  requirements?: string;
+  creditsPerHour: number;
+  isAvailable: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  skill: Skill;
+  user: User;
 }
 
 export interface TimeCredit {
@@ -68,48 +76,69 @@ export interface ChatMessage {
 }
 
 export interface Session {
-  id: string;
-  skillId: string;
-  studentId: string;
+  id: number;
   teacherId: string;
-  scheduledAt: string;
-  duration: number;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
-  location?: string;
-  meetingUrl?: string;
+  studentId: string;
+  userSkillId: number;
+  scheduledStart: string;
+  scheduledEnd: string;
+  actualStart?: string;
+  actualEnd?: string;
+  creditsCost: number;
+  status: number; // 1=Pending, 2=Confirmed, 3=InProgress, 4=Completed, 5=Cancelled, 6=Disputed
   notes?: string;
-  rating?: number;
-  review?: string;
+  meetingLink?: string;
+  isOnline: boolean;
+  location?: string;
+  createdAt: string;
+  updatedAt?: string;
+  cancelledAt?: string;
+  cancellationReason?: string;
+  teacherConfirmed: boolean;
+  studentConfirmed: boolean;
+  confirmedAt?: string;
+  teacher: User;
+  student: User;
+  userSkill: UserSkill;
 }
 
 export interface Review {
-  id: string;
-  sessionId: string;
+  id: number;
   reviewerId: string;
   revieweeId: string;
-  rating: number;
-  comment: string;
+  sessionId: number;
+  rating: number; // 1-5
+  comment?: string;
   createdAt: string;
+  updatedAt?: string;
+  isVisible: boolean;
+  reviewer: User;
+  reviewee: User;
+  session: Session;
 }
 
 export interface Match {
-  id: string;
+  id: number;
   userId1: string;
   userId2: string;
-  skill1Id: string;
-  skill2Id: string;
+  skill1Id: number;
+  skill2Id: number;
   compatibilityScore: number;
   createdAt: string;
   isViewed: boolean;
 }
 
 export interface NotificationData {
-  id: string;
+  id: number;
   userId: string;
-  type: 'match' | 'booking' | 'message' | 'review' | 'credit';
   title: string;
   message: string;
+  type: number; // 1=SessionRequest, 2=SessionConfirmed, 3=SessionReminder, 4=SessionCompleted, 5=NewMessage, 6=NewReview, 7=CreditEarned, 8=CreditSpent, 9=System, 10=MatchFound, 11=GroupEvent
   isRead: boolean;
   createdAt: string;
+  readAt?: string;
+  relatedEntityId?: number;
+  relatedEntityType?: string;
   actionUrl?: string;
+  user: User;
 }

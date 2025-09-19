@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Mail, Lock, User, MapPin, Eye, EyeOff, Loader2 } from 'lucide-react';
+import ReferralCodeInput from '../referral/ReferralCodeInput';
 
 interface RegisterFormProps {
   onSwitchToLogin: () => void;
@@ -20,6 +21,18 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [referralApplied, setReferralApplied] = useState(false);
+  const [referralCredits, setReferralCredits] = useState<number | null>(null);
+
+  // Check for referral code in URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const refCode = urlParams.get('ref');
+    if (refCode) {
+      // You could pre-fill the referral code here if needed
+      console.log('Referral code found in URL:', refCode);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,6 +91,13 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
     setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const handleReferralApplied = (success: boolean, message: string, creditsEarned?: number) => {
+    setReferralApplied(success);
+    if (success && creditsEarned) {
+      setReferralCredits(creditsEarned);
     }
   };
 
@@ -248,6 +268,14 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
                 <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
               )}
             </div>
+          </div>
+
+          {/* Referral Code Section */}
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+            <ReferralCodeInput 
+              onReferralApplied={handleReferralApplied}
+              disabled={isLoading}
+            />
           </div>
 
           {errors.general && (

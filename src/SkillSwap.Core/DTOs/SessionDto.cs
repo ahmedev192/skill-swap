@@ -1,4 +1,5 @@
 using SkillSwap.Core.Entities;
+using System.ComponentModel.DataAnnotations;
 
 namespace SkillSwap.Core.DTOs;
 
@@ -32,12 +33,24 @@ public class SessionDto
 
 public class CreateSessionDto
 {
+    [Required]
     public string TeacherId { get; set; } = string.Empty;
+    
+    [Required]
     public int UserSkillId { get; set; }
+    
+    [Required]
     public DateTime ScheduledStart { get; set; }
+    
+    [Required]
     public DateTime ScheduledEnd { get; set; }
+    
+    [MaxLength(1000)]
     public string? Notes { get; set; }
+    
     public bool IsOnline { get; set; } = true;
+    
+    [MaxLength(200)]
     public string? Location { get; set; }
 }
 

@@ -90,10 +90,32 @@ const ProfilePage: React.FC = () => {
   const skillsOffered = userSkills.filter(skill => skill.type === 1); // 1 = Offered
   const skillsRequested = userSkills.filter(skill => skill.type === 2); // 2 = Requested
 
+  // Calculate achievements based on user data
   const achievements = [
-    { id: 1, name: 'Super Tutor', description: '50+ successful sessions', icon: Award, color: 'text-yellow-600' },
-    { id: 2, name: 'Verified Expert', description: 'Identity and skills verified', icon: CheckCircle, color: 'text-green-600' },
-    { id: 3, name: 'Community Helper', description: 'Highly rated by peers', icon: Star, color: 'text-blue-600' }
+    { 
+      id: 1, 
+      name: 'Super Tutor', 
+      description: '50+ successful sessions', 
+      icon: Award, 
+      color: 'text-yellow-600',
+      achieved: user?.totalSessions >= 50
+    },
+    { 
+      id: 2, 
+      name: 'Verified Expert', 
+      description: 'Identity and skills verified', 
+      icon: CheckCircle, 
+      color: 'text-green-600',
+      achieved: user?.isIdVerified && user?.isEmailVerified
+    },
+    { 
+      id: 3, 
+      name: 'Community Helper', 
+      description: 'Highly rated by peers', 
+      icon: Star, 
+      color: 'text-blue-600',
+      achieved: (user?.averageRating || 0) >= 4.5
+    }
   ];
 
   if (!user) return null;
@@ -339,9 +361,9 @@ const ProfilePage: React.FC = () => {
                       <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300">
                         {skill.level}
                       </span>
-                      {skill.hourlyRate && (
+                      {skill.creditsPerHour && (
                         <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {skill.hourlyRate} credits/hr
+                          {skill.creditsPerHour} credits/hr
                         </span>
                       )}
                     </div>

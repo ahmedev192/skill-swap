@@ -21,7 +21,7 @@ public class MatchingService : IMatchingService
     {
         // Get user's requested skills
         var userRequestedSkills = await _unitOfWork.UserSkills.FindAsync(us => 
-            us.UserId == userId && us.Type == SkillType.Requested && us.IsAvailable);
+            us.UserId == userId && us.Type == SkillType.Requested && us.IsAvailable, us => us.Skill, us => us.User);
 
         var matches = new List<UserSkillDto>();
 
@@ -32,7 +32,7 @@ public class MatchingService : IMatchingService
                 us.SkillId == requestedSkill.SkillId && 
                 us.Type == SkillType.Offered && 
                 us.IsAvailable &&
-                us.UserId != userId);
+                us.UserId != userId, us => us.Skill, us => us.User);
 
             matches.AddRange(_mapper.Map<IEnumerable<UserSkillDto>>(offeredSkills));
         }
@@ -42,7 +42,7 @@ public class MatchingService : IMatchingService
 
     public async Task<IEnumerable<UserSkillDto>> FindOfferedSkillsForRequestAsync(int requestedSkillId)
     {
-        var requestedSkill = await _unitOfWork.UserSkills.GetByIdAsync(requestedSkillId);
+        var requestedSkill = await _unitOfWork.UserSkills.GetByIdAsync(requestedSkillId, us => us.Skill, us => us.User);
         if (requestedSkill == null || requestedSkill.Type != SkillType.Requested)
         {
             return Enumerable.Empty<UserSkillDto>();
@@ -52,14 +52,14 @@ public class MatchingService : IMatchingService
             us.SkillId == requestedSkill.SkillId && 
             us.Type == SkillType.Offered && 
             us.IsAvailable &&
-            us.UserId != requestedSkill.UserId);
+            us.UserId != requestedSkill.UserId, us => us.Skill, us => us.User);
 
         return _mapper.Map<IEnumerable<UserSkillDto>>(offeredSkills);
     }
 
     public async Task<IEnumerable<UserSkillDto>> FindRequestedSkillsForOfferAsync(int offeredSkillId)
     {
-        var offeredSkill = await _unitOfWork.UserSkills.GetByIdAsync(offeredSkillId);
+        var offeredSkill = await _unitOfWork.UserSkills.GetByIdAsync(offeredSkillId, us => us.Skill, us => us.User);
         if (offeredSkill == null || offeredSkill.Type != SkillType.Offered)
         {
             return Enumerable.Empty<UserSkillDto>();
@@ -69,7 +69,7 @@ public class MatchingService : IMatchingService
             us.SkillId == offeredSkill.SkillId && 
             us.Type == SkillType.Requested && 
             us.IsAvailable &&
-            us.UserId != offeredSkill.UserId);
+            us.UserId != offeredSkill.UserId, us => us.Skill, us => us.User);
 
         return _mapper.Map<IEnumerable<UserSkillDto>>(requestedSkills);
     }
@@ -85,7 +85,7 @@ public class MatchingService : IMatchingService
 
         // Find similar skills based on category
         var userSkills = await _unitOfWork.UserSkills.FindAsync(us => 
-            us.UserId == userId && us.Type == SkillType.Requested);
+            us.UserId == userId && us.Type == SkillType.Requested, us => us.Skill, us => us.User);
 
         var userCategories = userSkills
             .Where(us => us.Skill != null && us.Skill.Category != null)
@@ -97,7 +97,7 @@ public class MatchingService : IMatchingService
             us.Type == SkillType.Offered && 
             us.IsAvailable &&
             us.UserId != userId &&
-            userCategories.Contains(us.Skill.Category));
+            userCategories.Contains(us.Skill.Category), us => us.Skill, us => us.User);
 
         return _mapper.Map<IEnumerable<UserSkillDto>>(recommendedSkills.Take(10));
     }
@@ -111,13 +111,13 @@ public class MatchingService : IMatchingService
             return Enumerable.Empty<UserDto>();
         }
 
-        var userSkills = await _unitOfWork.UserSkills.FindAsync(us => us.UserId == userId);
+        var userSkills = await _unitOfWork.UserSkills.FindAsync(us => us.UserId == userId, us => us.Skill, us => us.User);
         var userSkillIds = userSkills.Select(us => us.SkillId).Distinct();
 
         // Find users with similar skills
         var similarUsers = await _unitOfWork.UserSkills.FindAsync(us => 
             us.UserId != userId && 
-            userSkillIds.Contains(us.SkillId));
+            userSkillIds.Contains(us.SkillId), us => us.Skill, us => us.User);
 
         var recommendedUserIds = similarUsers
             .GroupBy(us => us.UserId)

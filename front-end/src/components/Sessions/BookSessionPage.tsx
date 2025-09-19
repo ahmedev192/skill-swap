@@ -46,23 +46,11 @@ const BookSessionPage: React.FC<BookSessionPageProps> = ({ userSkillId, onBack }
         setIsLoading(true);
         setError(null);
         
-        // Fetch the specific user skill
-        const userSkillData = await skillsService.getSkillById(userSkillId);
-        // For now, we'll create a mock user skill since we don't have a direct endpoint
-        const mockUserSkill: UserSkill = {
-          id: parseInt(userSkillId),
-          userId: 'teacher-id',
-          skillId: userSkillData.id,
-          skill: userSkillData,
-          type: 1, // 1 = Offered
-          level: 2, // 2 = Intermediate
-          creditsPerHour: 2,
-          isAvailable: true,
-          description: 'I can teach React development with hands-on projects',
-          createdAt: new Date().toISOString()
-        };
-        
-        setUserSkill(mockUserSkill);
+        // Fetch the specific user skill by ID
+        // Note: This assumes we have an endpoint to get user skill by ID
+        // If not available, we need to implement it in the backend
+        const userSkillData = await skillsService.getUserSkillById(parseInt(userSkillId));
+        setUserSkill(userSkillData);
       } catch (err) {
         setError('Failed to load skill details');
         console.error('Error loading user skill:', err);
@@ -84,17 +72,16 @@ const BookSessionPage: React.FC<BookSessionPageProps> = ({ userSkillId, onBack }
       setError(null);
       
       const sessionData = {
+        teacherId: userSkill.userId,
         userSkillId: userSkill.id,
         scheduledStart: new Date(`${selectedDate}T${selectedTime}:00`).toISOString(),
         scheduledEnd: new Date(`${selectedDate}T${selectedTime}:00`).toISOString(),
-        duration: duration,
-        location: sessionType === 'in-person' ? location : null,
-        meetingLink: sessionType === 'online' ? meetingLink : null,
         notes: notes,
-        creditsPerHour: userSkill.creditsPerHour
+        isOnline: sessionType === 'online',
+        location: sessionType === 'in-person' ? location : undefined
       };
       
-      await sessionsService.bookSession(sessionData);
+      await sessionsService.createSession(sessionData);
       
       // Success - could redirect or show success message
       alert('Session booked successfully!');
@@ -125,7 +112,7 @@ const BookSessionPage: React.FC<BookSessionPageProps> = ({ userSkillId, onBack }
     return tomorrow.toISOString().split('T')[0];
   };
 
-  const totalCredits = userSkill ? (userSkill.hourlyRate * (duration / 60)) : 0;
+  const totalCredits = userSkill ? (userSkill.creditsPerHour * (duration / 60)) : 0;
 
   if (isLoading) {
     return (
@@ -373,7 +360,7 @@ const BookSessionPage: React.FC<BookSessionPageProps> = ({ userSkillId, onBack }
                 </div>
                 <div className="flex justify-between text-sm mt-2">
                   <span className="text-gray-600 dark:text-gray-400">Rate:</span>
-                  <span className="text-gray-900 dark:text-white">{userSkill.hourlyRate} credits/hour</span>
+                  <span className="text-gray-900 dark:text-white">{userSkill.creditsPerHour} credits/hour</span>
                 </div>
                 <div className="flex justify-between text-sm mt-2 font-medium">
                   <span className="text-gray-900 dark:text-white">Total:</span>

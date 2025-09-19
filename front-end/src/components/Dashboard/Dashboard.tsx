@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { sessionsService, Session } from '../../services/sessionsService';
 import { skillsService, UserSkill } from '../../services/skillsService';
+import ReferralSection from '../referral/ReferralSection';
 
 interface DashboardProps {
   onViewChange?: (view: string) => void;
@@ -127,6 +128,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
             </div>
           );
         })}
+      </div>
+
+      {/* Referral Section */}
+      <div className="mb-8">
+        <ReferralSection />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

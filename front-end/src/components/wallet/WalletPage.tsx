@@ -106,12 +106,13 @@ const WalletPage: React.FC = () => {
     }
   };
 
+  // Calculate earning opportunities based on user data
   const earningOpportunities = [
     {
       id: 1,
       title: 'Complete 5 more sessions this month',
       reward: '10 bonus credits',
-      progress: 3,
+      progress: Math.min(3, user?.totalSessions || 0), // This should come from API
       total: 5,
       icon: Clock
     },
@@ -119,7 +120,7 @@ const WalletPage: React.FC = () => {
       id: 2,
       title: 'Refer a friend to SkillSwap',
       reward: '15 credits per referral',
-      progress: 0,
+      progress: 0, // This should come from referral stats
       total: 1,
       icon: Gift
     },
@@ -127,7 +128,7 @@ const WalletPage: React.FC = () => {
       id: 3,
       title: 'Maintain 4.8+ rating',
       reward: '5% bonus on all earnings',
-      progress: 4.9,
+      progress: user?.averageRating || 0,
       total: 4.8,
       icon: TrendingUp
     }

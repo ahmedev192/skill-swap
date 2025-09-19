@@ -21,25 +21,29 @@ public class SessionService : ISessionService
 
     public async Task<IEnumerable<SessionDto>> GetUserSessionsAsync(string userId)
     {
-        var sessions = await _unitOfWork.Sessions.FindAsync(s => s.TeacherId == userId || s.StudentId == userId);
+        var sessions = await _unitOfWork.Sessions.FindAsync(s => s.TeacherId == userId || s.StudentId == userId, 
+            s => s.UserSkill, s => s.UserSkill.Skill, s => s.UserSkill.User, s => s.Teacher, s => s.Student);
         return _mapper.Map<IEnumerable<SessionDto>>(sessions);
     }
 
     public async Task<IEnumerable<SessionDto>> GetTeachingSessionsAsync(string userId)
     {
-        var sessions = await _unitOfWork.Sessions.FindAsync(s => s.TeacherId == userId);
+        var sessions = await _unitOfWork.Sessions.FindAsync(s => s.TeacherId == userId, 
+            s => s.UserSkill, s => s.UserSkill.Skill, s => s.UserSkill.User, s => s.Teacher, s => s.Student);
         return _mapper.Map<IEnumerable<SessionDto>>(sessions);
     }
 
     public async Task<IEnumerable<SessionDto>> GetLearningSessionsAsync(string userId)
     {
-        var sessions = await _unitOfWork.Sessions.FindAsync(s => s.StudentId == userId);
+        var sessions = await _unitOfWork.Sessions.FindAsync(s => s.StudentId == userId, 
+            s => s.UserSkill, s => s.UserSkill.Skill, s => s.UserSkill.User, s => s.Teacher, s => s.Student);
         return _mapper.Map<IEnumerable<SessionDto>>(sessions);
     }
 
     public async Task<SessionDto?> GetSessionByIdAsync(int sessionId)
     {
-        var session = await _unitOfWork.Sessions.GetByIdAsync(sessionId);
+        var session = await _unitOfWork.Sessions.GetByIdAsync(sessionId, 
+            s => s.UserSkill, s => s.UserSkill.Skill, s => s.UserSkill.User, s => s.Teacher, s => s.Student);
         return session != null ? _mapper.Map<SessionDto>(session) : null;
     }
 
@@ -49,7 +53,7 @@ public class SessionService : ISessionService
         try
         {
             // Get the user skill to calculate credits
-            var userSkill = await _unitOfWork.UserSkills.GetByIdAsync(createSessionDto.UserSkillId);
+            var userSkill = await _unitOfWork.UserSkills.GetByIdAsync(createSessionDto.UserSkillId, us => us.Skill, us => us.User);
             if (userSkill == null)
             {
                 throw new ArgumentException("User skill not found");
@@ -63,6 +67,12 @@ public class SessionService : ISessionService
             if (userSkill.UserId == studentId)
             {
                 throw new InvalidOperationException("Cannot book a session with yourself");
+            }
+
+            // Validate that the teacherId in the DTO matches the userSkill's owner
+            if (!string.IsNullOrEmpty(createSessionDto.TeacherId) && createSessionDto.TeacherId != userSkill.UserId)
+            {
+                throw new ArgumentException("Teacher ID does not match the skill owner");
             }
 
             // Calculate session duration and credits
@@ -248,7 +258,8 @@ public class SessionService : ISessionService
 
     public async Task<IEnumerable<SessionDto>> GetSessionsByStatusAsync(SessionStatus status)
     {
-        var sessions = await _unitOfWork.Sessions.FindAsync(s => s.Status == status);
+        var sessions = await _unitOfWork.Sessions.FindAsync(s => s.Status == status, 
+            s => s.UserSkill, s => s.UserSkill.Skill, s => s.UserSkill.User, s => s.Teacher, s => s.Student);
         return _mapper.Map<IEnumerable<SessionDto>>(sessions);
     }
 
@@ -257,7 +268,8 @@ public class SessionService : ISessionService
         var sessions = await _unitOfWork.Sessions.FindAsync(s => 
             (s.TeacherId == userId || s.StudentId == userId) && 
             s.ScheduledStart > DateTime.UtcNow && 
-            (s.Status == SessionStatus.Confirmed || s.Status == SessionStatus.Pending));
+            (s.Status == SessionStatus.Confirmed || s.Status == SessionStatus.Pending), 
+            s => s.UserSkill, s => s.UserSkill.Skill, s => s.UserSkill.User, s => s.Teacher, s => s.Student);
         
         return _mapper.Map<IEnumerable<SessionDto>>(sessions);
     }
@@ -280,7 +292,7 @@ public class SessionService : ISessionService
         session.UpdatedAt = DateTime.UtcNow;
 
         // Recalculate credits if needed
-        var userSkill = await _unitOfWork.UserSkills.GetByIdAsync(session.UserSkillId);
+        var userSkill = await _unitOfWork.UserSkills.GetByIdAsync(session.UserSkillId, us => us.Skill, us => us.User);
         if (userSkill != null)
         {
             var duration = newEnd - newStart;

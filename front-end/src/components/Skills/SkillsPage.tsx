@@ -13,19 +13,23 @@ const SkillsPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const categories = [
-    'All Categories',
-    'Programming',
-    'Languages',
-    'Design',
-    'Music',
-    'Business',
-    'Cooking',
-    'Sports',
-    'Arts & Crafts'
-  ];
+  const [categories, setCategories] = useState<string[]>(['All Categories']);
+  const [levels] = useState(['All Levels', 'Beginner', 'Intermediate', 'Expert']);
 
-  const levels = ['All Levels', 'Beginner', 'Intermediate', 'Advanced', 'Expert'];
+  // Load categories from API
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const allSkills = await skillsService.getAllSkills();
+        const uniqueCategories = ['All Categories', ...new Set(allSkills.map(skill => skill.category))];
+        setCategories(uniqueCategories);
+      } catch (err) {
+        console.error('Error loading categories:', err);
+      }
+    };
+
+    loadCategories();
+  }, []);
 
   // Load skills from API
   useEffect(() => {
@@ -218,7 +222,7 @@ const SkillsPage: React.FC = () => {
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold text-gray-900 dark:text-white">
-                    {skill.hourlyRate || 0} credits
+                    {skill.creditsPerHour || 0} credits
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">per hour</p>
                 </div>

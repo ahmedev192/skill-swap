@@ -207,6 +207,28 @@ public class SkillsController : ControllerBase
     }
 
     /// <summary>
+    /// Get user skill by ID
+    /// </summary>
+    [HttpGet("user-skill/{userSkillId}")]
+    public async Task<ActionResult<UserSkillDto>> GetUserSkillById(int userSkillId)
+    {
+        try
+        {
+            var userSkill = await _skillService.GetUserSkillByIdAsync(userSkillId);
+            if (userSkill == null)
+            {
+                return NotFound();
+            }
+            return Ok(userSkill);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting user skill {UserSkillId}", userSkillId);
+            return StatusCode(500, new { message = "An unexpected error occurred" });
+        }
+    }
+
+    /// <summary>
     /// Create a new user skill
     /// </summary>
     [HttpPost("user")]
@@ -274,6 +296,26 @@ public class SkillsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting user skill {UserSkillId}", userSkillId);
+            return StatusCode(500, new { message = "An unexpected error occurred" });
+        }
+    }
+
+    /// <summary>
+    /// Get all offered skills from all users (excluding current user)
+    /// </summary>
+    [HttpGet("offered")]
+    [Authorize]
+    public async Task<ActionResult<IEnumerable<UserSkillDto>>> GetAllOfferedSkills()
+    {
+        try
+        {
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var offeredSkills = await _skillService.GetAllOfferedSkillsAsync(currentUserId);
+            return Ok(offeredSkills);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting all offered skills");
             return StatusCode(500, new { message = "An unexpected error occurred" });
         }
     }

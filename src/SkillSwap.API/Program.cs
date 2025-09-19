@@ -13,6 +13,7 @@ using SkillSwap.Infrastructure.Mapping;
 using SkillSwap.Infrastructure.Repositories;
 using SkillSwap.Infrastructure.Services;
 using SkillSwap.API.Hubs;
+using SkillSwap.API.Data;
 using SendGrid;
 using System.Text;
 
@@ -197,11 +198,14 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<NotificationHub>("/notificationHub");
 
-// Ensure database is created
+// Ensure database is created and initialize referral columns
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<SkillSwapDbContext>();
     context.Database.EnsureCreated();
+    
+    // Initialize referral columns if they don't exist
+    await DatabaseInitializer.InitializeAsync(app.Services);
 }
 
 try

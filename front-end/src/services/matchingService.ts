@@ -1,4 +1,6 @@
 import api from './api';
+import { UserSkill } from './skillsService';
+import { User } from './userService';
 
 export interface Match {
   id: number;
@@ -9,28 +11,6 @@ export interface Match {
   compatibilityScore: number;
   createdAt: string;
   isViewed: boolean;
-  user1: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    profileImageUrl?: string;
-  };
-  user2: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    profileImageUrl?: string;
-  };
-  skill1: {
-    id: number;
-    name: string;
-    description: string;
-  };
-  skill2: {
-    id: number;
-    name: string;
-    description: string;
-  };
 }
 
 export interface CreateMatchRequest {
@@ -41,41 +21,28 @@ export interface CreateMatchRequest {
 }
 
 class MatchingService {
-  async getMatches(userId: string): Promise<Match[]> {
-    const response = await api.get<Match[]>(`/matching/user/${userId}`);
+  async getMyMatches(): Promise<UserSkill[]> {
+    const response = await api.get<UserSkill[]>('/matching/my-matches');
     return response.data;
   }
 
-  async getUnviewedMatches(userId: string): Promise<Match[]> {
-    const response = await api.get<Match[]>(`/matching/user/${userId}/unviewed`);
+  async getOfferedForRequest(requestedSkillId: number): Promise<UserSkill[]> {
+    const response = await api.get<UserSkill[]>(`/matching/offered-for-request/${requestedSkillId}`);
     return response.data;
   }
 
-  async getMatchById(id: number): Promise<Match> {
-    const response = await api.get<Match>(`/matching/${id}`);
+  async getRequestedForOffer(offeredSkillId: number): Promise<UserSkill[]> {
+    const response = await api.get<UserSkill[]>(`/matching/requested-for-offer/${offeredSkillId}`);
     return response.data;
   }
 
-  async markAsViewed(id: number): Promise<void> {
-    await api.put(`/matching/${id}/viewed`);
-  }
-
-  async createMatch(matchData: CreateMatchRequest): Promise<Match> {
-    const response = await api.post<Match>('/matching', matchData);
+  async getRecommendedSkills(): Promise<UserSkill[]> {
+    const response = await api.get<UserSkill[]>('/matching/recommended-skills');
     return response.data;
   }
 
-  async deleteMatch(id: number): Promise<void> {
-    await api.delete(`/matching/${id}`);
-  }
-
-  async findMatches(userId: string): Promise<Match[]> {
-    const response = await api.post<Match[]>(`/matching/find-matches/${userId}`);
-    return response.data;
-  }
-
-  async getCompatibilityScore(userId1: string, userId2: string): Promise<{ score: number }> {
-    const response = await api.get<{ score: number }>(`/matching/compatibility/${userId1}/${userId2}`);
+  async getRecommendedUsers(): Promise<User[]> {
+    const response = await api.get<User[]>('/matching/recommended-users');
     return response.data;
   }
 }

@@ -77,19 +77,48 @@ public class SkillService : ISkillService
 
     public async Task<IEnumerable<UserSkillDto>> GetUserSkillsAsync(string userId)
     {
-        var userSkills = await _unitOfWork.UserSkills.FindAsync(us => us.UserId == userId);
+        var userSkills = await _unitOfWork.UserSkills.FindAsync(us => us.UserId == userId, us => us.Skill, us => us.User);
         return _mapper.Map<IEnumerable<UserSkillDto>>(userSkills);
+    }
+
+    public async Task<UserSkillDto?> GetUserSkillByIdAsync(int userSkillId)
+    {
+        var userSkill = await _unitOfWork.UserSkills.GetByIdAsync(userSkillId);
+        if (userSkill == null) return null;
+        
+        // Load related entities
+        await _unitOfWork.UserSkills.LoadRelatedAsync(userSkill, us => us.Skill);
+        await _unitOfWork.UserSkills.LoadRelatedAsync(userSkill, us => us.User);
+        
+        return _mapper.Map<UserSkillDto>(userSkill);
     }
 
     public async Task<IEnumerable<UserSkillDto>> GetOfferedSkillsAsync(string userId)
     {
-        var userSkills = await _unitOfWork.UserSkills.FindAsync(us => us.UserId == userId && us.Type == SkillType.Offered);
+        var userSkills = await _unitOfWork.UserSkills.FindAsync(us => us.UserId == userId && us.Type == SkillType.Offered, us => us.Skill, us => us.User);
         return _mapper.Map<IEnumerable<UserSkillDto>>(userSkills);
     }
 
     public async Task<IEnumerable<UserSkillDto>> GetRequestedSkillsAsync(string userId)
     {
-        var userSkills = await _unitOfWork.UserSkills.FindAsync(us => us.UserId == userId && us.Type == SkillType.Requested);
+        var userSkills = await _unitOfWork.UserSkills.FindAsync(us => us.UserId == userId && us.Type == SkillType.Requested, us => us.Skill, us => us.User);
+        return _mapper.Map<IEnumerable<UserSkillDto>>(userSkills);
+    }
+
+    public async Task<IEnumerable<UserSkillDto>> GetAllOfferedSkillsAsync(string? excludeUserId = null)
+    {
+        System.Linq.Expressions.Expression<Func<UserSkill, bool>> query;
+        
+        if (!string.IsNullOrEmpty(excludeUserId))
+        {
+            query = us => us.Type == SkillType.Offered && us.IsAvailable && us.UserId != excludeUserId;
+        }
+        else
+        {
+            query = us => us.Type == SkillType.Offered && us.IsAvailable;
+        }
+        
+        var userSkills = await _unitOfWork.UserSkills.FindAsync(query, us => us.Skill, us => us.User);
         return _mapper.Map<IEnumerable<UserSkillDto>>(userSkills);
     }
 
@@ -136,13 +165,11 @@ public class SkillService : ISkillService
 
     public async Task<IEnumerable<UserSkillDto>> SearchSkillsAsync(string searchTerm, string? category = null, string? location = null)
     {
-        var query = _unitOfWork.UserSkills.FindAsync(us => 
+        var userSkills = await _unitOfWork.UserSkills.FindAsync(us => 
             us.IsAvailable && 
             (us.Skill.Name.Contains(searchTerm) || 
              us.Skill.Description!.Contains(searchTerm) ||
-             us.Description!.Contains(searchTerm)));
-
-        var userSkills = await query;
+             us.Description!.Contains(searchTerm)), us => us.Skill, us => us.User);
 
         if (!string.IsNullOrEmpty(category))
         {

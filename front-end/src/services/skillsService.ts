@@ -1,10 +1,11 @@
 import api from './api';
 
 export interface Skill {
-  id: string;
+  id: number;
   name: string;
-  description: string;
+  description?: string;
   category: string;
+  subCategory?: string;
   isActive: boolean;
   createdAt: string;
 }
@@ -60,7 +61,7 @@ class SkillsService {
     return response.data;
   }
 
-  async getSkillById(id: string): Promise<Skill> {
+  async getSkillById(id: number): Promise<Skill> {
     const response = await api.get<Skill>(`/skills/${id}`);
     return response.data;
   }
@@ -75,17 +76,22 @@ class SkillsService {
     return response.data;
   }
 
-  async updateSkill(id: string, skillData: UpdateSkillRequest): Promise<Skill> {
+  async updateSkill(id: number, skillData: UpdateSkillRequest): Promise<Skill> {
     const response = await api.put<Skill>(`/skills/${id}`, skillData);
     return response.data;
   }
 
-  async deleteSkill(id: string): Promise<void> {
+  async deleteSkill(id: number): Promise<void> {
     await api.delete(`/skills/${id}`);
   }
 
   async getUserSkills(userId: string): Promise<UserSkill[]> {
     const response = await api.get<UserSkill[]>(`/skills/user/${userId}`);
+    return response.data;
+  }
+
+  async getUserSkillById(userSkillId: number): Promise<UserSkill> {
+    const response = await api.get<UserSkill>(`/skills/user-skill/${userSkillId}`);
     return response.data;
   }
 
@@ -104,12 +110,12 @@ class SkillsService {
     return response.data;
   }
 
-  async updateUserSkill(userSkillId: string, userSkillData: UpdateUserSkillRequest): Promise<UserSkill> {
+  async updateUserSkill(userSkillId: number, userSkillData: UpdateUserSkillRequest): Promise<UserSkill> {
     const response = await api.put<UserSkill>(`/skills/user/${userSkillId}`, userSkillData);
     return response.data;
   }
 
-  async deleteUserSkill(userSkillId: string): Promise<void> {
+  async deleteUserSkill(userSkillId: number): Promise<void> {
     await api.delete(`/skills/user/${userSkillId}`);
   }
 
