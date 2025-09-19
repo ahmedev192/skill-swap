@@ -1,4 +1,5 @@
 import api from './api';
+import { ErrorHandler } from '../utils/errorHandler';
 
 export interface Session {
   id: number;
@@ -138,73 +139,133 @@ export interface RescheduleSessionRequest {
 
 class SessionsService {
   async getMySessions(): Promise<Session[]> {
-    const response = await api.get<Session[]>('/sessions/my-sessions');
-    return response.data;
+    try {
+      const response = await api.get<Session[]>('/sessions/my-sessions');
+      return response.data;
+    } catch (error) {
+      throw ErrorHandler.fromAxiosError(error as any);
+    }
   }
 
   async getTeachingSessions(): Promise<Session[]> {
-    const response = await api.get<Session[]>('/sessions/teaching');
-    return response.data;
+    try {
+      const response = await api.get<Session[]>('/sessions/teaching');
+      return response.data;
+    } catch (error) {
+      throw ErrorHandler.fromAxiosError(error as any);
+    }
   }
 
   async getLearningSessions(): Promise<Session[]> {
-    const response = await api.get<Session[]>('/sessions/learning');
-    return response.data;
+    try {
+      const response = await api.get<Session[]>('/sessions/learning');
+      return response.data;
+    } catch (error) {
+      throw ErrorHandler.fromAxiosError(error as any);
+    }
   }
 
   async getSessionById(id: number): Promise<Session> {
-    const response = await api.get<Session>(`/sessions/${id}`);
-    return response.data;
+    try {
+      const response = await api.get<Session>(`/sessions/${id}`);
+      return response.data;
+    } catch (error) {
+      throw ErrorHandler.fromAxiosError(error as any);
+    }
   }
 
   async createSession(sessionData: CreateSessionRequest): Promise<Session> {
-    const response = await api.post<Session>('/sessions', sessionData);
-    return response.data;
+    try {
+      const response = await api.post<Session>('/sessions', sessionData);
+      return response.data;
+    } catch (error) {
+      throw ErrorHandler.fromAxiosError(error as any);
+    }
   }
 
-  async bookSession(sessionData: any): Promise<Session> {
-    const response = await api.post<Session>('/sessions', sessionData);
-    return response.data;
+  async bookSession(sessionData: CreateSessionRequest): Promise<Session> {
+    try {
+      const response = await api.post<Session>('/sessions', sessionData);
+      return response.data;
+    } catch (error) {
+      throw ErrorHandler.fromAxiosError(error as any);
+    }
   }
 
   async updateSession(id: number, sessionData: UpdateSessionRequest): Promise<Session> {
-    const response = await api.put<Session>(`/sessions/${id}`, sessionData);
-    return response.data;
+    try {
+      const response = await api.put<Session>(`/sessions/${id}`, sessionData);
+      return response.data;
+    } catch (error) {
+      throw ErrorHandler.fromAxiosError(error as any);
+    }
   }
 
   async cancelSession(id: number, cancelData: CancelSessionRequest): Promise<void> {
-    await api.post(`/sessions/${id}/cancel`, cancelData);
+    try {
+      await api.post(`/sessions/${id}/cancel`, cancelData);
+    } catch (error) {
+      throw ErrorHandler.fromAxiosError(error as any);
+    }
   }
 
   async confirmSession(id: number, confirmData: ConfirmSessionRequest): Promise<void> {
-    await api.post(`/sessions/${id}/confirm`, confirmData);
+    try {
+      await api.post(`/sessions/${id}/confirm`, confirmData);
+    } catch (error) {
+      throw ErrorHandler.fromAxiosError(error as any);
+    }
   }
 
   async completeSession(id: number): Promise<void> {
-    await api.post(`/sessions/${id}/complete`);
+    try {
+      await api.post(`/sessions/${id}/complete`);
+    } catch (error) {
+      throw ErrorHandler.fromAxiosError(error as any);
+    }
   }
 
   async rescheduleSession(id: number, rescheduleData: RescheduleSessionRequest): Promise<void> {
-    await api.post(`/sessions/${id}/reschedule`, rescheduleData);
+    try {
+      await api.post(`/sessions/${id}/reschedule`, rescheduleData);
+    } catch (error) {
+      throw ErrorHandler.fromAxiosError(error as any);
+    }
   }
 
   async getUpcomingSessions(): Promise<Session[]> {
-    const response = await api.get<Session[]>('/sessions/upcoming');
-    return response.data;
+    try {
+      const response = await api.get<Session[]>('/sessions/upcoming');
+      return response.data;
+    } catch (error) {
+      throw ErrorHandler.fromAxiosError(error as any);
+    }
   }
 
   async getSessionsByStatus(status: number): Promise<Session[]> {
-    const response = await api.get<Session[]>(`/sessions/status/${status}`);
-    return response.data;
+    try {
+      const response = await api.get<Session[]>(`/sessions/status/${status}`);
+      return response.data;
+    } catch (error) {
+      throw ErrorHandler.fromAxiosError(error as any);
+    }
   }
 
   // Additional methods that are called by the frontend but were missing
   async acceptSession(id: number): Promise<void> {
-    await api.post(`/sessions/${id}/confirm`, { confirmed: true });
+    try {
+      await api.post(`/sessions/${id}/confirm`, { confirmed: true });
+    } catch (error) {
+      throw ErrorHandler.fromAxiosError(error as any);
+    }
   }
 
   async declineSession(id: number): Promise<void> {
-    await api.post(`/sessions/${id}/cancel`, { reason: "Declined by teacher" });
+    try {
+      await api.post(`/sessions/${id}/cancel`, { reason: "Declined by teacher" });
+    } catch (error) {
+      throw ErrorHandler.fromAxiosError(error as any);
+    }
   }
 }
 

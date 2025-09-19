@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { sessionsService, CreateSessionRequest } from '../../services/sessionsService';
+import { useErrorHandler } from '../../hooks/useErrorHandler';
+import { validateForm, sessionValidationRules } from '../../utils/validation';
 import api from '../../services/api';
 
 interface Skill {
@@ -41,6 +43,7 @@ interface BookSessionModalProps {
 
 const BookSessionModal: React.FC<BookSessionModalProps> = ({ isOpen, onClose, onSessionBooked }) => {
   const { user } = useAuth();
+  const { handleError } = useErrorHandler();
   const [availableSkills, setAvailableSkills] = useState<UserSkill[]>([]);
   const [selectedSkill, setSelectedSkill] = useState<UserSkill | null>(null);
   const [selectedDate, setSelectedDate] = useState('');
@@ -52,6 +55,7 @@ const BookSessionModal: React.FC<BookSessionModalProps> = ({ isOpen, onClose, on
   const [notes, setNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingSkills, setIsLoadingSkills] = useState(true);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Load available skills
   useEffect(() => {
@@ -87,43 +91,43 @@ const BookSessionModal: React.FC<BookSessionModalProps> = ({ isOpen, onClose, on
       setMeetingLink('');
       setLocation('');
       setNotes('');
+      setErrors({});
     }
   }, [isOpen]);
 
   const handleBookSession = async () => {
     if (!selectedSkill || !selectedDate || !selectedTime) {
-      alert('Please fill in all required fields');
+      setErrors({ general: 'Please fill in all required fields' });
       return;
     }
 
     if (!selectedSkill.user?.id) {
-      alert('Invalid skill selection. Please try again.');
+      setErrors({ general: 'Invalid skill selection. Please try again.' });
       return;
     }
 
-    if (meetingType === 'online' && !meetingLink) {
-      alert('Please provide a meeting link for online sessions');
-      return;
-    }
+    const sessionData: CreateSessionRequest = {
+      teacherId: selectedSkill.user.id,
+      userSkillId: selectedSkill.id,
+      scheduledStart: new Date(`${selectedDate}T${selectedTime}:00`).toISOString(),
+      scheduledEnd: new Date(new Date(`${selectedDate}T${selectedTime}:00`).getTime() + duration * 60000).toISOString(),
+      isOnline: meetingType === 'online',
+      location: meetingType === 'in-person' ? location : undefined,
+      notes: notes || undefined,
+      meetingLink: meetingType === 'online' ? meetingLink : undefined
+    };
 
-    if (meetingType === 'in-person' && !location) {
-      alert('Please provide a location for in-person sessions');
+    // Validate form
+    const validationErrors = validateForm(sessionData, sessionValidationRules.createSession);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
       return;
     }
 
     try {
       setIsLoading(true);
+      setErrors({});
       
-      const sessionData: CreateSessionRequest = {
-        teacherId: selectedSkill.user.id,
-        userSkillId: selectedSkill.id,
-        scheduledStart: new Date(`${selectedDate}T${selectedTime}:00`).toISOString(),
-        scheduledEnd: new Date(new Date(`${selectedDate}T${selectedTime}:00`).getTime() + duration * 60000).toISOString(),
-        isOnline: meetingType === 'online',
-        location: meetingType === 'in-person' ? location : undefined,
-        notes: notes || undefined
-      };
-
       console.log('Sending session data:', sessionData);
       await sessionsService.bookSession(sessionData);
       
@@ -133,17 +137,8 @@ const BookSessionModal: React.FC<BookSessionModalProps> = ({ isOpen, onClose, on
         onSessionBooked();
       }
     } catch (error: any) {
-      console.error('Error booking session:', error);
-      
-      // Extract error message from response
-      let errorMessage = 'Failed to book session. Please try again.';
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      alert(`Error: ${errorMessage}`);
+      const errorResult = handleError(error, 'bookSession');
+      setErrors({ general: errorResult.userNotification.message });
     } finally {
       setIsLoading(false);
     }
@@ -182,6 +177,13 @@ const BookSessionModal: React.FC<BookSessionModalProps> = ({ isOpen, onClose, on
           </div>
         ) : (
           <div className="space-y-6">
+            {/* Error Message */}
+            {errors.general && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                <p className="text-red-800 dark:text-red-200">{errors.general}</p>
+              </div>
+            )}
+
             {/* Skill Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

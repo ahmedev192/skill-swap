@@ -113,6 +113,21 @@ export const commonRules = {
   referralCode: {
     maxLength: 20,
   },
+  sessionNotes: {
+    maxLength: 1000,
+  },
+  sessionLocation: {
+    maxLength: 200,
+  },
+  sessionMeetingLink: {
+    maxLength: 500,
+    pattern: /^https?:\/\/.+/,
+  },
+  cancellationReason: {
+    required: true,
+    minLength: 5,
+    maxLength: 500,
+  },
 };
 
 /**
@@ -167,6 +182,144 @@ export const authValidationRules = {
     location: { ...commonRules.location, required: false },
     timeZone: commonRules.timeZone,
     preferredLanguage: commonRules.preferredLanguage,
+  },
+};
+
+/**
+ * Session form validation rules
+ */
+export const sessionValidationRules = {
+  createSession: {
+    teacherId: {
+      required: true,
+      minLength: 1,
+    },
+    userSkillId: {
+      required: true,
+      custom: (value: any) => {
+        if (!value || value <= 0) {
+          return 'Please select a valid skill';
+        }
+        return null;
+      },
+    },
+    scheduledStart: {
+      required: true,
+      custom: (value: any, formData?: any) => {
+        if (!value) return 'Start time is required';
+        const startTime = new Date(value);
+        const now = new Date();
+        if (startTime <= now) {
+          return 'Session must be scheduled for a future time';
+        }
+        if (formData?.scheduledEnd && startTime >= new Date(formData.scheduledEnd)) {
+          return 'Start time must be before end time';
+        }
+        return null;
+      },
+    },
+    scheduledEnd: {
+      required: true,
+      custom: (value: any, formData?: any) => {
+        if (!value) return 'End time is required';
+        const endTime = new Date(value);
+        const now = new Date();
+        if (endTime <= now) {
+          return 'Session must be scheduled for a future time';
+        }
+        if (formData?.scheduledStart && endTime <= new Date(formData.scheduledStart)) {
+          return 'End time must be after start time';
+        }
+        return null;
+      },
+    },
+    notes: commonRules.sessionNotes,
+    location: {
+      custom: (value: any, formData?: any) => {
+        if (formData?.isOnline === false && (!value || value.trim() === '')) {
+          return 'Location is required for in-person sessions';
+        }
+        return null;
+      },
+    },
+    meetingLink: {
+      custom: (value: any, formData?: any) => {
+        if (formData?.isOnline === true && value && !commonRules.sessionMeetingLink.pattern?.test(value)) {
+          return 'Please enter a valid meeting link (starting with http:// or https://)';
+        }
+        return null;
+      },
+    },
+  },
+  updateSession: {
+    scheduledStart: {
+      custom: (value: any, formData?: any) => {
+        if (value) {
+          const startTime = new Date(value);
+          const now = new Date();
+          if (startTime <= now) {
+            return 'Session must be scheduled for a future time';
+          }
+          if (formData?.scheduledEnd && startTime >= new Date(formData.scheduledEnd)) {
+            return 'Start time must be before end time';
+          }
+        }
+        return null;
+      },
+    },
+    scheduledEnd: {
+      custom: (value: any, formData?: any) => {
+        if (value) {
+          const endTime = new Date(value);
+          const now = new Date();
+          if (endTime <= now) {
+            return 'Session must be scheduled for a future time';
+          }
+          if (formData?.scheduledStart && endTime <= new Date(formData.scheduledStart)) {
+            return 'End time must be after start time';
+          }
+        }
+        return null;
+      },
+    },
+    notes: commonRules.sessionNotes,
+    location: commonRules.sessionLocation,
+    meetingLink: commonRules.sessionMeetingLink,
+  },
+  cancelSession: {
+    reason: commonRules.cancellationReason,
+  },
+  rescheduleSession: {
+    newStart: {
+      required: true,
+      custom: (value: any, formData?: any) => {
+        if (!value) return 'New start time is required';
+        const startTime = new Date(value);
+        const now = new Date();
+        if (startTime <= now) {
+          return 'New session time must be in the future';
+        }
+        if (formData?.newEnd && startTime >= new Date(formData.newEnd)) {
+          return 'Start time must be before end time';
+        }
+        return null;
+      },
+    },
+    newEnd: {
+      required: true,
+      custom: (value: any, formData?: any) => {
+        if (!value) return 'New end time is required';
+        const endTime = new Date(value);
+        const now = new Date();
+        if (endTime <= now) {
+          return 'New session time must be in the future';
+        }
+        if (formData?.newStart && endTime <= new Date(formData.newStart)) {
+          return 'End time must be after start time';
+        }
+        return null;
+      },
+    },
   },
 };
 

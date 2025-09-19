@@ -291,4 +291,16 @@ public class SessionService : ISessionService
 
         return true;
     }
+
+    public async Task<bool> CanUserModifySessionAsync(int sessionId, string userId)
+    {
+        var session = await _unitOfWork.Sessions.GetByIdAsync(sessionId);
+        if (session == null)
+        {
+            return false;
+        }
+
+        // User can modify session if they are the teacher or student
+        return session.TeacherId == userId || session.StudentId == userId;
+    }
 }

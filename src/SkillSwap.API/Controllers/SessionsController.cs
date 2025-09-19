@@ -128,11 +128,41 @@ public class SessionsController : BaseController
             var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
             {
-                return Unauthorized();
+                return Unauthorized(new { message = "User not authenticated" });
+            }
+
+            // Validate the DTO
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new { 
+                    message = "Invalid session data", 
+                    errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                });
+            }
+
+            // Validate business rules
+            if (createSessionDto.ScheduledStart >= createSessionDto.ScheduledEnd)
+            {
+                return BadRequest(new { message = "Session start time must be before end time" });
+            }
+
+            if (createSessionDto.ScheduledStart <= DateTime.UtcNow)
+            {
+                return BadRequest(new { message = "Session must be scheduled for a future time" });
             }
 
             var session = await _sessionService.CreateSessionAsync(userId, createSessionDto);
             return CreatedAtAction(nameof(GetSession), new { id = session.Id }, session);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning("Session creation failed: {Message}", ex.Message);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning("Session creation failed: {Message}", ex.Message);
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -148,6 +178,42 @@ public class SessionsController : BaseController
     {
         try
         {
+            var userId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new { message = "User not authenticated" });
+            }
+
+            // Validate the DTO
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new { 
+                    message = "Invalid session data", 
+                    errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                });
+            }
+
+            // Validate business rules if dates are provided
+            if (updateSessionDto.ScheduledStart.HasValue && updateSessionDto.ScheduledEnd.HasValue)
+            {
+                if (updateSessionDto.ScheduledStart >= updateSessionDto.ScheduledEnd)
+                {
+                    return BadRequest(new { message = "Session start time must be before end time" });
+                }
+
+                if (updateSessionDto.ScheduledStart <= DateTime.UtcNow)
+                {
+                    return BadRequest(new { message = "Session must be scheduled for a future time" });
+                }
+            }
+
+            // Check if user can modify this session
+            var canModify = await _sessionService.CanUserModifySessionAsync(id, userId);
+            if (!canModify)
+            {
+                return Forbid();
+            }
+
             var session = await _sessionService.UpdateSessionAsync(id, updateSessionDto);
             return Ok(session);
         }
@@ -160,6 +226,11 @@ public class SessionsController : BaseController
         {
             _logger.LogWarning("Session update failed: {Message}", ex.Message);
             return BadRequest(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning("Unauthorized session update: {Message}", ex.Message);
+            return Forbid();
         }
         catch (Exception ex)
         {
@@ -176,6 +247,28 @@ public class SessionsController : BaseController
     {
         try
         {
+            var userId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new { message = "User not authenticated" });
+            }
+
+            // Validate the DTO
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new { 
+                    message = "Invalid cancellation data", 
+                    errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                });
+            }
+
+            // Check if user can modify this session
+            var canModify = await _sessionService.CanUserModifySessionAsync(id, userId);
+            if (!canModify)
+            {
+                return Forbid();
+            }
+
             var result = await _sessionService.CancelSessionAsync(id, cancelSessionDto.Reason);
             if (result)
             {
@@ -187,6 +280,11 @@ public class SessionsController : BaseController
         {
             _logger.LogWarning("Session cancellation failed: {Message}", ex.Message);
             return BadRequest(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning("Unauthorized session cancellation: {Message}", ex.Message);
+            return Forbid();
         }
         catch (Exception ex)
         {
@@ -206,7 +304,16 @@ public class SessionsController : BaseController
             var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
             {
-                return Unauthorized();
+                return Unauthorized(new { message = "User not authenticated" });
+            }
+
+            // Validate the DTO
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new { 
+                    message = "Invalid confirmation data", 
+                    errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                });
             }
 
             var result = await _sessionService.ConfirmSessionAsync(id, userId, confirmSessionDto);
@@ -321,6 +428,39 @@ public class SessionsController : BaseController
     {
         try
         {
+            var userId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new { message = "User not authenticated" });
+            }
+
+            // Validate the DTO
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new { 
+                    message = "Invalid reschedule data", 
+                    errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                });
+            }
+
+            // Validate business rules
+            if (rescheduleSessionDto.NewStart >= rescheduleSessionDto.NewEnd)
+            {
+                return BadRequest(new { message = "New start time must be before new end time" });
+            }
+
+            if (rescheduleSessionDto.NewStart <= DateTime.UtcNow)
+            {
+                return BadRequest(new { message = "New session time must be in the future" });
+            }
+
+            // Check if user can modify this session
+            var canModify = await _sessionService.CanUserModifySessionAsync(id, userId);
+            if (!canModify)
+            {
+                return Forbid();
+            }
+
             var result = await _sessionService.RescheduleSessionAsync(id, rescheduleSessionDto.NewStart, rescheduleSessionDto.NewEnd);
             if (result)
             {
@@ -333,21 +473,15 @@ public class SessionsController : BaseController
             _logger.LogWarning("Session reschedule failed: {Message}", ex.Message);
             return BadRequest(new { message = ex.Message });
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning("Unauthorized session reschedule: {Message}", ex.Message);
+            return Forbid();
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error rescheduling session {SessionId}", id);
             return StatusCode(500, new { message = "An unexpected error occurred" });
         }
     }
-}
-
-public class CancelSessionDto
-{
-    public string Reason { get; set; } = string.Empty;
-}
-
-public class RescheduleSessionDto
-{
-    public DateTime NewStart { get; set; }
-    public DateTime NewEnd { get; set; }
 }

@@ -1,0 +1,167 @@
+### Sessions Integration Test
+### This file tests all sessions functionality end-to-end
+
+### Variables
+@baseUrl = https://localhost:7001/api
+@token = your-jwt-token-here
+
+### 1. Get My Sessions
+GET {{baseUrl}}/sessions/my-sessions
+Authorization: Bearer {{token}}
+
+### 2. Get Teaching Sessions
+GET {{baseUrl}}/sessions/teaching
+Authorization: Bearer {{token}}
+
+### 3. Get Learning Sessions
+GET {{baseUrl}}/sessions/learning
+Authorization: Bearer {{token}}
+
+### 4. Get Upcoming Sessions
+GET {{baseUrl}}/sessions/upcoming
+Authorization: Bearer {{token}}
+
+### 5. Create a New Session (Valid)
+POST {{baseUrl}}/sessions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "teacherId": "teacher-user-id-here",
+  "userSkillId": 1,
+  "scheduledStart": "2024-12-25T10:00:00Z",
+  "scheduledEnd": "2024-12-25T11:00:00Z",
+  "notes": "Test session for integration testing",
+  "isOnline": true,
+  "meetingLink": "https://meet.google.com/test-session"
+}
+
+### 6. Create a New Session (Invalid - Past Date)
+POST {{baseUrl}}/sessions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "teacherId": "teacher-user-id-here",
+  "userSkillId": 1,
+  "scheduledStart": "2023-01-01T10:00:00Z",
+  "scheduledEnd": "2023-01-01T11:00:00Z",
+  "notes": "This should fail - past date",
+  "isOnline": true
+}
+
+### 7. Create a New Session (Invalid - Missing Required Fields)
+POST {{baseUrl}}/sessions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "teacherId": "",
+  "userSkillId": 0,
+  "scheduledStart": "2024-12-25T10:00:00Z",
+  "scheduledEnd": "2024-12-25T11:00:00Z"
+}
+
+### 8. Get Session by ID (Replace with actual session ID)
+GET {{baseUrl}}/sessions/1
+Authorization: Bearer {{token}}
+
+### 9. Update Session (Replace with actual session ID)
+PUT {{baseUrl}}/sessions/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "notes": "Updated session notes",
+  "meetingLink": "https://meet.google.com/updated-session"
+}
+
+### 10. Confirm Session (Replace with actual session ID)
+POST {{baseUrl}}/sessions/1/confirm
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "confirmed": true,
+  "notes": "Session confirmed by teacher"
+}
+
+### 11. Reschedule Session (Replace with actual session ID)
+POST {{baseUrl}}/sessions/1/reschedule
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "newStart": "2024-12-26T14:00:00Z",
+  "newEnd": "2024-12-26T15:00:00Z"
+}
+
+### 12. Complete Session (Replace with actual session ID)
+POST {{baseUrl}}/sessions/1/complete
+Authorization: Bearer {{token}}
+
+### 13. Cancel Session (Replace with actual session ID)
+POST {{baseUrl}}/sessions/1/cancel
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "reason": "Integration test cancellation"
+}
+
+### 14. Get Sessions by Status (Admin only)
+GET {{baseUrl}}/sessions/status/1
+Authorization: Bearer {{token}}
+
+### 15. Test Unauthorized Access (No token)
+GET {{baseUrl}}/sessions/my-sessions
+
+### 16. Test Invalid Session ID
+GET {{baseUrl}}/sessions/99999
+Authorization: Bearer {{token}}
+
+### 17. Test Validation - Invalid Meeting Link
+POST {{baseUrl}}/sessions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "teacherId": "teacher-user-id-here",
+  "userSkillId": 1,
+  "scheduledStart": "2024-12-25T10:00:00Z",
+  "scheduledEnd": "2024-12-25T11:00:00Z",
+  "isOnline": true,
+  "meetingLink": "invalid-url"
+}
+
+### 18. Test Validation - End Time Before Start Time
+POST {{baseUrl}}/sessions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "teacherId": "teacher-user-id-here",
+  "userSkillId": 1,
+  "scheduledStart": "2024-12-25T11:00:00Z",
+  "scheduledEnd": "2024-12-25T10:00:00Z",
+  "isOnline": true
+}
+
+### 19. Test Reschedule Validation - Past Date
+POST {{baseUrl}}/sessions/1/reschedule
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "newStart": "2023-01-01T10:00:00Z",
+  "newEnd": "2023-01-01T11:00:00Z"
+}
+
+### 20. Test Cancel Session - Missing Reason
+POST {{baseUrl}}/sessions/1/cancel
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "reason": ""
+}

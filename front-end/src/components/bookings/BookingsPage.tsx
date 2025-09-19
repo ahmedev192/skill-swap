@@ -15,15 +15,20 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { sessionsService, Session } from '../../services/sessionsService';
+import { useErrorHandler } from '../../hooks/useErrorHandler';
 import BookSessionModal from './BookSessionModal';
+import RescheduleModal from '../sessions/RescheduleModal';
 
 const BookingsPage: React.FC = () => {
   const { user } = useAuth();
+  const { handleError } = useErrorHandler();
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'requests'>('upcoming');
   const [sessions, setSessions] = useState<Session[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showBookModal, setShowBookModal] = useState(false);
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [selectedSessionForReschedule, setSelectedSessionForReschedule] = useState<Session | null>(null);
 
   // Session action handlers
   const handleJoinSession = (sessionId: number) => {
@@ -37,19 +42,28 @@ const BookingsPage: React.FC = () => {
   };
 
   const handleReschedule = (sessionId: number) => {
-    // For now, show an alert. In a real implementation, this would open a reschedule modal
-    alert(`Reschedule functionality for session ${sessionId} will be implemented soon.`);
+    const session = sessions.find(s => s.id === sessionId);
+    if (session) {
+      setSelectedSessionForReschedule(session);
+      setShowRescheduleModal(true);
+    }
   };
 
   const handleCancelSession = async (sessionId: number) => {
+    const reason = prompt('Please provide a reason for cancellation:');
+    if (!reason || reason.trim() === '') {
+      alert('Cancellation reason is required');
+      return;
+    }
+
     if (confirm('Are you sure you want to cancel this session?')) {
       try {
-        await sessionsService.cancelSession(sessionId, { reason: "Cancelled by user" });
+        await sessionsService.cancelSession(sessionId, { reason: reason.trim() });
         setSessions(sessions.filter(s => s.id !== sessionId));
         alert('Session cancelled successfully');
       } catch (error) {
-        console.error('Error cancelling session:', error);
-        alert('Failed to cancel session');
+        const errorResult = handleError(error, 'cancelSession');
+        setError(errorResult.userNotification.message);
       }
     }
   };
@@ -62,8 +76,8 @@ const BookingsPage: React.FC = () => {
       ));
       alert('Session request accepted');
     } catch (error) {
-      console.error('Error accepting session:', error);
-      alert('Failed to accept session request');
+      const errorResult = handleError(error, 'acceptSession');
+      setError(errorResult.userNotification.message);
     }
   };
 
@@ -74,8 +88,8 @@ const BookingsPage: React.FC = () => {
         setSessions(sessions.filter(s => s.id !== sessionId));
         alert('Session request declined');
       } catch (error) {
-        console.error('Error declining session:', error);
-        alert('Failed to decline session request');
+        const errorResult = handleError(error, 'declineSession');
+        setError(errorResult.userNotification.message);
       }
     }
   };
@@ -87,6 +101,11 @@ const BookingsPage: React.FC = () => {
 
   const handleSessionBooked = () => {
     // Reload sessions after booking
+    window.location.reload();
+  };
+
+  const handleSessionRescheduled = () => {
+    // Reload sessions after rescheduling
     window.location.reload();
   };
 
@@ -102,8 +121,8 @@ const BookingsPage: React.FC = () => {
         const userSessions = await sessionsService.getMySessions();
         setSessions(userSessions);
       } catch (err) {
-        setError('Failed to load sessions');
-        console.error('Error loading sessions:', err);
+        const errorResult = handleError(err, 'loadSessions');
+        setError(errorResult.userNotification.message);
       } finally {
         setIsLoading(false);
       }
@@ -469,6 +488,21 @@ const BookingsPage: React.FC = () => {
         onClose={() => setShowBookModal(false)}
         onSessionBooked={handleSessionBooked}
       />
+
+      {/* Reschedule Modal */}
+      {selectedSessionForReschedule && (
+        <RescheduleModal
+          isOpen={showRescheduleModal}
+          onClose={() => {
+            setShowRescheduleModal(false);
+            setSelectedSessionForReschedule(null);
+          }}
+          sessionId={selectedSessionForReschedule.id}
+          currentStart={selectedSessionForReschedule.scheduledStart}
+          currentEnd={selectedSessionForReschedule.scheduledEnd}
+          onRescheduled={handleSessionRescheduled}
+        />
+      )}
     </div>
   );
 };
