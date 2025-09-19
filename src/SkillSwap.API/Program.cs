@@ -80,12 +80,12 @@ builder.Services.AddDatabaseServices(builder.Configuration);
 builder.Services.AddIdentity<User, IdentityRole>(options =>
 {
     // Password settings
-    options.Password.RequireDigit = true;
-    options.Password.RequireLowercase = true;
+    options.Password.RequireDigit = false;
+    options.Password.RequireLowercase = false;
     options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequireUppercase = true;
+    options.Password.RequireUppercase = false;
     options.Password.RequiredLength = 6;
-    options.Password.RequiredUniqueChars = 1;
+    options.Password.RequiredUniqueChars = 0;
 
     // Lockout settings
     options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);

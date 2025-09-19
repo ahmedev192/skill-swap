@@ -23,11 +23,18 @@ const ReferralCodeInput: React.FC<ReferralCodeInputProps> = ({
       return;
     }
 
+    // Validate referral code format
+    if (!referralCode.trim().toUpperCase().startsWith('REF')) {
+      setMessage('Invalid referral code format. Referral codes start with "REF"');
+      setIsSuccess(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setMessage(null);
       
-      const result = await referralService.useReferralCode(referralCode.trim());
+      const result = await referralService.useReferralCode(referralCode.trim().toUpperCase());
       
       setIsSuccess(result.success);
       setMessage(result.message);
@@ -39,13 +46,14 @@ const ReferralCodeInput: React.FC<ReferralCodeInputProps> = ({
       if (result.success) {
         setReferralCode(''); // Clear the input on success
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to apply referral code:', error);
       setIsSuccess(false);
-      setMessage('Failed to apply referral code. Please try again.');
+      const errorMessage = error.response?.data?.message || 'Failed to apply referral code. Please try again.';
+      setMessage(errorMessage);
       
       if (onReferralApplied) {
-        onReferralApplied(false, 'Failed to apply referral code. Please try again.');
+        onReferralApplied(false, errorMessage);
       }
     } finally {
       setLoading(false);

@@ -4,11 +4,13 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { MessagingProvider } from './contexts/MessagingContext';
 import { ConnectionProvider } from './contexts/ConnectionContext';
 import { ErrorProvider } from './contexts/ErrorContext';
-import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { NotificationContainer } from './components/common/NotificationContainer';
+import ErrorBoundary from './components/common/ErrorBoundary';
+import NotificationSystem from './components/common/NotificationSystem';
 import Navigation from './components/layout/Navigation';
 import LoginForm from './components/auth/LoginForm';
 import RegisterForm from './components/auth/RegisterForm';
+import ForgotPasswordForm from './components/auth/ForgotPasswordForm';
+import ResetPasswordForm from './components/auth/ResetPasswordForm';
 import Dashboard from './components/dashboard/Dashboard';
 import SkillsPage from './components/skills/SkillsPage';
 import ProfilePage from './components/profile/ProfilePage';
@@ -27,8 +29,21 @@ import ConnectionsPage from './components/connections/ConnectionsPage';
 
 const AppContent: React.FC = () => {
   const { user, isLoading } = useAuth();
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot-password' | 'reset-password'>('login');
   const [currentView, setCurrentView] = useState('dashboard');
+  const [resetPasswordData, setResetPasswordData] = useState<{ userId: string; token: string } | null>(null);
+
+  // Check for reset password parameters in URL
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('userId');
+    const token = urlParams.get('token');
+    
+    if (userId && token) {
+      setResetPasswordData({ userId, token });
+      setAuthMode('reset-password');
+    }
+  }, []);
 
   if (isLoading) {
     return (
@@ -41,10 +56,24 @@ const AppContent: React.FC = () => {
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        {authMode === 'login' ? (
-          <LoginForm onSwitchToRegister={() => setAuthMode('register')} />
-        ) : (
+        {authMode === 'login' && (
+          <LoginForm 
+            onSwitchToRegister={() => setAuthMode('register')} 
+            onForgotPassword={() => setAuthMode('forgot-password')}
+          />
+        )}
+        {authMode === 'register' && (
           <RegisterForm onSwitchToLogin={() => setAuthMode('login')} />
+        )}
+        {authMode === 'forgot-password' && (
+          <ForgotPasswordForm onBackToLogin={() => setAuthMode('login')} />
+        )}
+        {authMode === 'reset-password' && resetPasswordData && (
+          <ResetPasswordForm 
+            userId={resetPasswordData.userId}
+            token={resetPasswordData.token}
+            onSuccess={() => setAuthMode('login')}
+          />
         )}
       </div>
     );
@@ -93,7 +122,7 @@ const AppContent: React.FC = () => {
       <main>
         {renderCurrentView()}
       </main>
-      <NotificationContainer />
+      <NotificationSystem />
     </div>
   );
 };

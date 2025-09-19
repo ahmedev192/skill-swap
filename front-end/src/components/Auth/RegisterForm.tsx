@@ -25,13 +25,14 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [referralApplied, setReferralApplied] = useState(false);
   const [referralCredits, setReferralCredits] = useState<number | null>(null);
+  const [referralCodeFromUrl, setReferralCodeFromUrl] = useState<string | null>(null);
 
   // Check for referral code in URL
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const refCode = urlParams.get('ref');
     if (refCode) {
-      // You could pre-fill the referral code here if needed
+      setReferralCodeFromUrl(refCode);
       console.log('Referral code found in URL:', refCode);
     }
   }, []);
@@ -39,35 +40,54 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Clear previous errors
+    setErrors({});
+    
     // Validation
     const newErrors: { [key: string]: string } = {};
     
     if (!formData.firstName.trim()) {
       newErrors.firstName = 'First name is required';
+    } else if (formData.firstName.trim().length < 2) {
+      newErrors.firstName = 'First name must be at least 2 characters';
+    } else if (formData.firstName.trim().length > 50) {
+      newErrors.firstName = 'First name cannot exceed 50 characters';
     }
     
     if (!formData.lastName.trim()) {
       newErrors.lastName = 'Last name is required';
+    } else if (formData.lastName.trim().length < 2) {
+      newErrors.lastName = 'Last name must be at least 2 characters';
+    } else if (formData.lastName.trim().length > 50) {
+      newErrors.lastName = 'Last name cannot exceed 50 characters';
     }
     
-    if (!formData.email) {
+    if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
+      newErrors.email = 'Please enter a valid email address';
+    } else if (formData.email.length > 100) {
+      newErrors.email = 'Email cannot exceed 100 characters';
     }
     
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    } else if (formData.password.length > 100) {
+      newErrors.password = 'Password cannot exceed 100 characters';
     }
     
-    if (formData.password !== formData.confirmPassword) {
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
     
     if (!formData.location.trim()) {
       newErrors.location = 'Location is required';
+    } else if (formData.location.trim().length > 100) {
+      newErrors.location = 'Location cannot exceed 100 characters';
     }
 
     setErrors(newErrors);
@@ -75,20 +95,22 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
     if (Object.keys(newErrors).length === 0) {
       try {
         await register({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
+          firstName: formData.firstName.trim(),
+          lastName: formData.lastName.trim(),
+          email: formData.email.trim(),
           password: formData.password,
-          location: formData.location,
+          location: formData.location.trim(),
           languages: formData.languages,
+          referralCode: referralCodeFromUrl,
         });
-      } catch (error) {
+      } catch (error: any) {
+        console.error('Registration error:', error);
         const handlingResult = handleError(error, 'registration');
         if (handlingResult.shouldLogout) {
           // Already handled by the error handler
           return;
         }
-        setErrors({ general: 'Registration failed. Please try again.' });
+        setErrors({ general: error.message || 'Registration failed. Please try again.' });
       }
     }
   };
@@ -279,6 +301,13 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
 
           {/* Referral Code Section */}
           <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+            {referralCodeFromUrl && (
+              <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <p className="text-sm text-green-800 dark:text-green-200">
+                  🎉 Referral code detected! You'll earn bonus credits when you sign up.
+                </p>
+              </div>
+            )}
             <ReferralCodeInput 
               onReferralApplied={handleReferralApplied}
               disabled={isLoading}

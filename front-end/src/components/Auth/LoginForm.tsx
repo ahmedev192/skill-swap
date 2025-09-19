@@ -1,64 +1,49 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useErrorContext } from '../../contexts/ErrorContext';
+import { useFormValidation } from '../../hooks/useFormValidation';
+import { authValidationRules } from '../../utils/validation';
 import { Mail, Lock, Eye, EyeOff, Loader2, Wifi } from 'lucide-react';
 import { healthService } from '../../services/healthService';
 
 interface LoginFormProps {
   onSwitchToRegister: () => void;
+  onForgotPassword: () => void;
 }
 
-const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
+const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassword }) => {
   const { login, isLoading } = useAuth();
   const { handleError } = useErrorContext();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isTestingConnection, setIsTestingConnection] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validation
-    const newErrors: { [key: string]: string } = {};
-    
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
-    }
-    
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
-
-    setErrors(newErrors);
-    
-    if (Object.keys(newErrors).length === 0) {
+  
+  const {
+    data: formData,
+    errors,
+    isSubmitting,
+    setField,
+    setError,
+    handleSubmit: handleFormSubmit,
+  } = useFormValidation({
+    rules: authValidationRules.login,
+    initialData: { email: '', password: '' },
+    onSubmit: async (data) => {
       try {
-        await login(formData.email, formData.password);
-      } catch (error) {
+        await login(data.email, data.password);
+      } catch (error: any) {
+        console.error('Login error:', error);
         const handlingResult = handleError(error, 'login');
         if (handlingResult.shouldLogout) {
-          // Already handled by the error handler
           return;
         }
-        setErrors({ general: 'Invalid email or password' });
+        setError('general', error.message || 'Login failed. Please try again.');
       }
-    }
-  };
+    },
+  });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
+    setField(name, value);
   };
 
   const testApiConnection = async () => {
@@ -101,7 +86,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
           </p>
         </div>
         
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <form className="mt-8 space-y-6" onSubmit={handleFormSubmit}>
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -168,10 +153,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
           <div className="space-y-3">
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || isSubmitting}
               className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
-              {isLoading ? (
+              {(isLoading || isSubmitting) ? (
                 <Loader2 className="animate-spin" size={20} />
               ) : (
                 'Sign in'
@@ -195,17 +180,28 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
             </button>
           </div>
 
-          <div className="text-center">
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              Don't have an account?{' '}
+          <div className="text-center space-y-2">
+            <div>
               <button
                 type="button"
-                onClick={onSwitchToRegister}
-                className="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 transition-colors"
+                onClick={onForgotPassword}
+                className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 transition-colors"
               >
-                Sign up
+                Forgot your password?
               </button>
-            </span>
+            </div>
+            <div>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                Don't have an account?{' '}
+                <button
+                  type="button"
+                  onClick={onSwitchToRegister}
+                  className="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 transition-colors"
+                >
+                  Sign up
+                </button>
+              </span>
+            </div>
           </div>
         </form>
       </div>

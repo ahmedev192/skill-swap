@@ -50,5 +50,6 @@ public enum NotificationType
     CreditSpent = 8,
     System = 9,
     MatchFound = 10,
-    GroupEvent = 11
+    GroupEvent = 11,
+    Referral = 12
 }

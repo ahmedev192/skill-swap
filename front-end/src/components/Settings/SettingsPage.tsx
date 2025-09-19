@@ -13,6 +13,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { userService } from '../../services/userService';
+import { authService } from '../../services/authService';
 
 const SettingsPage: React.FC = () => {
   const { user, updateUser } = useAuth();
@@ -50,11 +51,16 @@ const SettingsPage: React.FC = () => {
     allowMessages: true
   });
   
-  // Password change
+  // Password change settings
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
+  });
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false
   });
 
   const handleSaveProfile = async () => {

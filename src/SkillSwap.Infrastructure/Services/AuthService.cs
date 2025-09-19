@@ -96,6 +96,17 @@ public class AuthService : IAuthService
             throw new InvalidOperationException($"User creation failed: {string.Join(", ", result.Errors.Select(e => e.Description))}");
         }
 
+        // Process referral code if provided
+        if (!string.IsNullOrEmpty(createUserDto.ReferralCode))
+        {
+            var referralResult = await _userService.UseReferralCodeAsync(user.Id, createUserDto.ReferralCode);
+            if (!referralResult.Success)
+            {
+                // Log the referral code failure but don't fail registration
+                // The user can still register even if referral code is invalid
+            }
+        }
+
         // Add welcome bonus credits
         await _unitOfWork.BeginTransactionAsync();
         try

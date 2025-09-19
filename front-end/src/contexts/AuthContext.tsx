@@ -18,6 +18,7 @@ interface RegisterData {
   lastName: string;
   location: string;
   languages: string[];
+  referralCode?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -88,10 +89,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('token', authResponse.token);
       localStorage.setItem('refreshToken', authResponse.refreshToken);
       setUser(transformApiUserToLocalUser(authResponse.user));
-    } catch (error) {
+    } catch (error: any) {
       console.error('AuthContext: Login failed:', error);
       setIsLoading(false);
-      throw error;
+      
+      // Handle specific error cases
+      if (error.response?.status === 401) {
+        throw new Error('Invalid email or password');
+      } else if (error.response?.status === 400) {
+        throw new Error(error.response.data?.message || 'Invalid login data');
+      } else if (error.code === 'ERR_NETWORK') {
+        throw new Error('Unable to connect to server. Please check your internet connection.');
+      } else {
+        throw new Error(error.response?.data?.message || 'Login failed. Please try again.');
+      }
     }
     setIsLoading(false);
   };
@@ -106,13 +117,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password: userData.password,
         location: userData.location,
         preferredLanguage: userData.languages[0] || 'English',
+        referralCode: userData.referralCode,
       });
       localStorage.setItem('token', authResponse.token);
       localStorage.setItem('refreshToken', authResponse.refreshToken);
       setUser(transformApiUserToLocalUser(authResponse.user));
-    } catch (error) {
+    } catch (error: any) {
+      console.error('AuthContext: Registration failed:', error);
       setIsLoading(false);
-      throw error;
+      
+      // Handle specific error cases
+      if (error.response?.status === 400) {
+        throw new Error(error.response.data?.message || 'Invalid registration data');
+      } else if (error.response?.status === 409) {
+        throw new Error('An account with this email already exists');
+      } else if (error.code === 'ERR_NETWORK') {
+        throw new Error('Unable to connect to server. Please check your internet connection.');
+      } else {
+        throw new Error(error.response?.data?.message || 'Registration failed. Please try again.');
+      }
     }
     setIsLoading(false);
   };

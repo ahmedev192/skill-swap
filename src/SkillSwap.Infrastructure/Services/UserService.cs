@@ -272,12 +272,26 @@ public class UserService : IUserService
             throw new ArgumentException("User not found");
         }
 
+        // If user already has a referral code, return it
+        if (!string.IsNullOrEmpty(user.ReferralCode))
+        {
+            return user.ReferralCode;
+        }
+
         // Generate a unique referral code based on user ID and timestamp
         var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         var referralCode = $"REF{userId.Substring(0, 4).ToUpper()}{timestamp.ToString().Substring(6)}";
         
-        // Store the referral code in user's metadata or a separate table
-        // For simplicity, we'll use a custom claim or store it in the user's data
+        // Ensure the referral code is unique
+        var existingUser = await _userManager.Users.FirstOrDefaultAsync(u => u.ReferralCode == referralCode);
+        while (existingUser != null)
+        {
+            timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            referralCode = $"REF{userId.Substring(0, 4).ToUpper()}{timestamp.ToString().Substring(6)}";
+            existingUser = await _userManager.Users.FirstOrDefaultAsync(u => u.ReferralCode == referralCode);
+        }
+        
+        // Store the referral code in user's data
         user.ReferralCode = referralCode;
         await _userManager.UpdateAsync(user);
 
@@ -342,6 +356,19 @@ public class UserService : IUserService
 
         await _unitOfWork.CreditTransactions.AddAsync(newUserTransaction);
         await _unitOfWork.CreditTransactions.AddAsync(referrerTransaction);
+
+        // Create notification for the referrer
+        var notification = new Notification
+        {
+            UserId = referrer.Id,
+            Type = NotificationType.Referral,
+            Title = "New Referral!",
+            Message = $"{user.FirstName} {user.LastName} joined using your referral code! You earned {referralCredits} credits.",
+            IsRead = false,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _unitOfWork.Notifications.AddAsync(notification);
         await _unitOfWork.SaveChangesAsync();
 
         return new ReferralResult 

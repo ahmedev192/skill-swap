@@ -1,7 +1,7 @@
 import api from './api';
 
 export interface ReferralStats {
-  referralCode: string;
+  referralCode?: string;
   referredUsersCount: number;
   totalCreditsEarned: number;
   hasUsedReferral: boolean;
@@ -31,7 +31,11 @@ class ReferralService {
    */
   async useReferralCode(referralCode: string): Promise<ReferralResult> {
     const response = await api.post('/users/referral/use', { referralCode });
-    return response.data;
+    return {
+      success: response.data.success || false,
+      message: response.data.message || 'Unknown error',
+      creditsEarned: response.data.creditsEarned || 0
+    };
   }
 
   /**

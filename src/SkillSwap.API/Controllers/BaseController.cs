@@ -65,7 +65,7 @@ public abstract class BaseController : ControllerBase
     protected ActionResult Forbidden(string message = "Access forbidden", string? errorCode = null, object? details = null)
     {
         var errorResponse = ErrorResponseDto.Forbidden(message, errorCode, details, GetRequestId());
-        return base.Forbid();
+        return StatusCode(403, errorResponse);
     }
 
     /// <summary>

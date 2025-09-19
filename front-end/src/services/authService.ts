@@ -15,6 +15,7 @@ export interface RegisterRequest {
   dateOfBirth?: string;
   timeZone?: string;
   preferredLanguage?: string;
+  referralCode?: string;
 }
 
 export interface AuthResponse {

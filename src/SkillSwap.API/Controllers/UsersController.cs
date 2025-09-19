@@ -107,10 +107,28 @@ public class UsersController : BaseController
             var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
             {
-                return Unauthorized();
+                return Unauthorized("Authentication required", "AUTHENTICATION_REQUIRED");
+            }
+
+            if (updateUserDto == null)
+            {
+                return BadRequest("Invalid update data", "INVALID_REQUEST_DATA");
+            }
+
+            // Model validation is handled automatically by ASP.NET Core
+            if (!ModelState.IsValid)
+            {
+                var validationErrors = ModelState
+                    .Where(x => x.Value?.Errors.Count > 0)
+                    .ToDictionary(
+                        kvp => kvp.Key,
+                        kvp => kvp.Value?.Errors.Select(e => e.ErrorMessage).ToArray() ?? new string[0]
+                    );
+                return ValidationError("Validation failed", validationErrors, "VALIDATION_ERROR");
             }
 
             var user = await _userService.UpdateUserAsync(userId, updateUserDto);
+            _logger.LogInformation("User profile updated successfully: {UserId}", userId);
             return Ok(user);
         }
         catch (Exception ex)
@@ -241,23 +259,40 @@ public class UsersController : BaseController
     {
         try
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
             {
-                return Unauthorized();
+                return Unauthorized("Authentication required", "AUTHENTICATION_REQUIRED");
+            }
+
+            if (changePasswordDto == null)
+            {
+                return BadRequest("Invalid password change data", "INVALID_REQUEST_DATA");
+            }
+
+            // Model validation is handled automatically by ASP.NET Core
+            if (!ModelState.IsValid)
+            {
+                var validationErrors = ModelState
+                    .Where(x => x.Value?.Errors.Count > 0)
+                    .ToDictionary(
+                        kvp => kvp.Key,
+                        kvp => kvp.Value?.Errors.Select(e => e.ErrorMessage).ToArray() ?? new string[0]
+                    );
+                return ValidationError("Validation failed", validationErrors, "VALIDATION_ERROR");
             }
 
             var result = await _userService.ChangePasswordAsync(userId, changePasswordDto.CurrentPassword, changePasswordDto.NewPassword);
             if (result)
             {
+                _logger.LogInformation("Password changed successfully for user: {UserId}", userId);
                 return Ok(new { message = "Password changed successfully" });
             }
-            return BadRequest(new { message = "Current password is incorrect" });
+            return BadRequest("Current password is incorrect", "INVALID_CURRENT_PASSWORD");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error changing password");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "change password", new { userId = GetCurrentUserId() });
         }
     }
 
@@ -484,11 +519,15 @@ public class UsersController : BaseController
             if (result.Success)
             {
                 return Ok(new { 
-                    message = "Referral code applied successfully! You earned 15 credits.",
+                    success = true,
+                    message = result.Message,
                     creditsEarned = result.CreditsEarned
                 });
             }
-            return BadRequest(new { message = result.Message });
+            return BadRequest(new { 
+                success = false,
+                message = result.Message 
+            });
         }
         catch (Exception ex)
         {
