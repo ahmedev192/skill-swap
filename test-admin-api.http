@@ -1,0 +1,136 @@
+### Admin API Test Suite
+### This file tests all admin functionality endpoints
+
+### Variables
+@baseUrl = https://localhost:7001
+@adminToken = YOUR_ADMIN_TOKEN_HERE
+
+### 1. Get System Statistics
+GET {{baseUrl}}/api/admin/stats
+Authorization: Bearer {{adminToken}}
+
+### 2. Get All Users (with pagination)
+GET {{baseUrl}}/api/admin/users?page=1&pageSize=10
+Authorization: Bearer {{adminToken}}
+
+### 3. Get User by ID
+GET {{baseUrl}}/api/admin/users/USER_ID_HERE
+Authorization: Bearer {{adminToken}}
+
+### 4. Update User (Admin)
+PUT {{baseUrl}}/api/admin/users/USER_ID_HERE
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "firstName": "Updated",
+  "lastName": "User",
+  "isActive": true,
+  "isEmailVerified": true
+}
+
+### 5. Delete User (Admin)
+DELETE {{baseUrl}}/api/admin/users/USER_ID_HERE
+Authorization: Bearer {{adminToken}}
+
+### 6. Adjust User Credits
+POST {{baseUrl}}/api/admin/users/USER_ID_HERE/credits/adjust
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "amount": 50.00,
+  "description": "Admin credit adjustment"
+}
+
+### 7. Get User Transaction History
+GET {{baseUrl}}/api/admin/users/USER_ID_HERE/transactions
+Authorization: Bearer {{adminToken}}
+
+### 8. Get All Skills
+GET {{baseUrl}}/api/admin/skills
+Authorization: Bearer {{adminToken}}
+
+### 9. Create Skill
+POST {{baseUrl}}/api/admin/skills
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Test Skill",
+  "description": "A test skill for admin testing",
+  "category": "Technology"
+}
+
+### 10. Update Skill
+PUT {{baseUrl}}/api/admin/skills/SKILL_ID_HERE
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Updated Test Skill",
+  "description": "An updated test skill",
+  "category": "Technology",
+  "isActive": true
+}
+
+### 11. Delete Skill
+DELETE {{baseUrl}}/api/admin/skills/SKILL_ID_HERE
+Authorization: Bearer {{adminToken}}
+
+### 12. Get Sessions by Status
+GET {{baseUrl}}/api/admin/sessions/status/Completed
+Authorization: Bearer {{adminToken}}
+
+### 13. Get User Audit Logs
+GET {{baseUrl}}/api/admin/audit/user/USER_ID_HERE?page=1&pageSize=10
+Authorization: Bearer {{adminToken}}
+
+### 14. Get System Audit Logs
+GET {{baseUrl}}/api/admin/audit/system?page=1&pageSize=10
+Authorization: Bearer {{adminToken}}
+
+### 15. Get Security Audit Logs
+GET {{baseUrl}}/api/admin/audit/security?page=1&pageSize=10
+Authorization: Bearer {{adminToken}}
+
+### Test Error Handling
+
+### 16. Test Invalid User ID
+GET {{baseUrl}}/api/admin/users/invalid-id
+Authorization: Bearer {{adminToken}}
+
+### 17. Test Invalid Skill ID
+GET {{baseUrl}}/api/admin/skills/999999
+Authorization: Bearer {{adminToken}}
+
+### 18. Test Invalid Credit Amount
+POST {{baseUrl}}/api/admin/users/USER_ID_HERE/credits/adjust
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "amount": -1000,
+  "description": "Invalid negative amount"
+}
+
+### 19. Test Missing Required Fields
+POST {{baseUrl}}/api/admin/skills
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "",
+  "description": "Missing required name"
+}
+
+### 20. Test Unauthorized Access (without token)
+GET {{baseUrl}}/api/admin/stats
+
+### 21. Test Invalid Pagination
+GET {{baseUrl}}/api/admin/users?page=0&pageSize=200
+Authorization: Bearer {{adminToken}}
+
+### 22. Test Invalid Session Status
+GET {{baseUrl}}/api/admin/sessions/status/InvalidStatus
+Authorization: Bearer {{adminToken}}

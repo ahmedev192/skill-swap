@@ -54,9 +54,12 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
         setError(null);
         
         const response = await api.get('/admin/users');
-        setUsers(response.data);
-      } catch (err) {
-        setError('Failed to load users');
+        // Handle paginated response from backend
+        const usersData = response.data.data || response.data;
+        setUsers(usersData);
+      } catch (err: any) {
+        const errorMessage = err.response?.data?.message || 'Failed to load users';
+        setError(errorMessage);
         console.error('Error loading users:', err);
       } finally {
         setIsLoading(false);
@@ -83,16 +86,17 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
 
   const handleToggleUserStatus = async (userId: string, currentStatus: boolean) => {
     try {
-      await api.put(`/admin/users/${userId}`, {
+      const response = await api.put(`/admin/users/${userId}`, {
         isActive: !currentStatus
       });
       
       setUsers(users.map(u => 
         u.id === userId ? { ...u, isActive: !currentStatus } : u
       ));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating user status:', error);
-      alert('Failed to update user status');
+      const errorMessage = error.response?.data?.message || 'Failed to update user status';
+      alert(errorMessage);
     }
   };
 
@@ -104,9 +108,10 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
     try {
       await api.delete(`/admin/users/${userId}`);
       setUsers(users.filter(u => u.id !== userId));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting user:', error);
-      alert('Failed to delete user');
+      const errorMessage = error.response?.data?.message || 'Failed to delete user';
+      alert(errorMessage);
     }
   };
 
@@ -123,7 +128,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
         return;
       }
 
-      await api.post(`/admin/users/${selectedUser.id}/credits/adjust`, {
+      const response = await api.post(`/admin/users/${selectedUser.id}/credits/adjust`, {
         amount,
         description: creditDescription
       });
@@ -134,11 +139,16 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
       setCreditDescription('');
       setSelectedUser(null);
       
-      // Reload users to get updated credit balances
-      window.location.reload();
-    } catch (error) {
+      // Update the user's credit balance in the local state
+      setUsers(users.map(u => 
+        u.id === selectedUser.id 
+          ? { ...u, creditBalance: u.creditBalance + amount }
+          : u
+      ));
+    } catch (error: any) {
       console.error('Error adjusting credits:', error);
-      alert('Failed to adjust credits');
+      const errorMessage = error.response?.data?.message || 'Failed to adjust credits';
+      alert(errorMessage);
     }
   };
 

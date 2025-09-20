@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SkillSwap.Core.DTOs;
 using SkillSwap.Core.Entities;
 using SkillSwap.Core.Interfaces.Services;
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 
 namespace SkillSwap.API.Controllers;
@@ -10,7 +11,7 @@ namespace SkillSwap.API.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(Roles = "Admin")]
-public class AdminController : ControllerBase
+public class AdminController : BaseController
 {
     private readonly IUserService _userService;
     private readonly ISkillService _skillService;
@@ -23,7 +24,7 @@ public class AdminController : ControllerBase
         ISkillService skillService,
         ISessionService sessionService,
         ICreditService creditService,
-        ILogger<AdminController> logger)
+        ILogger<AdminController> logger) : base(logger)
     {
         _userService = userService;
         _skillService = skillService;
@@ -54,8 +55,7 @@ public class AdminController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting system stats");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get system stats");
         }
     }
 
@@ -67,6 +67,16 @@ public class AdminController : ControllerBase
     {
         try
         {
+            if (page < 1)
+            {
+                return BadRequest("Page number must be greater than 0", "INVALID_PAGE_NUMBER");
+            }
+
+            if (pageSize < 1 || pageSize > 100)
+            {
+                return BadRequest("Page size must be between 1 and 100", "INVALID_PAGE_SIZE");
+            }
+
             var users = await _userService.GetAllUsersAsync();
             var paginatedUsers = users.Skip((page - 1) * pageSize).Take(pageSize);
 
@@ -80,8 +90,7 @@ public class AdminController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting users for admin");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get users for admin", new { page, pageSize });
         }
     }
 
@@ -93,18 +102,22 @@ public class AdminController : ControllerBase
     {
         try
         {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return BadRequest("User ID is required", "INVALID_USER_ID");
+            }
+
             var user = await _userService.GetUserByIdAsync(userId);
             if (user == null)
             {
-                return NotFound();
+                return NotFound("User not found", "USER_NOT_FOUND");
             }
 
             return Ok(user);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting user {UserId} for admin", userId);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get user for admin", new { userId });
         }
     }
 
@@ -116,23 +129,41 @@ public class AdminController : ControllerBase
     {
         try
         {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return BadRequest("User ID is required", "INVALID_USER_ID");
+            }
+
+            if (updateUserDto == null)
+            {
+                return BadRequest("Invalid user data", "INVALID_REQUEST_DATA");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var validationErrors = ModelState
+                    .Where(x => x.Value?.Errors.Count > 0)
+                    .ToDictionary(
+                        kvp => kvp.Key,
+                        kvp => kvp.Value?.Errors.Select(e => e.ErrorMessage).ToArray() ?? new string[0]
+                    );
+                return ValidationError("Validation failed", validationErrors, "VALIDATION_ERROR");
+            }
+
             var user = await _userService.UpdateUserAsync(userId, updateUserDto);
             return Ok(user);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning("User not found: {Message}", ex.Message);
-            return NotFound(new { message = ex.Message });
+            return NotFound(ex.Message, "USER_NOT_FOUND");
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning("Update failed: {Message}", ex.Message);
-            return BadRequest(new { message = ex.Message });
+            return BadRequest(ex.Message, "INVALID_OPERATION");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating user {UserId}", userId);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "update user", new { userId });
         }
     }
 
@@ -144,17 +175,21 @@ public class AdminController : ControllerBase
     {
         try
         {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return BadRequest("User ID is required", "INVALID_USER_ID");
+            }
+
             var result = await _userService.DeleteUserAsync(userId);
             if (result)
             {
                 return Ok(new { message = "User deleted successfully" });
             }
-            return NotFound(new { message = "User not found" });
+            return NotFound("User not found", "USER_NOT_FOUND");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting user {UserId}", userId);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "delete user", new { userId });
         }
     }
 
@@ -166,17 +201,37 @@ public class AdminController : ControllerBase
     {
         try
         {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return BadRequest("User ID is required", "INVALID_USER_ID");
+            }
+
+            if (adjustCreditsDto == null)
+            {
+                return BadRequest("Invalid credit adjustment data", "INVALID_REQUEST_DATA");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var validationErrors = ModelState
+                    .Where(x => x.Value?.Errors.Count > 0)
+                    .ToDictionary(
+                        kvp => kvp.Key,
+                        kvp => kvp.Value?.Errors.Select(e => e.ErrorMessage).ToArray() ?? new string[0]
+                    );
+                return ValidationError("Validation failed", validationErrors, "VALIDATION_ERROR");
+            }
+
             var result = await _creditService.AdjustCreditsAsync(userId, adjustCreditsDto.Amount, adjustCreditsDto.Description);
             if (result)
             {
                 return Ok(new { message = "Credits adjusted successfully" });
             }
-            return BadRequest(new { message = "Insufficient credits for adjustment" });
+            return BadRequest("Insufficient credits for adjustment", "INSUFFICIENT_CREDITS");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adjusting credits for user {UserId}", userId);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "adjust user credits", new { userId, amount = adjustCreditsDto?.Amount });
         }
     }
 
@@ -188,13 +243,17 @@ public class AdminController : ControllerBase
     {
         try
         {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return BadRequest("User ID is required", "INVALID_USER_ID");
+            }
+
             var transactions = await _creditService.GetUserTransactionHistoryAsync(userId);
             return Ok(transactions);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting transactions for user {UserId}", userId);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get user transactions", new { userId });
         }
     }
 
@@ -211,8 +270,7 @@ public class AdminController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting skills for admin");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get skills for admin");
         }
     }
 
@@ -224,13 +282,28 @@ public class AdminController : ControllerBase
     {
         try
         {
+            if (createSkillDto == null)
+            {
+                return BadRequest("Invalid skill data", "INVALID_REQUEST_DATA");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var validationErrors = ModelState
+                    .Where(x => x.Value?.Errors.Count > 0)
+                    .ToDictionary(
+                        kvp => kvp.Key,
+                        kvp => kvp.Value?.Errors.Select(e => e.ErrorMessage).ToArray() ?? new string[0]
+                    );
+                return ValidationError("Validation failed", validationErrors, "VALIDATION_ERROR");
+            }
+
             var skill = await _skillService.CreateSkillAsync(createSkillDto);
             return CreatedAtAction(nameof(GetSkills), skill);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating skill");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "create skill");
         }
     }
 
@@ -242,18 +315,37 @@ public class AdminController : ControllerBase
     {
         try
         {
+            if (id <= 0)
+            {
+                return BadRequest("Invalid skill ID", "INVALID_SKILL_ID");
+            }
+
+            if (updateSkillDto == null)
+            {
+                return BadRequest("Invalid skill data", "INVALID_REQUEST_DATA");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var validationErrors = ModelState
+                    .Where(x => x.Value?.Errors.Count > 0)
+                    .ToDictionary(
+                        kvp => kvp.Key,
+                        kvp => kvp.Value?.Errors.Select(e => e.ErrorMessage).ToArray() ?? new string[0]
+                    );
+                return ValidationError("Validation failed", validationErrors, "VALIDATION_ERROR");
+            }
+
             var skill = await _skillService.UpdateSkillAsync(id, updateSkillDto);
             return Ok(skill);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning("Skill not found: {Message}", ex.Message);
-            return NotFound(new { message = ex.Message });
+            return NotFound(ex.Message, "SKILL_NOT_FOUND");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating skill {SkillId}", id);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "update skill", new { skillId = id });
         }
     }
 
@@ -265,17 +357,21 @@ public class AdminController : ControllerBase
     {
         try
         {
+            if (id <= 0)
+            {
+                return BadRequest("Invalid skill ID", "INVALID_SKILL_ID");
+            }
+
             var result = await _skillService.DeleteSkillAsync(id);
             if (result)
             {
                 return Ok(new { message = "Skill deleted successfully" });
             }
-            return NotFound(new { message = "Skill not found" });
+            return NotFound("Skill not found", "SKILL_NOT_FOUND");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting skill {SkillId}", id);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "delete skill", new { skillId = id });
         }
     }
 
@@ -287,19 +383,28 @@ public class AdminController : ControllerBase
     {
         try
         {
+            if (!Enum.IsDefined(typeof(SessionStatus), status))
+            {
+                return BadRequest("Invalid session status", "INVALID_SESSION_STATUS");
+            }
+
             var sessions = await _sessionService.GetSessionsByStatusAsync(status);
             return Ok(sessions);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting sessions by status {Status}", status);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get sessions by status", new { status });
         }
     }
 }
 
 public class AdjustCreditsDto
 {
+    [Required(ErrorMessage = "Amount is required")]
+    [Range(-10000, 10000, ErrorMessage = "Amount must be between -10000 and 10000")]
     public decimal Amount { get; set; }
+
+    [Required(ErrorMessage = "Description is required")]
+    [StringLength(200, ErrorMessage = "Description cannot exceed 200 characters")]
     public string Description { get; set; } = string.Empty;
 }

@@ -49,8 +49,9 @@ const SkillsManagement: React.FC<SkillsManagementProps> = ({ onClose }) => {
         
         const response = await api.get('/admin/skills');
         setSkills(response.data);
-      } catch (err) {
-        setError('Failed to load skills');
+      } catch (err: any) {
+        const errorMessage = err.response?.data?.message || 'Failed to load skills';
+        setError(errorMessage);
         console.error('Error loading skills:', err);
       } finally {
         setIsLoading(false);
@@ -86,9 +87,10 @@ const SkillsManagement: React.FC<SkillsManagementProps> = ({ onClose }) => {
       setSkills([...skills, response.data]);
       setShowAddModal(false);
       setNewSkill({ name: '', description: '', category: '' });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding skill:', error);
-      alert('Failed to add skill');
+      const errorMessage = error.response?.data?.message || 'Failed to add skill';
+      alert(errorMessage);
     }
   };
 
@@ -104,9 +106,10 @@ const SkillsManagement: React.FC<SkillsManagementProps> = ({ onClose }) => {
       setShowEditModal(false);
       setSelectedSkill(null);
       setNewSkill({ name: '', description: '', category: '' });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error editing skill:', error);
-      alert('Failed to edit skill');
+      const errorMessage = error.response?.data?.message || 'Failed to edit skill';
+      alert(errorMessage);
     }
   };
 
@@ -118,9 +121,10 @@ const SkillsManagement: React.FC<SkillsManagementProps> = ({ onClose }) => {
     try {
       await api.delete(`/admin/skills/${skillId}`);
       setSkills(skills.filter(s => s.id !== skillId));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting skill:', error);
-      alert('Failed to delete skill');
+      const errorMessage = error.response?.data?.message || 'Failed to delete skill';
+      alert(errorMessage);
     }
   };
 
@@ -137,9 +141,10 @@ const SkillsManagement: React.FC<SkillsManagementProps> = ({ onClose }) => {
       setSkills(skills.map(s => 
         s.id === skillId ? { ...s, isActive: !currentStatus } : s
       ));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating skill status:', error);
-      alert('Failed to update skill status');
+      const errorMessage = error.response?.data?.message || 'Failed to update skill status';
+      alert(errorMessage);
     }
   };
 

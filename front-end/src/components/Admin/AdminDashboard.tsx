@@ -67,8 +67,9 @@ const AdminDashboard: React.FC = () => {
 
         setStats(statsResponse.data);
         setHealthMetrics(healthResponse.data);
-      } catch (err) {
-        setError('Failed to load admin data');
+      } catch (err: any) {
+        const errorMessage = err.response?.data?.message || 'Failed to load admin data';
+        setError(errorMessage);
         console.error('Error loading admin data:', err);
       } finally {
         setIsLoading(false);

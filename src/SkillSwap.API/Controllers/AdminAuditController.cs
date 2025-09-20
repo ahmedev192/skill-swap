@@ -8,12 +8,12 @@ namespace SkillSwap.API.Controllers;
 [ApiController]
 [Route("api/admin/[controller]")]
 [Authorize(Roles = "Admin")]
-public class AdminAuditController : ControllerBase
+public class AdminAuditController : BaseController
 {
     private readonly IAuditService _auditService;
     private readonly ILogger<AdminAuditController> _logger;
 
-    public AdminAuditController(IAuditService auditService, ILogger<AdminAuditController> logger)
+    public AdminAuditController(IAuditService auditService, ILogger<AdminAuditController> logger) : base(logger)
     {
         _auditService = auditService;
         _logger = logger;
@@ -27,6 +27,21 @@ public class AdminAuditController : ControllerBase
     {
         try
         {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return BadRequest("User ID is required", "INVALID_USER_ID");
+            }
+
+            if (page < 1)
+            {
+                return BadRequest("Page number must be greater than 0", "INVALID_PAGE_NUMBER");
+            }
+
+            if (pageSize < 1 || pageSize > 100)
+            {
+                return BadRequest("Page size must be between 1 and 100", "INVALID_PAGE_SIZE");
+            }
+
             var auditLogs = await _auditService.GetUserAuditLogsAsync(userId, page, pageSize);
             return Ok(new
             {
@@ -37,8 +52,7 @@ public class AdminAuditController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting user audit logs for {UserId}", userId);
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get user audit logs", new { userId, page, pageSize });
         }
     }
 
@@ -50,6 +64,16 @@ public class AdminAuditController : ControllerBase
     {
         try
         {
+            if (page < 1)
+            {
+                return BadRequest("Page number must be greater than 0", "INVALID_PAGE_NUMBER");
+            }
+
+            if (pageSize < 1 || pageSize > 100)
+            {
+                return BadRequest("Page size must be between 1 and 100", "INVALID_PAGE_SIZE");
+            }
+
             var auditLogs = await _auditService.GetSystemAuditLogsAsync(page, pageSize);
             return Ok(new
             {
@@ -60,8 +84,7 @@ public class AdminAuditController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting system audit logs");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get system audit logs", new { page, pageSize });
         }
     }
 
@@ -73,6 +96,16 @@ public class AdminAuditController : ControllerBase
     {
         try
         {
+            if (page < 1)
+            {
+                return BadRequest("Page number must be greater than 0", "INVALID_PAGE_NUMBER");
+            }
+
+            if (pageSize < 1 || pageSize > 100)
+            {
+                return BadRequest("Page size must be between 1 and 100", "INVALID_PAGE_SIZE");
+            }
+
             var auditLogs = await _auditService.GetSecurityAuditLogsAsync(page, pageSize);
             return Ok(new
             {
@@ -83,8 +116,7 @@ public class AdminAuditController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting security audit logs");
-            return StatusCode(500, new { message = "An unexpected error occurred" });
+            return HandleException(ex, "get security audit logs", new { page, pageSize });
         }
     }
 }

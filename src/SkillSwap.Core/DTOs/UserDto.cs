@@ -87,6 +87,11 @@ public class UpdateUserDto
 
     [StringLength(50, ErrorMessage = "Preferred language cannot exceed 50 characters")]
     public string? PreferredLanguage { get; set; }
+
+    // Admin-only fields
+    public bool? IsActive { get; set; }
+    public bool? IsEmailVerified { get; set; }
+    public bool? IsIdVerified { get; set; }
 }
 
 public class LoginDto
@@ -115,6 +120,17 @@ public class ChangePasswordDto
     [Required(ErrorMessage = "New password is required")]
     [StringLength(100, MinimumLength = 6, ErrorMessage = "New password must be between 6 and 100 characters")]
     public string NewPassword { get; set; } = string.Empty;
+}
+
+public class AddCreditsDto
+{
+    [Required(ErrorMessage = "Amount is required")]
+    [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than 0")]
+    public decimal Amount { get; set; }
+
+    [Required(ErrorMessage = "Description is required")]
+    [StringLength(200, ErrorMessage = "Description cannot exceed 200 characters")]
+    public string Description { get; set; } = string.Empty;
 }
 
 public class DeductCreditsDto
