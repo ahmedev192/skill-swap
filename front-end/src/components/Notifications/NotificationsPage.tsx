@@ -25,6 +25,7 @@ const NotificationsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Load notifications
   useEffect(() => {
@@ -53,7 +54,10 @@ const NotificationsPage: React.FC = () => {
     const matchesStatus = filterStatus === 'all' || 
                          (filterStatus === 'read' && notification.isRead) ||
                          (filterStatus === 'unread' && !notification.isRead);
-    return matchesType && matchesStatus;
+    const matchesSearch = searchTerm === '' || 
+                         notification.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         notification.message.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesType && matchesStatus && matchesSearch;
   });
 
   const handleMarkAsRead = async (notificationId: number) => {
@@ -173,45 +177,83 @@ const NotificationsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
-        <div className="flex flex-col lg:flex-row lg:items-center space-y-4 lg:space-y-0 lg:space-x-4">
-          <div className="flex items-center space-x-2">
-            <Filter className="h-4 w-4 text-gray-400" />
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filters:</span>
-          </div>
-          
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-          >
-            <option value="all">All Types</option>
-            <option value="SessionRequest">Session Requests</option>
-            <option value="SessionConfirmed">Session Confirmations</option>
-            <option value="SessionCancelled">Session Cancellations</option>
-            <option value="Message">Messages</option>
-            <option value="Review">Reviews</option>
-            <option value="System">System</option>
-          </select>
-
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-          >
-            <option value="all">All Status</option>
-            <option value="unread">Unread</option>
-            <option value="read">Read</option>
-          </select>
+      {/* Search and Filters */}
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-700 rounded-xl shadow-sm border border-gray-200 dark:border-gray-600 p-6 mb-8">
+        {/* Search Bar */}
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search notifications..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+          />
         </div>
 
-        <div className="mt-4 flex items-center justify-between">
+        {/* Filter Pills */}
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <Filter className="h-4 w-4 text-gray-400" />
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by type:</span>
+          </div>
+          
+          <div className="flex flex-wrap gap-2">
+            {[
+              { value: 'all', label: 'All Types', color: 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300' },
+              { value: 'SessionRequest', label: 'Session Requests', color: 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' },
+              { value: 'SessionConfirmed', label: 'Confirmations', color: 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300' },
+              { value: 'SessionCancelled', label: 'Cancellations', color: 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300' },
+              { value: 'Message', label: 'Messages', color: 'bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300' },
+              { value: 'Review', label: 'Reviews', color: 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300' },
+              { value: 'System', label: 'System', color: 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300' }
+            ].map((filter) => (
+              <button
+                key={filter.value}
+                onClick={() => setFilterType(filter.value)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                  filterType === filter.value 
+                    ? `${filter.color} ring-2 ring-blue-500 dark:ring-blue-400` 
+                    : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600'
+                }`}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by status:</span>
+          </div>
+          
+          <div className="flex flex-wrap gap-2">
+            {[
+              { value: 'all', label: 'All Status', color: 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300' },
+              { value: 'unread', label: 'Unread', color: 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300' },
+              { value: 'read', label: 'Read', color: 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300' }
+            ].map((filter) => (
+              <button
+                key={filter.value}
+                onClick={() => setFilterStatus(filter.value)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                  filterStatus === filter.value 
+                    ? `${filter.color} ring-2 ring-blue-500 dark:ring-blue-400` 
+                    : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600'
+                }`}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="mt-6 flex items-center justify-between">
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Showing {filteredNotifications.length} of {notifications.length} notifications
           </p>
           {unreadCount > 0 && (
-            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-300">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg">
               {unreadCount} unread
             </span>
           )}
@@ -228,39 +270,47 @@ const NotificationsPage: React.FC = () => {
             return (
               <div
                 key={notification.id}
-                className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors ${
-                  !notification.isRead ? 'ring-2 ring-blue-200 dark:ring-blue-800' : ''
+                className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-all duration-200 hover:shadow-md hover:scale-[1.02] ${
+                  !notification.isRead ? 'ring-2 ring-blue-200 dark:ring-blue-800 bg-blue-50/30 dark:bg-blue-900/10' : ''
                 }`}
               >
                 <div className="flex items-start space-x-4">
-                  <div className={`${colorClass} bg-gray-100 dark:bg-gray-700 p-3 rounded-lg flex-shrink-0`}>
+                  <div className={`${colorClass} p-3 rounded-xl flex-shrink-0 shadow-sm`}>
                     <Icon className="h-5 w-5" />
                   </div>
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <h3 className="text-sm font-medium text-gray-900 dark:text-white">
-                          {notification.title}
-                        </h3>
-                        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                          {notification.message}
-                        </p>
-                        <div className="mt-2 flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
-                          <span>{formatDate(notification.createdAt)}</span>
-                          <span className="capitalize">{notification.type}</span>
+                        <div className="flex items-center space-x-2 mb-1">
+                          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                            {notification.title}
+                          </h3>
                           {!notification.isRead && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-sm">
                               New
                             </span>
                           )}
+                        </div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                          {notification.message}
+                        </p>
+                        <div className="mt-3 flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
+                          <span className="flex items-center space-x-1">
+                            <Calendar className="h-3 w-3" />
+                            <span>{formatDate(notification.createdAt)}</span>
+                          </span>
+                          <span className="flex items-center space-x-1">
+                            <span className="w-2 h-2 rounded-full bg-current"></span>
+                            <span className="capitalize">{notification.type.replace(/([A-Z])/g, ' $1').trim()}</span>
+                          </span>
                         </div>
                       </div>
                       
                       {!notification.isRead && (
                         <button
                           onClick={() => handleMarkAsRead(notification.id)}
-                          className="ml-4 p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          className="ml-4 p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 hover:scale-110"
                           title="Mark as read"
                         >
                           <Check className="h-4 w-4" />

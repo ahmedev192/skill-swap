@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useMessaging } from '../../contexts/MessagingContext';
+import NotificationsNav from '../Notifications/NotificationsNav';
 import { 
   Menu, 
   X, 
@@ -21,9 +22,9 @@ import {
   Shield,
   BookOpen,
   UserPlus,
-  ChevronDown,
   GraduationCap,
-  Heart
+  Heart,
+  Sparkles
 } from 'lucide-react';
 import { notificationsService } from '../../services/notificationsService';
 
@@ -37,204 +38,123 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
   const { isDarkMode, toggleTheme } = useTheme();
   const { unreadCount: messageUnreadCount, onUnreadCountsUpdated } = useMessaging();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
-  // Load unread notification count
-  useEffect(() => {
-    const loadUnreadCount = async () => {
-      if (!user) return;
-      
-      try {
-        const count = await notificationsService.getUnreadCount();
-        setUnreadCount(count.unreadCount);
-      } catch (error) {
-        console.error('Error loading unread count:', error);
-        // Set to 0 if there's an error (e.g., 404)
-        setUnreadCount(0);
-      }
-    };
-
-    loadUnreadCount();
-  }, [user]);
-
-  // Listen for real-time unread count updates
-  useEffect(() => {
-    if (!user) return;
-
-    const unsubscribe = onUnreadCountsUpdated((messageCount: number, notificationCount: number) => {
-      setUnreadCount(notificationCount);
-    });
-
-    return unsubscribe;
-  }, [user, onUnreadCountsUpdated]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (activeDropdown && !(event.target as Element).closest('.dropdown-container')) {
-        setActiveDropdown(null);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [activeDropdown]);
-
-  // Organized navigation groups
-  const navigationGroups = [
-    {
-      id: 'main',
-      label: 'Main',
-      icon: Home,
-      items: [
-        { id: 'dashboard', label: 'Dashboard', icon: Home },
-        { id: 'community', label: 'Community', icon: Users },
-      ]
-    },
-    {
-      id: 'learning',
-      label: 'Learning',
-      icon: GraduationCap,
-      items: [
-        { id: 'skills', label: 'Discover Skills', icon: Search },
-        { id: 'manage-skills', label: 'My Skills', icon: BookOpen },
-        { id: 'bookings', label: 'Bookings', icon: Calendar },
-      ]
-    },
-    {
-      id: 'social',
-      label: 'Social',
-      icon: Heart,
-      items: [
-        { id: 'connections', label: 'Connections', icon: UserPlus },
-        { id: 'chat', label: 'Messages', icon: MessageCircle },
-        { id: 'reviews', label: 'Reviews', icon: Star },
-      ]
-    },
-    {
-      id: 'account',
-      label: 'Account',
-      icon: User,
-      items: [
-        { id: 'wallet', label: 'Wallet', icon: Wallet },
-        { id: 'settings', label: 'Settings', icon: Settings },
-      ]
-    }
+  // All navigation items with visual grouping
+  const navigationItems = [
+    // Main section
+    { id: 'dashboard', label: 'Dashboard', icon: Home, group: 'main', color: 'blue' },
+    { id: 'community', label: 'Community', icon: Users, group: 'main', color: 'blue' },
+    
+    // Learning section
+    { id: 'skills', label: 'Discover Skills', icon: Search, group: 'learning', color: 'emerald' },
+    { id: 'manage-skills', label: 'My Skills', icon: BookOpen, group: 'learning', color: 'emerald' },
+    { id: 'bookings', label: 'Bookings', icon: Calendar, group: 'learning', color: 'emerald' },
+    
+    // Social section
+    { id: 'connections', label: 'Connections', icon: UserPlus, group: 'social', color: 'purple' },
+    { id: 'chat', label: 'Messages', icon: MessageCircle, group: 'social', color: 'purple' },
+    { id: 'reviews', label: 'Reviews', icon: Star, group: 'social', color: 'purple' },
+    
+    // Account section
+    { id: 'wallet', label: 'Wallet', icon: Wallet, group: 'account', color: 'amber' },
+    { id: 'settings', label: 'Settings', icon: Settings, group: 'account', color: 'amber' },
   ];
 
-  // Add admin group if user is admin
+  // Add admin item if user is admin
   if (user?.role === 'Admin') {
-    navigationGroups.push({
-      id: 'admin',
-      label: 'Admin',
-      icon: Shield,
-      items: [
-        { id: 'admin', label: 'Admin Panel', icon: Shield },
-      ]
-    });
+    navigationItems.push({ id: 'admin', label: 'Admin Panel', icon: Shield, group: 'admin', color: 'red' });
   }
 
-  // Flatten all items for mobile menu
-  const allNavItems = navigationGroups.flatMap(group => group.items);
+  // Helper function to get color classes
+  const getColorClasses = (color: string, isActive: boolean) => {
+    const colorMap = {
+      blue: isActive 
+        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700' 
+        : 'text-gray-600 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-700 dark:hover:text-blue-300 border-transparent hover:border-blue-200 dark:hover:border-blue-700',
+      emerald: isActive 
+        ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700' 
+        : 'text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-700 dark:hover:text-emerald-300 border-transparent hover:border-emerald-200 dark:hover:border-emerald-700',
+      purple: isActive 
+        ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-700' 
+        : 'text-gray-600 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-700 dark:hover:text-purple-300 border-transparent hover:border-purple-200 dark:hover:border-purple-700',
+      amber: isActive 
+        ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-700' 
+        : 'text-gray-600 dark:text-gray-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-700 dark:hover:text-amber-300 border-transparent hover:border-amber-200 dark:hover:border-amber-700',
+      red: isActive 
+        ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700' 
+        : 'text-gray-600 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-300 border-transparent hover:border-red-200 dark:hover:border-red-700',
+    };
+    return colorMap[color as keyof typeof colorMap] || colorMap.blue;
+  };
 
   return (
-    <nav className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20">
-          {/* Logo */}
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <button
-                onClick={() => onViewChange('dashboard')}
-                className="text-2xl font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors duration-200 cursor-pointer"
-                title="Go to Dashboard"
-              >
-                SkillSwap
-              </button>
-            </div>
+    <nav className="bg-white dark:bg-gray-800 shadow-lg border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center h-16">
+          {/* Logo with enhanced styling - positioned at the very left */}
+          <div className="flex-shrink-0">
+            <button
+              onClick={() => onViewChange('dashboard')}
+              className="flex items-center space-x-2 text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent hover:from-blue-700 hover:to-purple-700 transition-all duration-200 cursor-pointer"
+              title="Go to Dashboard"
+            >
+              <Sparkles size={28} className="text-blue-600 dark:text-blue-400" />
+              <span>SkillSwap</span>
+            </button>
           </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden lg:block">
-            <div className="ml-10 flex items-center space-x-1">
-              {navigationGroups.map((group) => {
-                const GroupIcon = group.icon;
-                const isActive = group.items.some(item => item.id === currentView);
-                const isDropdownOpen = activeDropdown === group.id;
+          {/* Desktop Navigation - All items visible */}
+          <div className="hidden lg:block flex-1">
+            <div className="flex items-center justify-center space-x-3">
+              {navigationItems.map((item, index) => {
+                const Icon = item.icon;
+                const isActive = currentView === item.id;
+                const colorClasses = getColorClasses(item.color, isActive);
                 
                 return (
-                  <div key={group.id} className="relative dropdown-container">
+                  <React.Fragment key={item.id}>
                     <button
-                      onClick={() => setActiveDropdown(isDropdownOpen ? null : group.id)}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 transition-all duration-200 ${
-                        isActive
-                          ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                          : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white'
-                      }`}
+                      onClick={() => onViewChange(item.id)}
+                      className={`px-5 py-3 rounded-lg text-sm font-medium flex items-center space-x-2 transition-all duration-200 border-2 ${colorClasses} relative group`}
+                      title={item.label}
                     >
-                      <GroupIcon size={18} />
-                      <span>{group.label}</span>
-                      <ChevronDown 
-                        size={14} 
-                        className={`transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} 
-                      />
+                      <Icon size={18} />
+                      <span className="hidden xl:block">{item.label}</span>
+                      {item.id === 'chat' && messageUnreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
+                          {messageUnreadCount > 99 ? '99+' : messageUnreadCount}
+                        </span>
+                      )}
+                      {/* Tooltip for icon-only mode */}
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none xl:hidden">
+                        {item.label}
+                      </div>
                     </button>
                     
-                    {/* Dropdown Menu */}
-                    {isDropdownOpen && (
-                      <div className="absolute top-full left-0 mt-1 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
-                        {group.items.map((item) => {
-                          const ItemIcon = item.icon;
-                          const isItemActive = currentView === item.id;
-                          
-                          return (
-                            <button
-                              key={item.id}
-                              onClick={() => {
-                                onViewChange(item.id);
-                                setActiveDropdown(null);
-                              }}
-                              className={`w-full px-4 py-3 text-left flex items-center space-x-3 transition-colors relative ${
-                                isItemActive
-                                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                              }`}
-                            >
-                              <ItemIcon size={18} />
-                              <span className="flex-1">{item.label}</span>
-                              {item.id === 'chat' && messageUnreadCount > 0 && (
-                                <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                                  {messageUnreadCount > 99 ? '99+' : messageUnreadCount}
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
+                    {/* Visual separator between groups */}
+                    {index < navigationItems.length - 1 && 
+                     navigationItems[index + 1]?.group !== item.group && (
+                      <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-3"></div>
                     )}
-                  </div>
+                  </React.Fragment>
                 );
               })}
             </div>
           </div>
 
-          {/* Tablet Navigation - Simplified */}
-          <div className="hidden md:block lg:hidden">
-            <div className="ml-6 flex items-center space-x-2">
-              {allNavItems.slice(0, 4).map((item) => {
+          {/* Tablet Navigation - Show most important items */}
+          <div className="hidden md:block lg:hidden flex-1">
+            <div className="flex items-center justify-center space-x-3">
+              {navigationItems.slice(0, 6).map((item) => {
                 const Icon = item.icon;
+                const isActive = currentView === item.id;
+                const colorClasses = getColorClasses(item.color, isActive);
+                
                 return (
                   <button
                     key={item.id}
                     onClick={() => onViewChange(item.id)}
-                    className={`p-2 rounded-lg text-sm font-medium transition-colors relative ${
-                      currentView === item.id
-                        ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
+                    className={`p-3 rounded-lg text-sm font-medium transition-all duration-200 border-2 ${colorClasses} relative`}
                     title={item.label}
                   >
                     <Icon size={18} />
@@ -248,7 +168,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
               })}
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200"
                 title="More"
               >
                 <Menu size={18} />
@@ -257,29 +177,18 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
           </div>
 
           {/* Right side actions */}
-          <div className="hidden md:flex items-center space-x-3">
+          <div className="hidden md:flex items-center space-x-2 flex-shrink-0">
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600"
               title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
 
             {/* Notifications */}
-            <button 
-              onClick={() => onViewChange('notifications')}
-              className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors relative"
-              title="Notifications"
-            >
-              <Bell size={20} />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </span>
-              )}
-            </button>
+            <NotificationsNav onViewChange={onViewChange} />
 
             {/* User Profile */}
             <div className="flex items-center space-x-3 pl-3 border-l border-gray-200 dark:border-gray-700">
@@ -293,7 +202,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
               </div>
               <button
                 onClick={() => onViewChange('profile')}
-                className="p-2 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg"
+                className="p-2 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
                 title="View Profile"
               >
                 <User size={20} />
@@ -303,7 +212,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
             {/* Logout */}
             <button
               onClick={logout}
-              className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+              className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 border-2 border-transparent hover:border-red-200 dark:hover:border-red-700"
               title="Logout"
             >
               <LogOut size={20} />
@@ -311,10 +220,10 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden">
+          <div className="md:hidden flex-shrink-0">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
             >
               {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -326,44 +235,53 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
       {isMenuOpen && (
         <div className="md:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-            {navigationGroups.map((group) => (
-              <div key={group.id} className="space-y-1">
-                <div className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  {group.label}
+            {/* Group navigation items by category */}
+            {['main', 'learning', 'social', 'account', 'admin'].map((group) => {
+              const groupItems = navigationItems.filter(item => item.group === group);
+              if (groupItems.length === 0) return null;
+              
+              return (
+                <div key={group} className="space-y-1">
+                  <div className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    {group === 'main' && 'Main'}
+                    {group === 'learning' && 'Learning'}
+                    {group === 'social' && 'Social'}
+                    {group === 'account' && 'Account'}
+                    {group === 'admin' && 'Admin'}
+                  </div>
+                  {groupItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = currentView === item.id;
+                    const colorClasses = getColorClasses(item.color, isActive);
+                    
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          onViewChange(item.id);
+                          setIsMenuOpen(false);
+                        }}
+                        className={`w-full text-left px-6 py-3 rounded-lg text-base font-medium flex items-center space-x-3 transition-all duration-200 border-2 ${colorClasses} relative`}
+                      >
+                        <Icon size={20} />
+                        <span>{item.label}</span>
+                        {item.id === 'chat' && messageUnreadCount > 0 && (
+                          <span className="ml-auto bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                            {messageUnreadCount > 99 ? '99+' : messageUnreadCount}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
-                {group.items.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => {
-                        onViewChange(item.id);
-                        setIsMenuOpen(false);
-                      }}
-                      className={`w-full text-left px-6 py-3 rounded-lg text-base font-medium flex items-center space-x-3 transition-colors relative ${
-                        currentView === item.id
-                          ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                      }`}
-                    >
-                      <Icon size={20} />
-                      <span>{item.label}</span>
-                      {item.id === 'chat' && messageUnreadCount > 0 && (
-                        <span className="ml-auto bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                          {messageUnreadCount > 99 ? '99+' : messageUnreadCount}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
+              );
+            })}
             
             <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
               <div className="px-3 space-y-2">
                 <button
                   onClick={toggleTheme}
-                  className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                  className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200"
                 >
                   {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
                   <span>Switch Theme</span>
@@ -371,7 +289,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
                 
                 <button
                   onClick={logout}
-                  className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200"
                 >
                   <LogOut size={20} />
                   <span>Logout</span>
