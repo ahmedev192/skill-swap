@@ -20,8 +20,14 @@ import { useErrorHandler } from '../../hooks/useErrorHandler';
 import BookSessionModal from './BookSessionModal';
 import RescheduleModal from '../sessions/RescheduleModal';
 import ReviewModal from '../reviews/ReviewModal';
+import { UserSkill } from '../../services/skillsService';
 
-const BookingsPage: React.FC = () => {
+interface BookingsPageProps {
+  preselectedSkill?: UserSkill;
+  onViewChange?: (view: string) => void;
+}
+
+const BookingsPage: React.FC<BookingsPageProps> = ({ preselectedSkill, onViewChange }) => {
   const { user } = useAuth();
   const { handleError } = useErrorHandler();
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'requests'>('upcoming');
@@ -34,6 +40,13 @@ const BookingsPage: React.FC = () => {
   const [selectedSessionForReschedule, setSelectedSessionForReschedule] = useState<Session | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedSessionForReview, setSelectedSessionForReview] = useState<Session | null>(null);
+
+  // Auto-open modal if preselected skill is provided
+  useEffect(() => {
+    if (preselectedSkill) {
+      setShowBookModal(true);
+    }
+  }, [preselectedSkill]);
 
   // Session action handlers
   const handleJoinSession = (sessionId: number) => {
@@ -641,6 +654,7 @@ const BookingsPage: React.FC = () => {
         isOpen={showBookModal}
         onClose={() => setShowBookModal(false)}
         onSessionBooked={handleSessionBooked}
+        preselectedSkill={preselectedSkill}
       />
 
       {/* Reschedule Modal */}

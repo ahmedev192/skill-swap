@@ -26,12 +26,14 @@ import ManageSkillsPage from './components/skills/ManageSkillsPage';
 import SettingsPage from './components/settings/SettingsPage';
 import CommunityPage from './components/community/CommunityPage';
 import ConnectionsPage from './components/connections/ConnectionsPage';
+import { UserSkill } from './services/skillsService';
 
 const AppContent: React.FC = () => {
   const { user, isLoading } = useAuth();
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot-password' | 'reset-password'>('login');
   const [currentView, setCurrentView] = useState('dashboard');
   const [resetPasswordData, setResetPasswordData] = useState<{ userId: string; token: string } | null>(null);
+  const [preselectedSkill, setPreselectedSkill] = useState<UserSkill | null>(null);
 
   // Check for reset password parameters in URL
   React.useEffect(() => {
@@ -79,12 +81,18 @@ const AppContent: React.FC = () => {
     );
   }
 
+  // Function to handle navigation with preselected skill
+  const handleViewChangeWithSkill = (view: string, skill?: UserSkill) => {
+    setCurrentView(view);
+    setPreselectedSkill(skill || null);
+  };
+
   const renderCurrentView = () => {
     switch (currentView) {
       case 'dashboard':
         return <Dashboard onViewChange={setCurrentView} />;
       case 'skills':
-        return <SkillsPage />;
+        return <SkillsPage onViewChange={handleViewChangeWithSkill} />;
       case 'profile':
         return <ProfilePage />;
       case 'wallet':
@@ -92,7 +100,7 @@ const AppContent: React.FC = () => {
       case 'chat':
         return <ChatPage onViewChange={setCurrentView} />;
       case 'bookings':
-        return <BookingsPage />;
+        return <BookingsPage preselectedSkill={preselectedSkill} onViewChange={setCurrentView} />;
       case 'admin':
         return <AdminDashboard />;
       case 'reviews':

@@ -40,9 +40,10 @@ interface BookSessionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSessionBooked?: () => void;
+  preselectedSkill?: UserSkill;
 }
 
-const BookSessionModal: React.FC<BookSessionModalProps> = ({ isOpen, onClose, onSessionBooked }) => {
+const BookSessionModal: React.FC<BookSessionModalProps> = ({ isOpen, onClose, onSessionBooked, preselectedSkill }) => {
   const { user } = useAuth();
   const { handleError } = useErrorHandler();
   const [availableSkills, setAvailableSkills] = useState<UserSkill[]>([]);
@@ -81,6 +82,16 @@ const BookSessionModal: React.FC<BookSessionModalProps> = ({ isOpen, onClose, on
       loadAvailableSkills();
     }
   }, [isOpen]);
+
+  // Handle preselected skill
+  useEffect(() => {
+    if (preselectedSkill && availableSkills.length > 0) {
+      const matchingSkill = availableSkills.find(skill => skill.id === preselectedSkill.id);
+      if (matchingSkill) {
+        setSelectedSkill(matchingSkill);
+      }
+    }
+  }, [preselectedSkill, availableSkills]);
 
   // Reset form when modal closes
   useEffect(() => {

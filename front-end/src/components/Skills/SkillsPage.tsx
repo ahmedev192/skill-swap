@@ -5,7 +5,11 @@ import { skillsService, UserSkill } from '../../services/skillsService';
 import { userService } from '../../services/userService';
 import { reviewsService, UserRating } from '../../services/reviewsService';
 
-const SkillsPage: React.FC = () => {
+interface SkillsPageProps {
+  onViewChange?: (view: string, skill?: UserSkill) => void;
+}
+
+const SkillsPage: React.FC<SkillsPageProps> = ({ onViewChange }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLevel, setSelectedLevel] = useState('all');
@@ -166,7 +170,9 @@ const SkillsPage: React.FC = () => {
         <button 
           onClick={() => {
             // Navigate to manage skills page
-            window.location.href = '/manage-skills';
+            if (onViewChange) {
+              onViewChange('manage-skills');
+            }
           }}
           className="mt-4 lg:mt-0 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
@@ -363,8 +369,10 @@ const SkillsPage: React.FC = () => {
               {/* Action Button */}
               <button 
                 onClick={() => {
-                  // Navigate to sessions page with the skill ID
-                  window.location.href = `/sessions?skillId=${skill.id}&teacherId=${skill.userId}`;
+                  // Navigate to bookings page with the preselected skill
+                  if (onViewChange) {
+                    onViewChange('bookings', skill);
+                  }
                 }}
                 className="w-full mt-4 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
               >
