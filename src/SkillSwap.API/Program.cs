@@ -34,8 +34,8 @@ builder.Host.UseSerilog();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        // Configure JSON serialization to handle enums as strings
-        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        // Configure JSON serialization to handle enums as numbers (default behavior)
+        // Removed JsonStringEnumConverter to send enums as numbers instead of strings
     });
 builder.Services.AddEndpointsApiExplorer();
 
@@ -193,6 +193,8 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ISignalRNotificationService, SignalRNotificationService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<GoogleCalendarService>();
+builder.Services.AddScoped<IMeetingService, MeetingService>();
 
 // Add HTTP context accessor
 builder.Services.AddHttpContextAccessor();

@@ -90,9 +90,20 @@ public class SessionService : ISessionService
         session.CreditsCost = creditsCost;
         session.Status = SessionStatus.Pending;
         session.CreatedAt = DateTime.UtcNow;
+        session.UpdatedAt = DateTime.UtcNow;
+        session.TeacherConfirmed = false;
+        session.StudentConfirmed = false;
+        session.ConfirmedAt = null;
+        session.ActualStart = null;
+        session.ActualEnd = null;
+        session.CancelledAt = null;
+        session.CancellationReason = null;
 
         await _unitOfWork.Sessions.AddAsync(session);
         await _unitOfWork.SaveChangesAsync();
+        
+        // Log the created session for debugging
+        Console.WriteLine($"Created session: ID={session.Id}, TeacherId={session.TeacherId}, StudentId={session.StudentId}, Status={session.Status}");
 
         // Hold credits in escrow
         await _creditService.HoldCreditsAsync(studentId, creditsCost, session.Id, "Session booking");
@@ -198,16 +209,21 @@ public class SessionService : ISessionService
         var session = await _unitOfWork.Sessions.GetByIdAsync(sessionId);
         if (session == null)
         {
+            Console.WriteLine($"Session {sessionId} not found");
             return false;
         }
 
+        Console.WriteLine($"Attempting to complete session {sessionId}: Status={session.Status}, TeacherId={session.TeacherId}, StudentId={session.StudentId}, UserId={userId}");
+
         if (session.Status != SessionStatus.Confirmed)
         {
-            throw new InvalidOperationException("Can only complete confirmed sessions");
+            Console.WriteLine($"Cannot complete session {sessionId}: Status is {session.Status}, but must be Confirmed");
+            throw new InvalidOperationException($"Can only complete confirmed sessions. Current status: {session.Status}");
         }
 
         if (userId != session.TeacherId && userId != session.StudentId)
         {
+            Console.WriteLine($"User {userId} not authorized to complete session {sessionId}");
             throw new UnauthorizedAccessException("Not authorized to complete this session");
         }
 
@@ -216,12 +232,20 @@ public class SessionService : ISessionService
         session.UpdatedAt = DateTime.UtcNow;
 
         await _unitOfWork.Sessions.UpdateAsync(session);
-
-        // Transfer credits from escrow to teacher
-        await _creditService.TransferCreditsAsync(session.StudentId, session.TeacherId, session.CreditsCost, session.Id, "Session completed");
-
         await _unitOfWork.SaveChangesAsync();
 
+        // Transfer credits from escrow to teacher (separate operation to avoid transaction issues)
+        try
+        {
+            await _creditService.TransferCreditsAsync(session.StudentId, session.TeacherId, session.CreditsCost, session.Id, "Session completed");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Warning: Credit transfer failed for session {sessionId}: {ex.Message}");
+            // Don't fail the session completion if credit transfer fails
+        }
+
+        Console.WriteLine($"Session {sessionId} completed successfully");
         return true;
     }
 

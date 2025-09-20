@@ -18,6 +18,7 @@ import { sessionsService, Session } from '../../services/sessionsService';
 import { useErrorHandler } from '../../hooks/useErrorHandler';
 import BookSessionModal from './BookSessionModal';
 import RescheduleModal from '../sessions/RescheduleModal';
+import ReviewModal from '../reviews/ReviewModal';
 
 const BookingsPage: React.FC = () => {
   const { user } = useAuth();
@@ -29,6 +30,8 @@ const BookingsPage: React.FC = () => {
   const [showBookModal, setShowBookModal] = useState(false);
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [selectedSessionForReschedule, setSelectedSessionForReschedule] = useState<Session | null>(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedSessionForReview, setSelectedSessionForReview] = useState<Session | null>(null);
 
   // Session action handlers
   const handleJoinSession = (sessionId: number) => {
@@ -95,18 +98,70 @@ const BookingsPage: React.FC = () => {
   };
 
   const handleRateAndReview = (sessionId: number) => {
-    // Navigate to reviews page with the session ID
-    window.location.href = `/reviews?sessionId=${sessionId}`;
+    const session = sessions.find(s => s.id === sessionId);
+    if (session) {
+      setSelectedSessionForReview(session);
+      setShowReviewModal(true);
+    }
   };
 
-  const handleSessionBooked = () => {
+  const handleCompleteSession = async (sessionId: number) => {
+    const session = sessions.find(s => s.id === sessionId);
+    console.log('Attempting to complete session:', session);
+    console.log('Session status:', session?.status);
+    console.log('Session status type:', typeof session?.status);
+    
+    if (confirm('Are you sure you want to mark this session as completed?')) {
+      try {
+        await sessionsService.completeSession(sessionId);
+        console.log('Session completed successfully');
+        
+        // Reload sessions instead of manual update
+        const userSessions = await sessionsService.getMySessions();
+        setSessions(userSessions);
+        
+        // Show review prompt after completion
+        if (session && confirm('Session completed! Would you like to leave a review now?')) {
+          setSelectedSessionForReview(session);
+          setShowReviewModal(true);
+        }
+      } catch (error) {
+        console.error('Error completing session:', error);
+        const errorResult = handleError(error, 'completeSession');
+        setError(errorResult.userNotification.message);
+      }
+    }
+  };
+
+  const handleSessionBooked = async () => {
     // Reload sessions after booking
-    window.location.reload();
+    try {
+      const userSessions = await sessionsService.getMySessions();
+      console.log('Reloaded sessions after booking:', userSessions);
+      setSessions(userSessions);
+    } catch (error) {
+      console.error('Error reloading sessions:', error);
+    }
   };
 
-  const handleSessionRescheduled = () => {
+  const handleSessionRescheduled = async () => {
     // Reload sessions after rescheduling
-    window.location.reload();
+    try {
+      const userSessions = await sessionsService.getMySessions();
+      setSessions(userSessions);
+    } catch (error) {
+      console.error('Error reloading sessions:', error);
+    }
+  };
+
+  const handleReviewSubmitted = async () => {
+    // Reload sessions after review submission
+    try {
+      const userSessions = await sessionsService.getMySessions();
+      setSessions(userSessions);
+    } catch (error) {
+      console.error('Error reloading sessions:', error);
+    }
   };
 
   // Load sessions data
@@ -119,6 +174,16 @@ const BookingsPage: React.FC = () => {
         setError(null);
         
         const userSessions = await sessionsService.getMySessions();
+        console.log('Loaded sessions:', userSessions);
+        console.log('Session details:', userSessions.map(s => ({
+          id: s.id,
+          status: s.status,
+          statusType: typeof s.status,
+          teacherId: s.teacherId,
+          studentId: s.studentId,
+          scheduledStart: s.scheduledStart
+        })));
+        console.log('Pending sessions:', userSessions.filter(s => s.status === 1));
         setSessions(userSessions);
       } catch (err) {
         const errorResult = handleError(err, 'loadSessions');
@@ -132,15 +197,31 @@ const BookingsPage: React.FC = () => {
   }, [user]);
 
   // Separate sessions by status (1=Pending, 2=Confirmed, 3=InProgress, 4=Completed, 5=Cancelled, 6=Disputed)
-  const upcomingSessions = sessions.filter(session => 
-    session.status === 2 && new Date(session.scheduledStart) > new Date() // Confirmed
-  );
-  const pastSessions = sessions.filter(session => 
-    session.status === 4 || session.status === 5 // Completed or Cancelled
-  );
-  const pendingSessions = sessions.filter(session => 
-    session.status === 1 // Pending
-  );
+  const upcomingSessions = sessions.filter(session => {
+    const isConfirmedOrInProgress = session.status === 2 || session.status === 3;
+    const isFuture = new Date(session.scheduledStart) > new Date();
+    console.log(`Session ${session.id}: status=${session.status}, isConfirmedOrInProgress=${isConfirmedOrInProgress}, isFuture=${isFuture}`);
+    return isConfirmedOrInProgress && isFuture;
+  });
+  
+  const pastSessions = sessions.filter(session => {
+    const isCompletedOrCancelled = session.status === 4 || session.status === 5;
+    const isPast = new Date(session.scheduledStart) <= new Date();
+    console.log(`Session ${session.id}: status=${session.status}, isCompletedOrCancelled=${isCompletedOrCancelled}, isPast=${isPast}`);
+    return isCompletedOrCancelled || isPast;
+  });
+  
+  const pendingSessions = sessions.filter(session => {
+    const isPending = session.status === 1;
+    console.log(`Session ${session.id}: status=${session.status}, isPending=${isPending}`);
+    return isPending;
+  });
+
+  // Debug logging
+  console.log('All sessions:', sessions);
+  console.log('Upcoming sessions:', upcomingSessions);
+  console.log('Past sessions:', pastSessions);
+  console.log('Pending sessions (requests):', pendingSessions);
 
   const bookings = {
     upcoming: upcomingSessions,
@@ -347,6 +428,12 @@ const BookingsPage: React.FC = () => {
                 </button>
               )}
               <button 
+                onClick={() => handleCompleteSession(session.id)}
+                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+              >
+                Mark Complete
+              </button>
+              <button 
                 onClick={() => handleReschedule(session.id)}
                 className="flex-1 bg-yellow-600 text-white py-2 px-4 rounded-lg hover:bg-yellow-700 transition-colors text-sm"
               >
@@ -501,6 +588,19 @@ const BookingsPage: React.FC = () => {
           currentStart={selectedSessionForReschedule.scheduledStart}
           currentEnd={selectedSessionForReschedule.scheduledEnd}
           onRescheduled={handleSessionRescheduled}
+        />
+      )}
+
+      {/* Review Modal */}
+      {selectedSessionForReview && (
+        <ReviewModal
+          isOpen={showReviewModal}
+          onClose={() => {
+            setShowReviewModal(false);
+            setSelectedSessionForReview(null);
+          }}
+          session={selectedSessionForReview}
+          onReviewSubmitted={handleReviewSubmitted}
         />
       )}
     </div>

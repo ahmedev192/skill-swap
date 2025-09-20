@@ -112,6 +112,7 @@ export interface CreateSessionRequest {
   notes?: string;
   isOnline: boolean;
   location?: string;
+  meetingLink?: string;
 }
 
 export interface UpdateSessionRequest {

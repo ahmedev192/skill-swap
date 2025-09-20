@@ -1,0 +1,240 @@
+### Complete Booking Flow Test
+### This file tests the entire booking system from creation to completion
+
+### Variables
+@baseUrl = https://localhost:7001
+@studentEmail = student@example.com
+@studentPassword = Student123!
+@teacherEmail = teacher@example.com
+@teacherPassword = Teacher123!
+
+### 1. Login as Student
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{studentEmail}}",
+  "password": "{{studentPassword}}"
+}
+
+> {%
+client.global.set("studentToken", response.body.token);
+client.log("Student token: " + response.body.token);
+%}
+
+### 2. Login as Teacher
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{teacherEmail}}",
+  "password": "{{teacherPassword}}"
+}
+
+> {%
+client.global.set("teacherToken", response.body.token);
+client.log("Teacher token: " + response.body.token);
+%}
+
+### 3. Get Available Skills (Student)
+GET {{baseUrl}}/api/skills/offered
+Authorization: Bearer {{studentToken}}
+
+### 4. Generate Meeting Link (Student)
+POST {{baseUrl}}/api/meeting/google-meet
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "title": "React Development Session",
+  "description": "Learning React fundamentals",
+  "duration": 60,
+  "platform": "google-meet"
+}
+
+> {%
+client.global.set("meetingLink", response.body.url);
+client.log("Generated meeting link: " + response.body.url);
+%}
+
+### 5. Create Session Booking (Student)
+POST {{baseUrl}}/api/sessions
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "teacherId": "teacher-user-id-here",
+  "userSkillId": 1,
+  "scheduledStart": "2024-12-25T10:00:00Z",
+  "scheduledEnd": "2024-12-25T11:00:00Z",
+  "notes": "Looking forward to learning React!",
+  "isOnline": true,
+  "meetingLink": "{{meetingLink}}"
+}
+
+> {%
+client.global.set("sessionId", response.body.id);
+client.log("Created session ID: " + response.body.id);
+%}
+
+### 6. Get Created Session (Student)
+GET {{baseUrl}}/api/sessions/{{sessionId}}
+Authorization: Bearer {{studentToken}}
+
+### 7. Get My Sessions (Student)
+GET {{baseUrl}}/api/sessions/my-sessions
+Authorization: Bearer {{studentToken}}
+
+### 8. Get Teaching Sessions (Teacher)
+GET {{baseUrl}}/api/sessions/teaching
+Authorization: Bearer {{teacherToken}}
+
+### 9. Confirm Session (Teacher)
+POST {{baseUrl}}/api/sessions/{{sessionId}}/confirm
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "confirmed": true,
+  "notes": "Looking forward to teaching React!"
+}
+
+### 10. Get Updated Session Status
+GET {{baseUrl}}/api/sessions/{{sessionId}}
+Authorization: Bearer {{teacherToken}}
+
+### 11. Test Session Rescheduling (Student)
+POST {{baseUrl}}/api/sessions/{{sessionId}}/reschedule
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "newStart": "2024-12-25T14:00:00Z",
+  "newEnd": "2024-12-25T15:00:00Z"
+}
+
+### 12. Get Rescheduled Session
+GET {{baseUrl}}/api/sessions/{{sessionId}}
+Authorization: Bearer {{studentToken}}
+
+### 13. Complete Session (Teacher)
+POST {{baseUrl}}/api/sessions/{{sessionId}}/complete
+Authorization: Bearer {{teacherToken}}
+
+### 14. Get Completed Session
+GET {{baseUrl}}/api/sessions/{{sessionId}}
+Authorization: Bearer {{teacherToken}}
+
+### 15. Create Review (Student reviews Teacher)
+POST {{baseUrl}}/api/reviews
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "sessionId": {{sessionId}},
+  "rating": 5,
+  "comment": "Excellent teacher! Very patient and knowledgeable. The session was well-structured and I learned a lot about React hooks and state management."
+}
+
+### 16. Create Review (Teacher reviews Student)
+POST {{baseUrl}}/api/reviews
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "sessionId": {{sessionId}},
+  "rating": 4,
+  "comment": "Great student! Very engaged and asked thoughtful questions. Quick learner and followed along well with the concepts."
+}
+
+### 17. Get Session Reviews
+GET {{baseUrl}}/api/reviews/session/{{sessionId}}
+Authorization: Bearer {{studentToken}}
+
+### 18. Test Session Cancellation (Alternative flow)
+POST {{baseUrl}}/api/sessions/{{sessionId}}/cancel
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "reason": "Schedule conflict - need to reschedule"
+}
+
+### 19. Validate Meeting Link
+POST {{baseUrl}}/api/meeting/validate
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "url": "{{meetingLink}}"
+}
+
+### 20. Test Different Meeting Platforms
+
+### Generate Zoom Link
+POST {{baseUrl}}/api/meeting/zoom
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "title": "Advanced React Session",
+  "description": "Learning advanced React patterns",
+  "duration": 90,
+  "platform": "zoom"
+}
+
+### Generate Teams Link
+POST {{baseUrl}}/api/meeting/teams
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "title": "React Architecture Session",
+  "description": "Learning React architecture patterns",
+  "duration": 120,
+  "platform": "teams"
+}
+
+### 21. Get Upcoming Sessions (Student)
+GET {{baseUrl}}/api/sessions/upcoming
+Authorization: Bearer {{studentToken}}
+
+### 22. Get Sessions by Status (Admin)
+GET {{baseUrl}}/api/sessions/status/4
+Authorization: Bearer {{studentToken}}
+
+### 23. Test Error Handling - Invalid Session Creation
+POST {{baseUrl}}/api/sessions
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "teacherId": "invalid-teacher-id",
+  "userSkillId": 999,
+  "scheduledStart": "2024-12-25T10:00:00Z",
+  "scheduledEnd": "2024-12-25T09:00:00Z",
+  "notes": "Invalid session data",
+  "isOnline": true
+}
+
+### 24. Test Error Handling - Past Date Session
+POST {{baseUrl}}/api/sessions
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "teacherId": "teacher-user-id-here",
+  "userSkillId": 1,
+  "scheduledStart": "2023-01-01T10:00:00Z",
+  "scheduledEnd": "2023-01-01T11:00:00Z",
+  "notes": "Session in the past",
+  "isOnline": true
+}
+
+### 25. Final Status Check - All Sessions
+GET {{baseUrl}}/api/sessions/my-sessions
+Authorization: Bearer {{studentToken}}
+
+### 26. Final Status Check - Teaching Sessions
+GET {{baseUrl}}/api/sessions/teaching
+Authorization: Bearer {{teacherToken}}

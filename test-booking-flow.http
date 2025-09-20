@@ -1,0 +1,120 @@
+### Test Complete Booking Flow
+### This file tests the full booking functionality from creation to completion and review
+
+### 1. Login as a student
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "student@example.com",
+  "password": "Student123!"
+}
+
+### 2. Get available skills to book
+GET {{baseUrl}}/api/skills/offered
+Authorization: Bearer {{studentToken}}
+
+### 3. Create a new session booking
+POST {{baseUrl}}/api/sessions
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "teacherId": "teacher-user-id",
+  "userSkillId": 1,
+  "scheduledStart": "2024-12-20T10:00:00Z",
+  "scheduledEnd": "2024-12-20T11:00:00Z",
+  "notes": "Looking forward to learning React!",
+  "isOnline": true,
+  "meetingLink": "https://meet.google.com/abc-defg-hij"
+}
+
+### 4. Get the created session
+GET {{baseUrl}}/api/sessions/{{sessionId}}
+Authorization: Bearer {{studentToken}}
+
+### 5. Login as teacher to confirm the session
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "teacher@example.com",
+  "password": "Teacher123!"
+}
+
+### 6. Confirm the session (teacher)
+POST {{baseUrl}}/api/sessions/{{sessionId}}/confirm
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "confirmed": true,
+  "notes": "Looking forward to teaching React!"
+}
+
+### 7. Get updated session status
+GET {{baseUrl}}/api/sessions/{{sessionId}}
+Authorization: Bearer {{teacherToken}}
+
+### 8. Complete the session (either teacher or student can complete)
+POST {{baseUrl}}/api/sessions/{{sessionId}}/complete
+Authorization: Bearer {{teacherToken}}
+
+### 9. Get completed session
+GET {{baseUrl}}/api/sessions/{{sessionId}}
+Authorization: Bearer {{teacherToken}}
+
+### 10. Create a review for the session (student reviews teacher)
+POST {{baseUrl}}/api/reviews
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "sessionId": {{sessionId}},
+  "rating": 5,
+  "comment": "Excellent teacher! Very patient and knowledgeable. The session was well-structured and I learned a lot about React hooks and state management."
+}
+
+### 11. Create a review for the session (teacher reviews student)
+POST {{baseUrl}}/api/reviews
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "sessionId": {{sessionId}},
+  "rating": 4,
+  "comment": "Great student! Very engaged and asked thoughtful questions. Quick learner and followed along well with the concepts."
+}
+
+### 12. Get all reviews for the session
+GET {{baseUrl}}/api/reviews/session/{{sessionId}}
+Authorization: Bearer {{studentToken}}
+
+### 13. Get user's sessions to verify the flow
+GET {{baseUrl}}/api/sessions/my-sessions
+Authorization: Bearer {{studentToken}}
+
+### 14. Test session rescheduling
+POST {{baseUrl}}/api/sessions/{{sessionId}}/reschedule
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "newStart": "2024-12-21T10:00:00Z",
+  "newEnd": "2024-12-21T11:00:00Z"
+}
+
+### 15. Test session cancellation
+POST {{baseUrl}}/api/sessions/{{sessionId}}/cancel
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "reason": "Schedule conflict - need to reschedule"
+}
+
+### Variables for testing
+@baseUrl = https://localhost:7001
+@studentToken = your-student-jwt-token
+@teacherToken = your-teacher-jwt-token
+@sessionId = 1

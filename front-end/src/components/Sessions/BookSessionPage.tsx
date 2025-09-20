@@ -15,6 +15,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { sessionsService } from '../../services/sessionsService';
 import { UserSkill, skillsService } from '../../services/skillsService';
+import { meetingService } from '../../services/meetingService';
 
 interface BookSessionPageProps {
   userSkillId?: string;
@@ -36,6 +37,7 @@ const BookSessionPage: React.FC<BookSessionPageProps> = ({ userSkillId, onBack }
   const [meetingLink, setMeetingLink] = useState('');
   const [notes, setNotes] = useState('');
   const [sessionType, setSessionType] = useState<'in-person' | 'online'>('online');
+  const [isGeneratingMeetLink, setIsGeneratingMeetLink] = useState(false);
 
   // Load user skill details
   useEffect(() => {
@@ -81,7 +83,8 @@ const BookSessionPage: React.FC<BookSessionPageProps> = ({ userSkillId, onBack }
         scheduledEnd: endTime.toISOString(),
         notes: notes,
         isOnline: sessionType === 'online',
-        location: sessionType === 'in-person' ? location : undefined
+        location: sessionType === 'in-person' ? location : undefined,
+        meetingLink: sessionType === 'online' ? meetingLink : undefined
       };
       
       await sessionsService.createSession(sessionData);
@@ -116,6 +119,26 @@ const BookSessionPage: React.FC<BookSessionPageProps> = ({ userSkillId, onBack }
   };
 
   const totalCredits = userSkill ? (userSkill.creditsPerHour * (duration / 60)) : 0;
+
+  const generateGoogleMeetLink = async () => {
+    try {
+      setIsGeneratingMeetLink(true);
+      
+      // Generate a real Google Meet link using the meeting service
+      const meetingLink = await meetingService.generateGoogleMeetLink({
+        title: userSkill ? `${userSkill.skill.name} Session` : 'SkillSwap Session',
+        description: notes || 'SkillSwap learning session',
+        duration: duration
+      });
+      
+      setMeetingLink(meetingLink.url);
+    } catch (error) {
+      console.error('Error generating meet link:', error);
+      alert('Failed to generate meeting link. Please enter manually.');
+    } finally {
+      setIsGeneratingMeetLink(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -279,13 +302,31 @@ const BookSessionPage: React.FC<BookSessionPageProps> = ({ userSkillId, onBack }
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Meeting Link (Optional)
                   </label>
-                  <input
-                    type="url"
-                    value={meetingLink}
-                    onChange={(e) => setMeetingLink(e.target.value)}
-                    placeholder="https://meet.google.com/..."
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                  />
+                  <div className="flex space-x-2">
+                    <input
+                      type="url"
+                      value={meetingLink}
+                      onChange={(e) => setMeetingLink(e.target.value)}
+                      placeholder="https://meet.google.com/..."
+                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={generateGoogleMeetLink}
+                      disabled={isGeneratingMeetLink}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+                    >
+                      {isGeneratingMeetLink ? (
+                        <Loader2 className="animate-spin h-4 w-4" />
+                      ) : (
+                        <Video className="h-4 w-4" />
+                      )}
+                      <span>Generate</span>
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Click "Generate" to create a Google Meet link automatically
+                  </p>
                 </div>
               ) : (
                 <div>
