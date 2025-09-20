@@ -170,6 +170,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         bio: userData.bio,
         location: userData.location,
         profileImageUrl: userData.profilePhoto,
+        customAvatarUrl: userData.customAvatarUrl,
         timeZone: userData.timeZone,
         preferredLanguage: userData.languages?.[0],
       });

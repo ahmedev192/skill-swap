@@ -53,6 +53,7 @@ export interface UpdateUserRequest {
   location?: string;
   dateOfBirth?: string;
   profileImageUrl?: string;
+  customAvatarUrl?: string;
   timeZone?: string;
   preferredLanguage?: string;
 }
