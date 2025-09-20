@@ -4,11 +4,13 @@ import { referralService } from '../../services/referralService';
 
 interface ReferralCodeInputProps {
   onReferralApplied?: (success: boolean, message: string, creditsEarned?: number) => void;
+  onReferralCodeChange?: (referralCode: string) => void;
   disabled?: boolean;
 }
 
 const ReferralCodeInput: React.FC<ReferralCodeInputProps> = ({ 
   onReferralApplied, 
+  onReferralCodeChange,
   disabled = false 
 }) => {
   const [referralCode, setReferralCode] = useState('');
@@ -30,11 +32,12 @@ const ReferralCodeInput: React.FC<ReferralCodeInputProps> = ({
       return;
     }
 
+    // Validate the referral code with the backend
+    setLoading(true);
+    setMessage(null);
+    
     try {
-      setLoading(true);
-      setMessage(null);
-      
-      const result = await referralService.useReferralCode(referralCode.trim().toUpperCase());
+      const result = await referralService.validateReferralCode(referralCode.trim().toUpperCase());
       
       setIsSuccess(result.success);
       setMessage(result.message);
@@ -43,13 +46,13 @@ const ReferralCodeInput: React.FC<ReferralCodeInputProps> = ({
         onReferralApplied(result.success, result.message, result.creditsEarned);
       }
       
-      if (result.success) {
-        setReferralCode(''); // Clear the input on success
+      if (result.success && onReferralCodeChange) {
+        onReferralCodeChange(referralCode.trim().toUpperCase());
       }
     } catch (error: any) {
-      console.error('Failed to apply referral code:', error);
+      console.error('Failed to validate referral code:', error);
       setIsSuccess(false);
-      const errorMessage = error.response?.data?.message || 'Failed to apply referral code. Please try again.';
+      const errorMessage = error.response?.data?.message || 'Failed to validate referral code. Please try again.';
       setMessage(errorMessage);
       
       if (onReferralApplied) {

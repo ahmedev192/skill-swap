@@ -18,6 +18,44 @@ public class AuthController : BaseController
     }
 
     /// <summary>
+    /// Validate referral code during registration
+    /// </summary>
+    [HttpPost("validate-referral-code")]
+    public async Task<ActionResult<object>> ValidateReferralCode([FromBody] ValidateReferralCodeDto dto)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(dto.ReferralCode))
+            {
+                return BadRequest(new { valid = false, message = "Referral code is required" });
+            }
+
+            // Check if referral code exists and is valid
+            var referrer = await _userService.ValidateReferralCodeAsync(dto.ReferralCode);
+            if (referrer != null)
+            {
+                return Ok(new { 
+                    valid = true, 
+                    message = "Valid referral code! You'll receive bonus credits after registration.",
+                    referrerName = $"{referrer.FirstName} {referrer.LastName}"
+                });
+            }
+            else
+            {
+                return BadRequest(new { 
+                    valid = false, 
+                    message = "Invalid referral code. Please check and try again." 
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error validating referral code");
+            return StatusCode(500, new { message = "An unexpected error occurred" });
+        }
+    }
+
+    /// <summary>
     /// Register a new user
     /// </summary>
     [HttpPost("register")]

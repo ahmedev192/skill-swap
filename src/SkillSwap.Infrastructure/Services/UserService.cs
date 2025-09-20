@@ -410,6 +410,33 @@ public class UserService : IUserService
         };
     }
 
+    public async Task<UserDto?> ValidateReferralCodeAsync(string referralCode)
+    {
+        // Find the user who owns this referral code
+        var referrer = await _userManager.Users.FirstOrDefaultAsync(u => u.ReferralCode == referralCode);
+        if (referrer == null)
+        {
+            return null;
+        }
+
+        // Return basic user info (without sensitive data)
+        return new UserDto
+        {
+            Id = referrer.Id,
+            FirstName = referrer.FirstName,
+            LastName = referrer.LastName,
+            Email = referrer.Email,
+            Bio = referrer.Bio,
+            Location = referrer.Location,
+            DateOfBirth = referrer.DateOfBirth,
+            TimeZone = referrer.TimeZone,
+            PreferredLanguage = referrer.PreferredLanguage,
+            IsActive = referrer.IsActive,
+            CreatedAt = referrer.CreatedAt,
+            LastActiveAt = referrer.LastActiveAt
+        };
+    }
+
     private async Task<double> GetUserAverageRatingAsync(string userId)
     {
         var reviews = await _unitOfWork.Reviews.FindAsync(r => r.RevieweeId == userId && r.IsVisible);

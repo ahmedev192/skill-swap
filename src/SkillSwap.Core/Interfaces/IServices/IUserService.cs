@@ -23,6 +23,7 @@ public interface IUserService
     Task<string> GenerateReferralCodeAsync(string userId);
     Task<ReferralResult> UseReferralCodeAsync(string userId, string referralCode);
     Task<object> GetReferralStatsAsync(string userId);
+    Task<UserDto?> ValidateReferralCodeAsync(string referralCode);
     
     // Settings methods
     Task<bool> UpdateNotificationSettingsAsync(string userId, object settings);

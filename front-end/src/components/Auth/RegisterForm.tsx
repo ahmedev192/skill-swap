@@ -26,6 +26,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
   const [referralApplied, setReferralApplied] = useState(false);
   const [referralCredits, setReferralCredits] = useState<number | null>(null);
   const [referralCodeFromUrl, setReferralCodeFromUrl] = useState<string | null>(null);
+  const [referralCodeFromInput, setReferralCodeFromInput] = useState<string | null>(null);
 
   // Check for referral code in URL
   useEffect(() => {
@@ -101,7 +102,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
           password: formData.password,
           location: formData.location.trim(),
           languages: formData.languages,
-          referralCode: referralCodeFromUrl,
+          referralCode: referralCodeFromInput || referralCodeFromUrl,
         });
       } catch (error: any) {
         console.error('Registration error:', error);
@@ -129,6 +130,10 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
     if (success && creditsEarned) {
       setReferralCredits(creditsEarned);
     }
+  };
+
+  const handleReferralCodeFromInput = (referralCode: string) => {
+    setReferralCodeFromInput(referralCode);
   };
 
   return (
@@ -311,6 +316,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
             )}
             <ReferralCodeInput 
               onReferralApplied={handleReferralApplied}
+              onReferralCodeChange={handleReferralCodeFromInput}
               disabled={isLoading}
             />
           </div>

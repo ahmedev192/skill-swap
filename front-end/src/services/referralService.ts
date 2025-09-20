@@ -27,6 +27,18 @@ class ReferralService {
   }
 
   /**
+   * Validate a referral code during registration
+   */
+  async validateReferralCode(referralCode: string): Promise<ReferralResult> {
+    const response = await api.post('/auth/validate-referral-code', { referralCode });
+    return {
+      success: response.data.valid || false,
+      message: response.data.message || 'Unknown error',
+      creditsEarned: response.data.valid ? 15 : 0
+    };
+  }
+
+  /**
    * Use a referral code
    */
   async useReferralCode(referralCode: string): Promise<ReferralResult> {
