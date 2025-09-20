@@ -83,12 +83,12 @@ const ReferralSection: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div className="animate-pulse">
-          <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
+          <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
           <div className="space-y-3">
-            <div className="h-4 bg-gray-200 rounded"></div>
-            <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
           </div>
         </div>
       </div>
@@ -96,9 +96,9 @@ const ReferralSection: React.FC = () => {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
           <Gift className="h-6 w-6 text-purple-600 mr-2" />
           Referral Program
         </h2>
@@ -114,7 +114,7 @@ const ReferralSection: React.FC = () => {
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700">
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400">
           {error}
         </div>
       )}
@@ -123,15 +123,15 @@ const ReferralSection: React.FC = () => {
         <div className="space-y-6">
           {/* Referral Code Section */}
           {stats.referralCode && (
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Your Referral Code</h3>
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Your Referral Code</h3>
               <div className="flex items-center space-x-3">
-                <code className="flex-1 bg-white px-3 py-2 rounded border text-lg font-mono text-purple-600">
+                <code className="flex-1 bg-white dark:bg-gray-700 px-3 py-2 rounded border dark:border-gray-600 text-lg font-mono text-purple-600 dark:text-purple-400">
                   {stats.referralCode}
                 </code>
                 <button
                   onClick={copyReferralCode}
-                  className="bg-white text-purple-600 px-3 py-2 rounded border hover:bg-gray-50 flex items-center"
+                  className="bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 px-3 py-2 rounded border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center"
                 >
                   {copied ? (
                     <Check className="h-5 w-5" />
@@ -147,7 +147,7 @@ const ReferralSection: React.FC = () => {
                   Share
                 </button>
               </div>
-              <p className="text-sm text-gray-600 mt-2">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                 Share this code with friends to earn 15 credits when they join!
               </p>
             </div>
@@ -155,32 +155,32 @@ const ReferralSection: React.FC = () => {
 
           {/* Statistics */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-blue-50 rounded-lg p-4">
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
               <div className="flex items-center">
-                <Users className="h-8 w-8 text-blue-600" />
+                <Users className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-600">Friends Referred</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.referredUsersCount}</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Friends Referred</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.referredUsersCount}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-green-50 rounded-lg p-4">
+            <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
               <div className="flex items-center">
-                <DollarSign className="h-8 w-8 text-green-600" />
+                <DollarSign className="h-8 w-8 text-green-600 dark:text-green-400" />
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-600">Credits Earned</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.totalCreditsEarned}</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Credits Earned</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalCreditsEarned}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-purple-50 rounded-lg p-4">
+            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
               <div className="flex items-center">
-                <Gift className="h-8 w-8 text-purple-600" />
+                <Gift className="h-8 w-8 text-purple-600 dark:text-purple-400" />
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-600">Status</p>
-                  <p className="text-lg font-bold text-gray-900">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Status</p>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">
                     {stats.hasUsedReferral ? 'Bonus Used' : 'Eligible'}
                   </p>
                 </div>
@@ -189,19 +189,19 @@ const ReferralSection: React.FC = () => {
           </div>
 
           {/* How it works */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-3">How it works</h3>
-            <ul className="space-y-2 text-sm text-gray-600">
+          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">How it works</h3>
+            <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
               <li className="flex items-start">
-                <span className="flex-shrink-0 w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xs font-medium mr-3 mt-0.5">1</span>
+                <span className="flex-shrink-0 w-6 h-6 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full flex items-center justify-center text-xs font-medium mr-3 mt-0.5">1</span>
                 Share your referral code with friends
               </li>
               <li className="flex items-start">
-                <span className="flex-shrink-0 w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xs font-medium mr-3 mt-0.5">2</span>
+                <span className="flex-shrink-0 w-6 h-6 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full flex items-center justify-center text-xs font-medium mr-3 mt-0.5">2</span>
                 When they sign up using your code, you both get 15 credits
               </li>
               <li className="flex items-start">
-                <span className="flex-shrink-0 w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xs font-medium mr-3 mt-0.5">3</span>
+                <span className="flex-shrink-0 w-6 h-6 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full flex items-center justify-center text-xs font-medium mr-3 mt-0.5">3</span>
                 Use credits to book skill sessions with other users
               </li>
             </ul>
