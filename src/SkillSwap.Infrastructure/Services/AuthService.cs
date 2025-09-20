@@ -113,8 +113,8 @@ public class AuthService : IAuthService
             UserId = user.Id,
             Type = TransactionType.Bonus,
             Amount = 5.0m, // Welcome bonus of 5 credits
-            BalanceAfter = 5.0m,
-            Description = "Welcome bonus",
+            BalanceAfter = 5.0m, // Initial balance is 5 credits
+            Description = "Welcome bonus - Start with 5 credits!",
             Status = TransactionStatus.Completed,
             ProcessedAt = DateTime.UtcNow
         };

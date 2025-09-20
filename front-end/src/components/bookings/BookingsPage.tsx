@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { sessionsService, Session } from '../../services/sessionsService';
+import { reviewsService, Review } from '../../services/reviewsService';
 import { useErrorHandler } from '../../hooks/useErrorHandler';
 import BookSessionModal from './BookSessionModal';
 import RescheduleModal from '../sessions/RescheduleModal';
@@ -25,6 +26,7 @@ const BookingsPage: React.FC = () => {
   const { handleError } = useErrorHandler();
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'requests'>('upcoming');
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showBookModal, setShowBookModal] = useState(false);
@@ -155,26 +157,36 @@ const BookingsPage: React.FC = () => {
   };
 
   const handleReviewSubmitted = async () => {
-    // Reload sessions after review submission
+    // Reload both sessions and reviews after review submission
     try {
-      const userSessions = await sessionsService.getMySessions();
+      const [userSessions, userReviews] = await Promise.all([
+        sessionsService.getMySessions(),
+        reviewsService.getMyReviews()
+      ]);
       setSessions(userSessions);
+      setReviews(userReviews);
     } catch (error) {
-      console.error('Error reloading sessions:', error);
+      console.error('Error reloading data:', error);
     }
   };
 
-  // Load sessions data
+  // Load sessions and reviews data
   useEffect(() => {
-    const loadSessions = async () => {
+    const loadData = async () => {
       if (!user) return;
       
       try {
         setIsLoading(true);
         setError(null);
         
-        const userSessions = await sessionsService.getMySessions();
+        // Load both sessions and reviews in parallel
+        const [userSessions, userReviews] = await Promise.all([
+          sessionsService.getMySessions(),
+          reviewsService.getMyReviews()
+        ]);
+        
         console.log('Loaded sessions:', userSessions);
+        console.log('Loaded reviews:', userReviews);
         console.log('Session details:', userSessions.map(s => ({
           id: s.id,
           status: s.status,
@@ -184,16 +196,18 @@ const BookingsPage: React.FC = () => {
           scheduledStart: s.scheduledStart
         })));
         console.log('Pending sessions:', userSessions.filter(s => s.status === 1));
+        
         setSessions(userSessions);
+        setReviews(userReviews);
       } catch (err) {
-        const errorResult = handleError(err, 'loadSessions');
+        const errorResult = handleError(err, 'loadData');
         setError(errorResult.userNotification.message);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadSessions();
+    loadData();
   }, [user]);
 
   // Separate sessions by status (1=Pending, 2=Confirmed, 3=InProgress, 4=Completed, 5=Cancelled, 6=Disputed)
@@ -298,6 +312,11 @@ const BookingsPage: React.FC = () => {
     });
   };
 
+  // Helper function to check if user has already reviewed a session
+  const hasUserReviewedSession = (sessionId: number): Review | null => {
+    return reviews.find(review => review.sessionId === sessionId) || null;
+  };
+
   const renderBookingCard = (session: Session, showActions: boolean = true) => {
     const title = session.userSkill?.skill?.name || 'Unknown Skill';
     const status = session.status;
@@ -310,7 +329,9 @@ const BookingsPage: React.FC = () => {
     const creditsPerHour = session.userSkill?.creditsPerHour || 0;
     const skillCategory = session.userSkill?.skill?.category || 'Uncategorized';
     const isTeacher = user?.id === session.teacherId;
+    const isStudent = user?.id === session.studentId;
     const otherUser = isTeacher ? session.student : session.teacher;
+    const existingReview = hasUserReviewedSession(session.id);
     
     return (
     <div key={session.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -427,18 +448,25 @@ const BookingsPage: React.FC = () => {
                   Join Session
                 </button>
               )}
-              <button 
-                onClick={() => handleCompleteSession(session.id)}
-                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm"
-              >
-                Mark Complete
-              </button>
-              <button 
-                onClick={() => handleReschedule(session.id)}
-                className="flex-1 bg-yellow-600 text-white py-2 px-4 rounded-lg hover:bg-yellow-700 transition-colors text-sm"
-              >
-                Reschedule
-              </button>
+              {/* Only instructor can complete sessions */}
+              {isTeacher && (
+                <button 
+                  onClick={() => handleCompleteSession(session.id)}
+                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                >
+                  Mark Complete
+                </button>
+              )}
+              {/* Only student can reschedule, and only before confirmation */}
+              {isStudent && (
+                <button 
+                  onClick={() => handleReschedule(session.id)}
+                  className="flex-1 bg-yellow-600 text-white py-2 px-4 rounded-lg hover:bg-yellow-700 transition-colors text-sm"
+                >
+                  Reschedule
+                </button>
+              )}
+              {/* Both can cancel */}
               <button 
                 onClick={() => handleCancelSession(session.id)}
                 className="flex-1 border border-red-300 text-red-600 py-2 px-4 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm"
@@ -450,28 +478,67 @@ const BookingsPage: React.FC = () => {
           
           {status === 1 && ( // Pending
             <>
+              {/* Only instructor can accept/reject session requests */}
+              {isTeacher && (
+                <>
+                  <button 
+                    onClick={() => handleAcceptRequest(session.id)}
+                    className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors text-sm"
+                  >
+                    Accept
+                  </button>
+                  <button 
+                    onClick={() => handleDeclineRequest(session.id)}
+                    className="flex-1 border border-red-300 text-red-600 py-2 px-4 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm"
+                  >
+                    Decline
+                  </button>
+                </>
+              )}
+              {/* Student can reschedule pending sessions */}
+              {isStudent && (
+                <button 
+                  onClick={() => handleReschedule(session.id)}
+                  className="flex-1 bg-yellow-600 text-white py-2 px-4 rounded-lg hover:bg-yellow-700 transition-colors text-sm"
+                >
+                  Reschedule
+                </button>
+              )}
+              {/* Both can cancel pending sessions */}
               <button 
-                onClick={() => handleAcceptRequest(session.id)}
-                className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors text-sm"
-              >
-                Accept
-              </button>
-              <button 
-                onClick={() => handleDeclineRequest(session.id)}
+                onClick={() => handleCancelSession(session.id)}
                 className="flex-1 border border-red-300 text-red-600 py-2 px-4 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm"
               >
-                Decline
+                Cancel
               </button>
             </>
           )}
           
           {status === 4 && ( // Completed
-            <button 
-              onClick={() => handleRateAndReview(session.id)}
-              className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm"
-            >
-              Rate & Review
-            </button>
+            <>
+              {existingReview ? (
+                /* Show existing review in disabled state */
+                <div className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 py-2 px-4 rounded-lg text-sm border border-gray-200 dark:border-gray-600">
+                  <div className="flex items-center justify-center space-x-2">
+                    <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                    <span>Reviewed ({existingReview.rating}/5)</span>
+                  </div>
+                  {existingReview.comment && (
+                    <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
+                      "{existingReview.comment.length > 50 ? existingReview.comment.substring(0, 50) + '...' : existingReview.comment}"
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Show review button if no review exists */
+                <button 
+                  onClick={() => handleRateAndReview(session.id)}
+                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                >
+                  Rate & Review
+                </button>
+              )}
+            </>
           )}
         </div>
       )}

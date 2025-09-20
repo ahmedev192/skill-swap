@@ -76,9 +76,9 @@ public class SessionService : ISessionService
         var duration = createSessionDto.ScheduledEnd - createSessionDto.ScheduledStart;
         var creditsCost = (decimal)duration.TotalHours * userSkill.CreditsPerHour;
 
-        // Check if student has enough credits
-        var studentBalance = await _creditService.GetUserCreditBalanceAsync(studentId);
-        if (studentBalance < creditsCost)
+        // Check if student has enough available credits (excluding pending transactions)
+        var studentAvailableBalance = await _creditService.GetUserAvailableBalanceAsync(studentId);
+        if (studentAvailableBalance < creditsCost)
         {
             throw new InvalidOperationException("Insufficient credits");
         }
@@ -177,21 +177,28 @@ public class SessionService : ISessionService
             throw new InvalidOperationException("Can only confirm pending sessions");
         }
 
-        if (userId == session.TeacherId)
+        // Only the instructor (teacher) can accept or reject sessions
+        if (userId != session.TeacherId)
         {
-            session.TeacherConfirmed = confirmSessionDto.Confirmed;
+            throw new UnauthorizedAccessException("Only the instructor can accept or reject sessions");
         }
-        else if (userId == session.StudentId)
+
+        // Update teacher confirmation
+        session.TeacherConfirmed = confirmSessionDto.Confirmed;
+        
+        // If teacher rejects, cancel the session
+        if (!confirmSessionDto.Confirmed)
         {
-            session.StudentConfirmed = confirmSessionDto.Confirmed;
+            session.Status = SessionStatus.Cancelled;
+            session.CancelledAt = DateTime.UtcNow;
+            session.CancellationReason = confirmSessionDto.Notes ?? "Session rejected by instructor";
+            
+            // Refund credits to student
+            await _creditService.RefundCreditsAsync(session.StudentId, session.CreditsCost, session.Id, "Session rejected by instructor");
         }
         else
         {
-            throw new UnauthorizedAccessException("Not authorized to confirm this session");
-        }
-
-        if (session.TeacherConfirmed && session.StudentConfirmed)
-        {
+            // Teacher accepted, session is now confirmed
             session.Status = SessionStatus.Confirmed;
             session.ConfirmedAt = DateTime.UtcNow;
         }
@@ -221,10 +228,11 @@ public class SessionService : ISessionService
             throw new InvalidOperationException($"Can only complete confirmed sessions. Current status: {session.Status}");
         }
 
-        if (userId != session.TeacherId && userId != session.StudentId)
+        // Only the instructor (teacher) can complete sessions
+        if (userId != session.TeacherId)
         {
-            Console.WriteLine($"User {userId} not authorized to complete session {sessionId}");
-            throw new UnauthorizedAccessException("Not authorized to complete this session");
+            Console.WriteLine($"User {userId} not authorized to complete session {sessionId} - only instructor can complete sessions");
+            throw new UnauthorizedAccessException("Only the instructor can complete sessions");
         }
 
         session.Status = SessionStatus.Completed;
@@ -234,15 +242,27 @@ public class SessionService : ISessionService
         await _unitOfWork.Sessions.UpdateAsync(session);
         await _unitOfWork.SaveChangesAsync();
 
-        // Transfer credits from escrow to teacher (separate operation to avoid transaction issues)
+        // Transfer credits from escrow to teacher
         try
         {
-            await _creditService.TransferCreditsAsync(session.StudentId, session.TeacherId, session.CreditsCost, session.Id, "Session completed");
+            Console.WriteLine($"Attempting credit transfer for session {sessionId}: StudentId={session.StudentId}, TeacherId={session.TeacherId}, Amount={session.CreditsCost}");
+            var transferResult = await _creditService.TransferCreditsAsync(session.StudentId, session.TeacherId, session.CreditsCost, session.Id, "Session completed");
+            if (!transferResult)
+            {
+                Console.WriteLine($"Credit transfer failed for session {sessionId}");
+                throw new InvalidOperationException("Failed to transfer credits to teacher");
+            }
+            Console.WriteLine($"Credit transfer successful for session {sessionId}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Warning: Credit transfer failed for session {sessionId}: {ex.Message}");
-            // Don't fail the session completion if credit transfer fails
+            Console.WriteLine($"Credit transfer failed for session {sessionId}: {ex.Message}");
+            // Rollback the session completion if credit transfer fails
+            session.Status = SessionStatus.Confirmed; // Revert to confirmed status
+            session.ActualEnd = null; // Remove the completion timestamp
+            await _unitOfWork.Sessions.UpdateAsync(session);
+            await _unitOfWork.SaveChangesAsync();
+            throw new InvalidOperationException($"Session completion failed: {ex.Message}", ex);
         }
 
         Console.WriteLine($"Session {sessionId} completed successfully");
@@ -267,7 +287,7 @@ public class SessionService : ISessionService
         return _mapper.Map<IEnumerable<SessionDto>>(sessions);
     }
 
-    public async Task<bool> RescheduleSessionAsync(int sessionId, DateTime newStart, DateTime newEnd)
+    public async Task<bool> RescheduleSessionAsync(int sessionId, string userId, DateTime newStart, DateTime newEnd)
     {
         var session = await _unitOfWork.Sessions.GetByIdAsync(sessionId);
         if (session == null)
@@ -275,9 +295,27 @@ public class SessionService : ISessionService
             return false;
         }
 
-        if (session.Status != SessionStatus.Pending && session.Status != SessionStatus.Confirmed)
+        // Only students can reschedule sessions
+        if (userId != session.StudentId)
         {
-            throw new InvalidOperationException("Can only reschedule pending or confirmed sessions");
+            throw new UnauthorizedAccessException("Only the student can reschedule sessions");
+        }
+
+        // Can only reschedule before session is confirmed
+        if (session.Status != SessionStatus.Pending)
+        {
+            throw new InvalidOperationException("Can only reschedule sessions before they are confirmed");
+        }
+
+        // Validate new times
+        if (newStart >= newEnd)
+        {
+            throw new InvalidOperationException("New start time must be before end time");
+        }
+
+        if (newStart <= DateTime.UtcNow)
+        {
+            throw new InvalidOperationException("New session time must be in the future");
         }
 
         session.ScheduledStart = newStart;

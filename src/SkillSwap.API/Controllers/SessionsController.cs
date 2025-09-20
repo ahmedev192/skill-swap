@@ -294,7 +294,7 @@ public class SessionsController : BaseController
     }
 
     /// <summary>
-    /// Confirm session
+    /// Accept or reject session (Instructor only)
     /// </summary>
     [HttpPost("{id}/confirm")]
     public async Task<ActionResult> ConfirmSession(int id, [FromBody] ConfirmSessionDto confirmSessionDto)
@@ -341,7 +341,7 @@ public class SessionsController : BaseController
     }
 
     /// <summary>
-    /// Complete session
+    /// Complete session (Instructor only)
     /// </summary>
     [HttpPost("{id}/complete")]
     public async Task<ActionResult> CompleteSession(int id)
@@ -421,7 +421,7 @@ public class SessionsController : BaseController
     }
 
     /// <summary>
-    /// Reschedule session
+    /// Reschedule session (Student only, before confirmation)
     /// </summary>
     [HttpPost("{id}/reschedule")]
     public async Task<ActionResult> RescheduleSession(int id, [FromBody] RescheduleSessionDto rescheduleSessionDto)
@@ -454,14 +454,7 @@ public class SessionsController : BaseController
                 return BadRequest(new { message = "New session time must be in the future" });
             }
 
-            // Check if user can modify this session
-            var canModify = await _sessionService.CanUserModifySessionAsync(id, userId);
-            if (!canModify)
-            {
-                return Forbid();
-            }
-
-            var result = await _sessionService.RescheduleSessionAsync(id, rescheduleSessionDto.NewStart, rescheduleSessionDto.NewEnd);
+            var result = await _sessionService.RescheduleSessionAsync(id, userId, rescheduleSessionDto.NewStart, rescheduleSessionDto.NewEnd);
             if (result)
             {
                 return Ok(new { message = "Session rescheduled successfully" });

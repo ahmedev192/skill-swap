@@ -13,12 +13,14 @@ public class UserService : IUserService
     private readonly UserManager<User> _userManager;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
+    private readonly ICreditService _creditService;
 
-    public UserService(UserManager<User> userManager, IUnitOfWork unitOfWork, IMapper mapper)
+    public UserService(UserManager<User> userManager, IUnitOfWork unitOfWork, IMapper mapper, ICreditService creditService)
     {
         _userManager = userManager;
         _unitOfWork = unitOfWork;
         _mapper = mapper;
+        _creditService = creditService;
     }
 
     public async Task<UserDto?> GetUserByIdAsync(string id)
@@ -27,7 +29,7 @@ public class UserService : IUserService
         if (user == null) return null;
 
         var userDto = _mapper.Map<UserDto>(user);
-        userDto.CreditBalance = await GetUserCreditBalanceAsync(id);
+        userDto.CreditBalance = await _creditService.GetUserAvailableBalanceAsync(id);
         userDto.AverageRating = await GetUserAverageRatingAsync(id);
         userDto.TotalReviews = await GetUserTotalReviewsAsync(id);
 
@@ -40,7 +42,7 @@ public class UserService : IUserService
         if (user == null) return null;
 
         var userDto = _mapper.Map<UserDto>(user);
-        userDto.CreditBalance = await GetUserCreditBalanceAsync(user.Id);
+        userDto.CreditBalance = await _creditService.GetUserAvailableBalanceAsync(user.Id);
         userDto.AverageRating = await GetUserAverageRatingAsync(user.Id);
         userDto.TotalReviews = await GetUserTotalReviewsAsync(user.Id);
 
@@ -55,7 +57,7 @@ public class UserService : IUserService
         foreach (var user in users)
         {
             var userDto = _mapper.Map<UserDto>(user);
-            userDto.CreditBalance = await GetUserCreditBalanceAsync(user.Id);
+            userDto.CreditBalance = await _creditService.GetUserAvailableBalanceAsync(user.Id);
             userDto.AverageRating = await GetUserAverageRatingAsync(user.Id);
             userDto.TotalReviews = await GetUserTotalReviewsAsync(user.Id);
             userDtos.Add(userDto);
@@ -186,12 +188,7 @@ public class UserService : IUserService
 
     public async Task<decimal> GetUserCreditBalanceAsync(string userId)
     {
-        var transactions = await _unitOfWork.CreditTransactions
-            .FindAsync(ct => ct.UserId == userId && ct.Status == TransactionStatus.Completed);
-
-        return transactions.Sum(t => t.Type == TransactionType.Earned || t.Type == TransactionType.Bonus || t.Type == TransactionType.Transfer 
-            ? t.Amount 
-            : -t.Amount);
+        return await _creditService.GetUserCreditBalanceAsync(userId);
     }
 
     public async Task<bool> UpdateUserCreditBalanceAsync(string userId, decimal amount)
@@ -245,7 +242,7 @@ public class UserService : IUserService
         foreach (var user in users)
         {
             var userDto = _mapper.Map<UserDto>(user);
-            userDto.CreditBalance = await GetUserCreditBalanceAsync(user.Id);
+            userDto.CreditBalance = await _creditService.GetUserAvailableBalanceAsync(user.Id);
             userDto.AverageRating = await GetUserAverageRatingAsync(user.Id);
             userDto.TotalReviews = await GetUserTotalReviewsAsync(user.Id);
             userDtos.Add(userDto);
@@ -332,12 +329,17 @@ public class UserService : IUserService
         // Award credits to both users
         const decimal referralCredits = 15m;
         
+        // Get current balances to calculate new balances
+        var newUserBalance = await _creditService.GetUserCreditBalanceAsync(userId);
+        var referrerBalance = await _creditService.GetUserCreditBalanceAsync(referrer.Id);
+        
         // Award credits to the new user
         var newUserTransaction = new CreditTransaction
         {
             UserId = userId,
             Type = TransactionType.Bonus,
             Amount = referralCredits,
+            BalanceAfter = newUserBalance + referralCredits,
             Description = "Referral bonus - Welcome!",
             Status = TransactionStatus.Completed,
             ProcessedAt = DateTime.UtcNow
@@ -349,6 +351,7 @@ public class UserService : IUserService
             UserId = referrer.Id,
             Type = TransactionType.Bonus,
             Amount = referralCredits,
+            BalanceAfter = referrerBalance + referralCredits,
             Description = "Referral bonus - Friend joined!",
             Status = TransactionStatus.Completed,
             ProcessedAt = DateTime.UtcNow

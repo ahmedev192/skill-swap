@@ -6,6 +6,8 @@ namespace SkillSwap.Core.Interfaces.Services;
 public interface ICreditService
 {
     Task<decimal> GetUserCreditBalanceAsync(string userId);
+    Task<decimal> GetUserAvailableBalanceAsync(string userId);
+    Task<decimal> GetUserPendingSpentAsync(string userId);
     Task<bool> UpdateUserCreditBalanceAsync(string userId, decimal amount);
     Task<bool> HoldCreditsAsync(string userId, decimal amount, int sessionId, string description);
     Task<bool> TransferCreditsAsync(string fromUserId, string toUserId, decimal amount, int sessionId, string description);

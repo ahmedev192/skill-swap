@@ -252,7 +252,7 @@ class SessionsService {
     }
   }
 
-  // Additional methods that are called by the frontend but were missing
+  // Additional helper methods for better UX
   async acceptSession(id: number): Promise<void> {
     try {
       await api.post(`/sessions/${id}/confirm`, { confirmed: true });
@@ -263,7 +263,7 @@ class SessionsService {
 
   async declineSession(id: number): Promise<void> {
     try {
-      await api.post(`/sessions/${id}/cancel`, { reason: "Declined by teacher" });
+      await api.post(`/sessions/${id}/confirm`, { confirmed: false, notes: "Session declined by instructor" });
     } catch (error) {
       throw ErrorHandler.fromAxiosError(error as any);
     }

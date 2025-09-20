@@ -14,10 +14,11 @@ export interface CreditTransaction {
 }
 
 export interface CreditBalance {
-  balance: number;
+  balance: number; // Available balance (what user can spend)
+  totalBalance: number; // Total balance including pending
+  pending: number; // Amount held in escrow
   earned: number;
   spent: number;
-  pending: number;
 }
 
 export interface TransferCreditsRequest {
@@ -28,13 +29,20 @@ export interface TransferCreditsRequest {
 
 class CreditsService {
   async getUserCredits(userId: string): Promise<CreditBalance> {
-    const response = await api.get<{ balance: number }>(`/users/${userId}/credits`);
-    // Transform the API response to match the expected CreditBalance interface
+    const response = await api.get<{ 
+      balance: number; 
+      totalBalance: number; 
+      pending: number; 
+      earned: number; 
+      spent: number; 
+    }>(`/users/${userId}/credits`);
+    
     return {
       balance: response.data.balance,
-      earned: 0, // Not available from API
-      spent: 0, // Not available from API
-      pending: 0 // Not available from API
+      totalBalance: response.data.totalBalance,
+      pending: response.data.pending,
+      earned: response.data.earned,
+      spent: response.data.spent
     };
   }
 

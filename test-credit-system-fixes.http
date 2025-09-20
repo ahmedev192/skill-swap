@@ -1,0 +1,159 @@
+### Test Credit System Fixes
+### This file tests the fixed credit calculation logic
+
+### Variables
+@baseUrl = https://localhost:7001
+@studentToken = YOUR_STUDENT_JWT_TOKEN
+@teacherToken = YOUR_TEACHER_JWT_TOKEN
+@adminToken = YOUR_ADMIN_JWT_TOKEN
+
+### 1. Test User Registration with Welcome Bonus (5 credits)
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "firstName": "Test",
+  "lastName": "User",
+  "email": "testuser@example.com",
+  "password": "TestPassword123!",
+  "bio": "Test user for credit system",
+  "location": "Test City"
+}
+
+### 2. Test User Registration with Referral Code (5 + 15 = 20 credits)
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "firstName": "Referred",
+  "lastName": "User",
+  "email": "referreduser@example.com",
+  "password": "TestPassword123!",
+  "bio": "Referred user for credit system",
+  "location": "Test City",
+  "referralCode": "REFERRAL_CODE_HERE"
+}
+
+### 3. Get User Credit Balance (should show available balance)
+GET {{baseUrl}}/api/users/{{userId}}/credits
+Authorization: Bearer {{studentToken}}
+
+### 4. Create a Session Request (should hold credits in escrow)
+POST {{baseUrl}}/api/sessions
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "userSkillId": 1,
+  "teacherId": "TEACHER_USER_ID",
+  "scheduledStart": "2024-01-15T10:00:00Z",
+  "scheduledEnd": "2024-01-15T11:00:00Z",
+  "notes": "Test session for credit system",
+  "isOnline": true,
+  "meetingLink": "https://meet.example.com/test"
+}
+
+### 5. Check Credit Balance After Session Creation (should show reduced available balance)
+GET {{baseUrl}}/api/users/{{userId}}/credits
+Authorization: Bearer {{studentToken}}
+
+### 6. Get Pending Transactions (should show held credits)
+GET {{baseUrl}}/api/users/{{userId}}/credits/pending
+Authorization: Bearer {{studentToken}}
+
+### 7. Confirm Session (both teacher and student)
+POST {{baseUrl}}/api/sessions/{{sessionId}}/confirm
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "confirmed": true
+}
+
+POST {{baseUrl}}/api/sessions/{{sessionId}}/confirm
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "confirmed": true
+}
+
+### 8. Complete Session (should transfer credits to teacher)
+POST {{baseUrl}}/api/sessions/{{sessionId}}/complete
+Authorization: Bearer {{teacherToken}}
+
+### 8.1. Check Console Logs for Credit Transfer
+### Look for these log messages in the console:
+### - "Attempting credit transfer for session X: StudentId=..., TeacherId=..., Amount=..."
+### - "TransferCreditsAsync: fromUserId=..., toUserId=..., amount=..., sessionId=..."
+### - "Found pending transaction: True"
+### - "Teacher current balance: X"
+### - "Creating teacher transaction: Amount=..., NewBalance=..."
+### - "Credit transfer completed successfully"
+
+### 9. Check Credit Balance After Session Completion
+GET {{baseUrl}}/api/users/{{studentId}}/credits
+Authorization: Bearer {{studentToken}}
+
+GET {{baseUrl}}/api/users/{{teacherId}}/credits
+Authorization: Bearer {{teacherToken}}
+
+### 10. Test Session Cancellation (should refund credits)
+POST {{baseUrl}}/api/sessions/{{sessionId}}/cancel
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "cancellationReason": "Test cancellation for credit system"
+}
+
+### 11. Check Credit Balance After Cancellation (should show refunded credits)
+GET {{baseUrl}}/api/users/{{userId}}/credits
+Authorization: Bearer {{studentToken}}
+
+### 12. Test Referral Code Usage
+POST {{baseUrl}}/api/users/referral/use
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "referralCode": "REFERRAL_CODE_HERE"
+}
+
+### 13. Check Credit Balance After Referral (should show +15 credits)
+GET {{baseUrl}}/api/users/{{userId}}/credits
+Authorization: Bearer {{studentToken}}
+
+### 14. Get Credit Transaction History
+GET {{baseUrl}}/api/users/{{userId}}/credits/transactions
+Authorization: Bearer {{studentToken}}
+
+### 15. Admin: Add Credits to User
+POST {{baseUrl}}/api/users/{{userId}}/credits/add
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "amount": 10,
+  "description": "Admin credit adjustment for testing"
+}
+
+### 16. Admin: Deduct Credits from User
+POST {{baseUrl}}/api/users/{{userId}}/credits/deduct
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "amount": 5,
+  "description": "Admin credit deduction for testing"
+}
+
+### Expected Results:
+### 1. New users should start with 5 credits (welcome bonus)
+### 2. Users with referral codes should get 5 + 15 = 20 credits
+### 3. Available balance should exclude pending (escrow) credits
+### 4. Session booking should hold credits in escrow
+### 5. Session completion should transfer credits to teacher
+### 6. Session cancellation should refund credits to student
+### 7. Referral codes should award 15 credits to both users
+### 8. Credit balance should be calculated correctly in all scenarios

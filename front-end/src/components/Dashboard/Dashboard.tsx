@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { sessionsService, Session } from '../../services/sessionsService';
 import { skillsService, UserSkill } from '../../services/skillsService';
+import { creditsService, CreditBalance } from '../../services/creditsService';
 import ReferralSection from '../referral/ReferralSection';
 
 interface DashboardProps {
@@ -24,6 +25,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
   const { user } = useAuth();
   const [upcomingSessions, setUpcomingSessions] = useState<Session[]>([]);
   const [userSkills, setUserSkills] = useState<UserSkill[]>([]);
+  const [creditBalance, setCreditBalance] = useState<CreditBalance>({
+    balance: 0,
+    totalBalance: 0,
+    pending: 0,
+    earned: 0,
+    spent: 0
+  });
   const [isLoading, setIsLoading] = useState(true);
 
   // Load dashboard data
@@ -34,14 +42,22 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
       try {
         setIsLoading(true);
         
-        // Load upcoming sessions and user skills in parallel
-        const [sessions, skills] = await Promise.all([
+        // Load upcoming sessions, user skills, and credit balance in parallel
+        const [sessions, skills, credits] = await Promise.all([
           sessionsService.getUpcomingSessions().catch(() => []),
-          skillsService.getUserSkills(user.id).catch(() => [])
+          skillsService.getUserSkills(user.id).catch(() => []),
+          creditsService.getUserCredits(user.id).catch(() => ({
+            balance: 0,
+            totalBalance: 0,
+            pending: 0,
+            earned: 0,
+            spent: 0
+          }))
         ]);
         
         setUpcomingSessions(sessions);
         setUserSkills(skills);
+        setCreditBalance(credits);
       } catch (error) {
         console.error('Error loading dashboard data:', error);
       } finally {
@@ -71,11 +87,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
     },
     {
       name: 'Time Credits',
-      value: user?.creditBalance?.toString() || '0',
+      value: creditBalance.balance.toString(),
       icon: Wallet,
       color: 'text-purple-600 dark:text-purple-400',
       bgColor: 'bg-purple-100 dark:bg-purple-900/20',
-      change: '+15 this week'
+      change: `+${creditBalance.earned} earned`
     },
     {
       name: 'Rating',

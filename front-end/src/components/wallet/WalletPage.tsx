@@ -22,9 +22,10 @@ const WalletPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'earning'>('overview');
   const [walletBalance, setWalletBalance] = useState<CreditBalance>({
     balance: 0,
+    totalBalance: 0,
+    pending: 0,
     earned: 0,
-    spent: 0,
-    pending: 0
+    spent: 0
   });
   const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
   const [referralStats, setReferralStats] = useState<ReferralStats | null>(null);
@@ -46,9 +47,10 @@ const WalletPage: React.FC = () => {
         const [balance, userTransactions, stats] = await Promise.all([
           creditsService.getUserCredits(user.id).catch(() => ({
             balance: 0,
+            totalBalance: 0,
+            pending: 0,
             earned: 0,
-            spent: 0,
-            pending: 0
+            spent: 0
           })),
           creditsService.getCreditTransactions(user.id).catch(() => []),
           referralService.getReferralStats().catch(() => null)
@@ -208,7 +210,7 @@ const WalletPage: React.FC = () => {
       </div>
 
       {/* Balance Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -232,13 +234,13 @@ const WalletPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Pending
+                Pending (Escrow)
               </p>
               <p className="text-3xl font-bold text-gray-900 dark:text-white">
                 {walletBalance.pending}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                In escrow
+                Held for sessions
               </p>
             </div>
             <div className="bg-yellow-100 dark:bg-yellow-900/20 p-3 rounded-lg">
@@ -262,6 +264,25 @@ const WalletPage: React.FC = () => {
             </div>
             <div className="bg-blue-100 dark:bg-blue-900/20 p-3 rounded-lg">
               <TrendingUp className="text-blue-600 dark:text-blue-400 h-6 w-6" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                Total Balance
+              </p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                {walletBalance.totalBalance}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Available + Pending
+              </p>
+            </div>
+            <div className="bg-blue-100 dark:bg-blue-900/20 p-3 rounded-lg">
+              <Wallet className="text-blue-600 dark:text-blue-400 h-6 w-6" />
             </div>
           </div>
         </div>

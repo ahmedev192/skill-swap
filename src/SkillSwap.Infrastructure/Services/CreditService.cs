@@ -22,9 +22,26 @@ public class CreditService : ICreditService
         var transactions = await _unitOfWork.CreditTransactions
             .FindAsync(ct => ct.UserId == userId && ct.Status == TransactionStatus.Completed);
 
-        return transactions.Sum(t => t.Type == TransactionType.Earned || t.Type == TransactionType.Bonus || t.Type == TransactionType.Transfer 
+        return transactions.Sum(t => t.Type == TransactionType.Earned || t.Type == TransactionType.Bonus || t.Type == TransactionType.Transfer || t.Type == TransactionType.Refund
             ? t.Amount 
             : -t.Amount);
+    }
+
+    public async Task<decimal> GetUserAvailableBalanceAsync(string userId)
+    {
+        var totalBalance = await GetUserCreditBalanceAsync(userId);
+        var pendingSpent = await GetUserPendingSpentAsync(userId);
+        return totalBalance - pendingSpent;
+    }
+
+    public async Task<decimal> GetUserPendingSpentAsync(string userId)
+    {
+        var pendingTransactions = await _unitOfWork.CreditTransactions
+            .FindAsync(ct => ct.UserId == userId && 
+                           ct.Status == TransactionStatus.Pending && 
+                           ct.Type == TransactionType.Spent);
+        
+        return pendingTransactions.Sum(t => t.Amount);
     }
 
     public async Task<bool> UpdateUserCreditBalanceAsync(string userId, decimal amount)
@@ -56,8 +73,8 @@ public class CreditService : ICreditService
 
     public async Task<bool> HoldCreditsAsync(string userId, decimal amount, int sessionId, string description)
     {
-        var currentBalance = await GetUserCreditBalanceAsync(userId);
-        if (currentBalance < amount)
+        var availableBalance = await GetUserAvailableBalanceAsync(userId);
+        if (availableBalance < amount)
         {
             return false; // Insufficient credits
         }
@@ -67,7 +84,7 @@ public class CreditService : ICreditService
             UserId = userId,
             Type = TransactionType.Spent,
             Amount = amount,
-            BalanceAfter = currentBalance - amount,
+            BalanceAfter = availableBalance - amount, // This will be updated when transaction completes
             Description = description,
             SessionId = sessionId,
             Status = TransactionStatus.Pending,
@@ -82,22 +99,32 @@ public class CreditService : ICreditService
 
     public async Task<bool> TransferCreditsAsync(string fromUserId, string toUserId, decimal amount, int sessionId, string description)
     {
-        await _unitOfWork.BeginTransactionAsync();
         try
         {
+            Console.WriteLine($"TransferCreditsAsync: fromUserId={fromUserId}, toUserId={toUserId}, amount={amount}, sessionId={sessionId}");
+            
             // Complete the pending transaction for the student
             var pendingTransaction = await _unitOfWork.CreditTransactions
                 .FirstOrDefaultAsync(ct => ct.UserId == fromUserId && ct.SessionId == sessionId && ct.Status == TransactionStatus.Pending);
 
+            Console.WriteLine($"Found pending transaction: {pendingTransaction != null}");
+
             if (pendingTransaction != null)
             {
+                Console.WriteLine($"Pending transaction: Amount={pendingTransaction.Amount}, Status={pendingTransaction.Status}");
                 pendingTransaction.Status = TransactionStatus.Completed;
                 pendingTransaction.ProcessedAt = DateTime.UtcNow;
+                // Update the balance after to reflect the actual balance after completion
+                var studentNewBalance = await GetUserCreditBalanceAsync(fromUserId);
+                pendingTransaction.BalanceAfter = studentNewBalance;
                 await _unitOfWork.CreditTransactions.UpdateAsync(pendingTransaction);
+                Console.WriteLine($"Updated student transaction: NewBalance={studentNewBalance}");
             }
 
-            // Create transaction for the teacher
+            // Now create transaction for the teacher
             var teacherBalance = await GetUserCreditBalanceAsync(toUserId);
+            Console.WriteLine($"Teacher current balance: {teacherBalance}");
+            
             var teacherTransaction = new CreditTransaction
             {
                 UserId = toUserId,
@@ -111,22 +138,24 @@ public class CreditService : ICreditService
                 RelatedTransactionId = pendingTransaction?.Id
             };
 
+            Console.WriteLine($"Creating teacher transaction: Amount={amount}, NewBalance={teacherBalance + amount}");
             await _unitOfWork.CreditTransactions.AddAsync(teacherTransaction);
+            
+            // Save all changes in a single transaction (EF Core handles this automatically)
             await _unitOfWork.SaveChangesAsync();
-            await _unitOfWork.CommitTransactionAsync();
 
+            Console.WriteLine($"Credit transfer completed successfully");
             return true;
         }
-        catch
+        catch (Exception ex)
         {
-            await _unitOfWork.RollbackTransactionAsync();
+            Console.WriteLine($"Credit transfer failed: {ex.Message}");
             throw;
         }
     }
 
     public async Task<bool> RefundCreditsAsync(string userId, decimal amount, int sessionId, string description)
     {
-        await _unitOfWork.BeginTransactionAsync();
         try
         {
             // Cancel the pending transaction
@@ -136,6 +165,7 @@ public class CreditService : ICreditService
             if (pendingTransaction != null)
             {
                 pendingTransaction.Status = TransactionStatus.Cancelled;
+                pendingTransaction.ProcessedAt = DateTime.UtcNow;
                 await _unitOfWork.CreditTransactions.UpdateAsync(pendingTransaction);
             }
 
@@ -156,13 +186,11 @@ public class CreditService : ICreditService
 
             await _unitOfWork.CreditTransactions.AddAsync(refundTransaction);
             await _unitOfWork.SaveChangesAsync();
-            await _unitOfWork.CommitTransactionAsync();
 
             return true;
         }
         catch
         {
-            await _unitOfWork.RollbackTransactionAsync();
             throw;
         }
     }
@@ -240,7 +268,6 @@ public class CreditService : ICreditService
 
     public async Task<CreditTransactionDto> TransferCreditsAsync(string fromUserId, string toUserId, decimal amount, string description)
     {
-        await _unitOfWork.BeginTransactionAsync();
         try
         {
             var fromUserBalance = await GetUserCreditBalanceAsync(fromUserId);
@@ -280,13 +307,11 @@ public class CreditService : ICreditService
             await _unitOfWork.CreditTransactions.AddAsync(debitTransaction);
             await _unitOfWork.CreditTransactions.AddAsync(creditTransaction);
             await _unitOfWork.SaveChangesAsync();
-            await _unitOfWork.CommitTransactionAsync();
 
             return _mapper.Map<CreditTransactionDto>(debitTransaction);
         }
         catch
         {
-            await _unitOfWork.RollbackTransactionAsync();
             throw;
         }
     }

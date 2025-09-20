@@ -16,6 +16,6 @@ public interface ISessionService
     Task<bool> CompleteSessionAsync(int sessionId, string userId);
     Task<IEnumerable<SessionDto>> GetSessionsByStatusAsync(SessionStatus status);
     Task<IEnumerable<SessionDto>> GetUpcomingSessionsAsync(string userId);
-    Task<bool> RescheduleSessionAsync(int sessionId, DateTime newStart, DateTime newEnd);
+    Task<bool> RescheduleSessionAsync(int sessionId, string userId, DateTime newStart, DateTime newEnd);
     Task<bool> CanUserModifySessionAsync(int sessionId, string userId);
 }

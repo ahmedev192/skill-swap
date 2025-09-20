@@ -200,7 +200,7 @@ public class UsersController : BaseController
     }
 
     /// <summary>
-    /// Get user credit balance
+    /// Get user credit balance and details
     /// </summary>
     [HttpGet("{id}/credits")]
     public async Task<ActionResult<object>> GetUserCredits(string id)
@@ -215,8 +215,17 @@ public class UsersController : BaseController
                 return Forbid();
             }
 
-            var balance = await _userService.GetUserCreditBalanceAsync(id);
-            return Ok(new { balance });
+            var totalBalance = await _creditService.GetUserCreditBalanceAsync(id);
+            var availableBalance = await _creditService.GetUserAvailableBalanceAsync(id);
+            var pendingSpent = await _creditService.GetUserPendingSpentAsync(id);
+            
+            return Ok(new { 
+                balance = availableBalance, // Available balance (what user can spend)
+                totalBalance = totalBalance, // Total balance including pending
+                pending = pendingSpent, // Amount held in escrow
+                earned = 0, // TODO: Calculate from transaction history
+                spent = 0 // TODO: Calculate from transaction history
+            });
         }
         catch (Exception ex)
         {
