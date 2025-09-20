@@ -294,10 +294,10 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    {user.creditBalance} credits
+                    {user.creditBalance || 0} credits
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    {user.averageRating.toFixed(1)} ({user.totalReviews} reviews)
+                    {(user.averageRating || 0).toFixed(1)} ({user.totalReviews || 0} reviews)
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     {formatDate(user.createdAt)}

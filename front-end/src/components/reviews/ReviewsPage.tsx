@@ -294,13 +294,13 @@ const ReviewsPage: React.FC = () => {
                     <div className="flex items-center space-x-2">
                       <User className="h-4 w-4" />
                       <span>
-                        {review.session.teacher?.firstName} {review.session.teacher?.lastName}
+                        {review.session.teacher?.firstName || 'Unknown'} {review.session.teacher?.lastName || 'User'}
                       </span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Calendar className="h-4 w-4" />
                       <span>
-                        {new Date(review.session.scheduledStart).toLocaleDateString()}
+                        {review.session.scheduledStart ? new Date(review.session.scheduledStart).toLocaleDateString() : 'Unknown date'}
                       </span>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -361,7 +361,7 @@ const ReviewsPage: React.FC = () => {
                   <option value="">Select a session...</option>
                   {sessions.map((session) => (
                     <option key={session.id} value={session.id}>
-                      {session.userSkill?.skill?.name || 'Session'} - {new Date(session.scheduledStart).toLocaleDateString()}
+                      {session.userSkill?.skill?.name || 'Session'} - {session.scheduledStart ? new Date(session.scheduledStart).toLocaleDateString() : 'Unknown date'}
                     </option>
                   ))}
                 </select>

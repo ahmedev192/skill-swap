@@ -231,11 +231,8 @@ const ChatPage: React.FC<ChatPageProps> = ({ onViewChange }) => {
   };
 
   const handleStartNewChat = (userId: string, userName: string) => {
-    console.log('handleStartNewChat called with:', { userId, userName });
-    console.log('Setting selectedChat to:', userId);
     setSelectedChat(userId);
     setShowNewChatModal(false);
-    console.log('Modal closed, selectedChat should be:', userId);
   };
 
   return (
@@ -538,7 +535,6 @@ const ChatPage: React.FC<ChatPageProps> = ({ onViewChange }) => {
     )}
 
     {/* New Chat Modal */}
-    {console.log('Rendering modal check - showNewChatModal:', showNewChatModal)}
     {showNewChatModal && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4" 
@@ -582,11 +578,6 @@ const ChatPage: React.FC<ChatPageProps> = ({ onViewChange }) => {
             </div>
             
             <div className="p-6 max-h-96 overflow-y-auto" style={{backgroundColor: 'white'}}>
-              {console.log('Modal rendering - connections:', connections, 'length:', connections.length)}
-              <div className="mb-4 p-4 bg-red-200 text-red-800 text-sm rounded border-2 border-red-500">
-                <strong>MODAL IS VISIBLE!</strong><br/>
-                Debug Info: connections.length = {connections.length}, user.id = {user?.id}
-              </div>
               {connections.length === 0 ? (
                 <div className="text-center py-8">
                   <Users className="mx-auto h-12 w-12 text-gray-400" />

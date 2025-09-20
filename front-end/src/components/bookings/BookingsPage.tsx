@@ -218,7 +218,7 @@ const BookingsPage: React.FC = () => {
   };
 
   const renderBookingCard = (session: Session, showActions: boolean = true) => {
-    const title = session.userSkill.skill.name;
+    const title = session.userSkill?.skill?.name || 'Unknown Skill';
     const status = session.status;
     const startTime = new Date(session.scheduledStart);
     const endTime = new Date(session.scheduledEnd);
@@ -226,8 +226,8 @@ const BookingsPage: React.FC = () => {
     const location = session.location;
     const meetingUrl = session.meetingLink;
     const notes = session.notes;
-    const creditsPerHour = session.userSkill.creditsPerHour;
-    const skillCategory = session.userSkill.skill.category;
+    const creditsPerHour = session.userSkill?.creditsPerHour || 0;
+    const skillCategory = session.userSkill?.skill?.category || 'Uncategorized';
     const isTeacher = user?.id === session.teacherId;
     const otherUser = isTeacher ? session.student : session.teacher;
     
@@ -308,12 +308,12 @@ const BookingsPage: React.FC = () => {
           </div>
           <div>
             <p className="text-sm font-medium text-gray-900 dark:text-white">
-              {isTeacher ? 'Teaching' : 'Learning from'}: {otherUser.firstName} {otherUser.lastName}
+              {isTeacher ? 'Teaching' : 'Learning from'}: {otherUser?.firstName || 'Unknown'} {otherUser?.lastName || 'User'}
             </p>
             <div className="flex items-center space-x-1">
               <Star className="h-3 w-3 text-yellow-400 fill-current" />
               <span className="text-xs text-gray-500 dark:text-gray-400">
-                {otherUser.averageRating.toFixed(1)}
+                {(otherUser?.averageRating || 0).toFixed(1)}
               </span>
             </div>
           </div>

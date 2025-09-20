@@ -190,20 +190,20 @@ const ProfilePage: React.FC = () => {
                   <div className="flex items-center justify-center space-x-1">
                     <Star className="h-5 w-5 text-yellow-400 fill-current" />
                     <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {user.rating.toFixed(1)}
+                      {(user.rating || 0).toFixed(1)}
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400">Rating</p>
                 </div>
                 <div className="text-center">
                   <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {user.totalSessions}
+                    {user.totalSessions || 0}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">Sessions</p>
                 </div>
                 <div className="text-center">
                   <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {user.peerEndorsements}
+                    {user.peerEndorsements || 0}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">Endorsements</p>
                 </div>
@@ -233,25 +233,28 @@ const ProfilePage: React.FC = () => {
                     placeholder="Location"
                   />
                 ) : (
-                  <span className="text-sm text-gray-600 dark:text-gray-400">{user.location}</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">{user.location || 'Not specified'}</span>
                 )}
               </div>
               
               <div className="flex items-center space-x-3">
                 <Globe className="h-5 w-5 text-gray-400" />
                 <div className="flex flex-wrap gap-1">
-                  {user.languages.map((lang) => (
+                  {(user.languages || []).map((lang) => (
                     <span key={lang} className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300">
                       {lang}
                     </span>
                   ))}
+                  {(!user.languages || user.languages.length === 0) && (
+                    <span className="text-sm text-gray-500 dark:text-gray-400">No languages specified</span>
+                  )}
                 </div>
               </div>
               
               <div className="flex items-center space-x-3">
                 <Calendar className="h-5 w-5 text-gray-400" />
                 <span className="text-sm text-gray-600 dark:text-gray-400">
-                  Joined {new Date(user.joinedAt).toLocaleDateString()}
+                  Joined {user.joinedAt ? new Date(user.joinedAt).toLocaleDateString() : 'Unknown'}
                 </span>
               </div>
             </div>
@@ -357,8 +360,8 @@ const ProfilePage: React.FC = () => {
               {skillsOffered.length > 0 ? (
                 skillsOffered.map((skill) => (
                   <div key={skill.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                    <h3 className="font-medium text-gray-900 dark:text-white">{skill.skill.name}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{skill.skill.category}</p>
+                    <h3 className="font-medium text-gray-900 dark:text-white">{skill.skill?.name || 'Unknown Skill'}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{skill.skill?.category || 'Uncategorized'}</p>
                     <div className="flex items-center justify-between mt-2">
                       <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300">
                         {skill.level}
@@ -404,8 +407,8 @@ const ProfilePage: React.FC = () => {
               {skillsRequested.length > 0 ? (
                 skillsRequested.map((skill) => (
                   <div key={skill.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                    <h3 className="font-medium text-gray-900 dark:text-white">{skill.skill.name}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{skill.skill.category}</p>
+                    <h3 className="font-medium text-gray-900 dark:text-white">{skill.skill?.name || 'Unknown Skill'}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{skill.skill?.category || 'Uncategorized'}</p>
                     <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300 mt-2">
                       Looking for {skill.level} level
                     </span>

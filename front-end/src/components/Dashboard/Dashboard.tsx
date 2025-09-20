@@ -63,7 +63,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
     },
     {
       name: 'Sessions Completed',
-      value: user?.totalReviews?.toString() || '0',
+      value: (user?.totalSessions || 0).toString(),
       icon: Calendar,
       color: 'text-green-600 dark:text-green-400',
       bgColor: 'bg-green-100 dark:bg-green-900/20',
@@ -79,7 +79,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
     },
     {
       name: 'Rating',
-      value: user?.averageRating?.toFixed(1) || '0.0',
+      value: (user?.averageRating || 0).toFixed(1),
       icon: Star,
       color: 'text-yellow-600 dark:text-yellow-400',
       bgColor: 'bg-yellow-100 dark:bg-yellow-900/20',
@@ -89,6 +89,25 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
 
   // Recent activities will be loaded from API in the future
   const recentActivities: any[] = [];
+
+  const getStatusText = (status: number) => {
+    switch (status) {
+      case 1:
+        return 'Pending';
+      case 2:
+        return 'Confirmed';
+      case 3:
+        return 'In Progress';
+      case 4:
+        return 'Completed';
+      case 5:
+        return 'Cancelled';
+      case 6:
+        return 'Disputed';
+      default:
+        return 'Unknown';
+    }
+  };
 
 
   return (
@@ -167,27 +186,27 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
                       </div>
                       <div>
                         <h3 className="font-medium text-gray-900 dark:text-white">
-                          {'skill' in session ? session.skill.name : session.title}
+                          {session.userSkill?.skill?.name || session.title || 'Session'}
                         </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {'skill' in session 
-                            ? `${session.status} • ${session.location || 'Online'}`
-                            : `with ${session.student}`
+                          {session.userSkill?.skill?.name 
+                            ? `${getStatusText(session.status)} • ${session.location || 'Online'}`
+                            : `with ${session.student?.firstName || 'Unknown'} ${session.student?.lastName || 'User'}`
                           }
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        {'skill' in session 
-                          ? new Date(session.startTime).toLocaleDateString()
-                          : session.time
+                        {session.scheduledStart 
+                          ? new Date(session.scheduledStart).toLocaleDateString()
+                          : 'Date TBD'
                         }
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {'skill' in session 
-                          ? new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                          : `${session.duration} • ${session.type}`
+                        {session.scheduledStart 
+                          ? new Date(session.scheduledStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                          : 'Time TBD'
                         }
                       </p>
                     </div>
