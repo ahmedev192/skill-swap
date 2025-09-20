@@ -571,7 +571,6 @@ const ChatPage: React.FC = () => {
           <div 
             className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden"
             style={{
-              backgroundColor: 'white',
               borderRadius: '12px',
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
               maxWidth: '28rem',
@@ -597,7 +596,7 @@ const ChatPage: React.FC = () => {
               </div>
             </div>
             
-            <div className="p-6 max-h-96 overflow-y-auto" style={{backgroundColor: 'white'}}>
+            <div className="p-6 max-h-96 overflow-y-auto bg-white dark:bg-gray-800">
               {connections.length === 0 ? (
                 <div className="text-center py-8">
                   <Users className="mx-auto h-12 w-12 text-gray-400" />
