@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useErrorContext } from '../../contexts/ErrorContext';
 import { Lock, Eye, EyeOff, Loader2, CheckCircle } from 'lucide-react';
 import { authService } from '../../services/authService';
@@ -10,6 +11,7 @@ interface ResetPasswordFormProps {
 }
 
 const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ userId, token, onSuccess }) => {
+  const navigate = useNavigate();
   const { handleError } = useErrorContext();
   const [formData, setFormData] = useState({
     newPassword: '',

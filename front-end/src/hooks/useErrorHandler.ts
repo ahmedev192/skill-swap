@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { AxiosError } from 'axios';
 import { CategorizedError, ErrorHandlingResult } from '../types/errors';
 import { ErrorHandler } from '../utils/errorHandler';
+import { navigateToLogin } from '../utils/navigation';
 
 interface UseErrorHandlerReturn {
   error: CategorizedError | null;
@@ -70,7 +71,7 @@ export const useAsyncErrorHandler = () => {
       if (handlingResult.shouldLogout) {
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
-        window.location.href = '/login';
+        navigateToLogin();
         return null;
       }
       

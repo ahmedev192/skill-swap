@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { MessagingProvider } from './contexts/MessagingContext';
@@ -27,25 +28,12 @@ import SettingsPage from './components/settings/SettingsPage';
 import CommunityPage from './components/community/CommunityPage';
 import ConnectionsPage from './components/connections/ConnectionsPage';
 import { UserSkill } from './services/skillsService';
+import { setGlobalNavigate } from './utils/navigation';
 
-const AppContent: React.FC = () => {
+// Protected Route Component
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isLoading } = useAuth();
-  const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot-password' | 'reset-password'>('login');
-  const [currentView, setCurrentView] = useState('dashboard');
-  const [resetPasswordData, setResetPasswordData] = useState<{ userId: string; token: string } | null>(null);
-  const [preselectedSkill, setPreselectedSkill] = useState<UserSkill | null>(null);
-
-  // Check for reset password parameters in URL
-  React.useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const userId = urlParams.get('userId');
-    const token = urlParams.get('token');
-    
-    if (userId && token) {
-      setResetPasswordData({ userId, token });
-      setAuthMode('reset-password');
-    }
-  }, []);
+  const navigate = useNavigate();
 
   if (isLoading) {
     return (
@@ -56,99 +44,249 @@ const AppContent: React.FC = () => {
   }
 
   if (!user) {
+    navigate('/login');
+    return null;
+  }
+
+  return <>{children}</>;
+};
+
+// Auth Route Component
+const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
+
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        {authMode === 'login' && (
-          <LoginForm 
-            onSwitchToRegister={() => setAuthMode('register')} 
-            onForgotPassword={() => setAuthMode('forgot-password')}
-          />
-        )}
-        {authMode === 'register' && (
-          <RegisterForm onSwitchToLogin={() => setAuthMode('login')} />
-        )}
-        {authMode === 'forgot-password' && (
-          <ForgotPasswordForm onBackToLogin={() => setAuthMode('login')} />
-        )}
-        {authMode === 'reset-password' && resetPasswordData && (
-          <ResetPasswordForm 
-            userId={resetPasswordData.userId}
-            token={resetPasswordData.token}
-            onSuccess={() => setAuthMode('login')}
-          />
-        )}
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
-  // Function to handle navigation with preselected skill
-  const handleViewChangeWithSkill = (view: string, skill?: UserSkill) => {
-    setCurrentView(view);
-    setPreselectedSkill(skill || null);
-  };
+  if (user) {
+    navigate('/dashboard');
+    return null;
+  }
 
-  const renderCurrentView = () => {
-    switch (currentView) {
-      case 'dashboard':
-        return <Dashboard onViewChange={setCurrentView} />;
-      case 'skills':
-        return <SkillsPage onViewChange={handleViewChangeWithSkill} />;
-      case 'profile':
-        return <ProfilePage />;
-      case 'wallet':
-        return <WalletPage />;
-      case 'chat':
-        return <ChatPage onViewChange={setCurrentView} />;
-      case 'bookings':
-        return <BookingsPage preselectedSkill={preselectedSkill} onViewChange={setCurrentView} />;
-      case 'admin':
-        return <AdminDashboard />;
-      case 'reviews':
-        return <ReviewsPage />;
-      case 'notifications':
-        return <NotificationsPage />;
-      case 'users':
-        return <UserSearchPage />;
-      case 'book-session':
-        return <BookSessionPage />;
-      case 'manage-skills':
-        return <ManageSkillsPage />;
-      case 'settings':
-        return <SettingsPage />;
-      case 'community':
-        return <CommunityPage />;
-      case 'connections':
-        return <ConnectionsPage onViewChange={setCurrentView} />;
-      default:
-        return <Dashboard onViewChange={setCurrentView} />;
-    }
-  };
+  return <>{children}</>;
+};
 
+// Main Layout Component
+const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navigation currentView={currentView} onViewChange={setCurrentView} />
+      <Navigation />
       <main>
-        {renderCurrentView()}
+        {children}
       </main>
       <NotificationSystem />
     </div>
   );
 };
 
+const AppContent: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Set global navigate function for use in services
+  React.useEffect(() => {
+    setGlobalNavigate(navigate);
+  }, [navigate]);
+  
+  // Check for reset password parameters in URL
+  const urlParams = new URLSearchParams(location.search);
+  const userId = urlParams.get('userId');
+  const token = urlParams.get('token');
+  const isResetPassword = userId && token;
+
+  return (
+    <Routes>
+      {/* Auth Routes */}
+      <Route path="/login" element={
+        <AuthRoute>
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+            <LoginForm />
+          </div>
+        </AuthRoute>
+      } />
+      
+      <Route path="/register" element={
+        <AuthRoute>
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+            <RegisterForm />
+          </div>
+        </AuthRoute>
+      } />
+      
+      <Route path="/forgot-password" element={
+        <AuthRoute>
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+            <ForgotPasswordForm />
+          </div>
+        </AuthRoute>
+      } />
+      
+      <Route path="/reset-password" element={
+        <AuthRoute>
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+            {isResetPassword ? (
+              <ResetPasswordForm 
+                userId={userId!}
+                token={token!}
+                onSuccess={() => navigate('/login')}
+              />
+            ) : (
+              <Navigate to="/login" replace />
+            )}
+          </div>
+        </AuthRoute>
+      } />
+
+      {/* Protected Routes */}
+      <Route path="/dashboard" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <Dashboard />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/skills" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <SkillsPage />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/profile" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <ProfilePage />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/wallet" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <WalletPage />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/chat" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <ChatPage />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/bookings" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <BookingsPage />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/admin" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <AdminDashboard />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/reviews" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <ReviewsPage />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/notifications" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <NotificationsPage />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/users" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <UserSearchPage />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/book-session" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <BookSessionPage />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/manage-skills" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <ManageSkillsPage />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/settings" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <SettingsPage />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/community" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <CommunityPage />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/connections" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <ConnectionsPage />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+
+      {/* Default redirects */}
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
+  );
+};
+
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider>
-        <ErrorProvider>
-          <AuthProvider>
-            <MessagingProvider>
-              <ConnectionProvider>
-                <AppContent />
-              </ConnectionProvider>
-            </MessagingProvider>
-          </AuthProvider>
-        </ErrorProvider>
-      </ThemeProvider>
+      <Router>
+        <ThemeProvider>
+          <ErrorProvider>
+            <AuthProvider>
+              <MessagingProvider>
+                <ConnectionProvider>
+                  <AppContent />
+                </ConnectionProvider>
+              </MessagingProvider>
+            </AuthProvider>
+          </ErrorProvider>
+        </ThemeProvider>
+      </Router>
     </ErrorBoundary>
   );
 }

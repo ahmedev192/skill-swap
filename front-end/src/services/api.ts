@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 
 import { getApiUrl, API_CONFIG } from '../config/api';
+import { navigateToLogin } from '../utils/navigation';
 
 // API Configuration
 const API_BASE_URL = getApiUrl();
@@ -91,14 +92,14 @@ api.interceptors.response.use(
             // Refresh failed, clear tokens and redirect to login
             localStorage.removeItem('token');
             localStorage.removeItem('refreshToken');
-            window.location.href = '/login';
+            navigateToLogin();
             return Promise.reject(refreshError);
           }
         } else {
           // No refresh token, redirect to login
           localStorage.removeItem('token');
           localStorage.removeItem('refreshToken');
-          window.location.href = '/login';
+          navigateToLogin();
         }
       }
     }

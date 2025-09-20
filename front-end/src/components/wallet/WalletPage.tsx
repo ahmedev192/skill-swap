@@ -94,7 +94,31 @@ const WalletPage: React.FC = () => {
       setShowUseReferralModal(false);
       setReferralCodeInput('');
       // Reload wallet data to show updated balance
-      window.location.reload();
+      // Trigger a re-render by updating a state or calling the load function again
+      const loadWalletData = async () => {
+        if (!user) return;
+        
+        try {
+          const [balance, userTransactions, stats] = await Promise.all([
+            creditsService.getUserCredits(user.id).catch(() => ({
+              balance: 0,
+              totalBalance: 0,
+              pending: 0,
+              earned: 0,
+              spent: 0
+            })),
+            creditsService.getCreditTransactions(user.id).catch(() => []),
+            referralService.getReferralStats().catch(() => null)
+          ]);
+          
+          setWalletBalance(balance);
+          setTransactions(userTransactions);
+          setReferralStats(stats);
+        } catch (err) {
+          console.error('Error reloading wallet data:', err);
+        }
+      };
+      loadWalletData();
     } catch (error) {
       console.error('Error using referral code:', error);
       alert('Failed to use referral code');

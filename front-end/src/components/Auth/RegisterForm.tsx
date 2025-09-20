@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useErrorContext } from '../../contexts/ErrorContext';
 import { Mail, Lock, User, MapPin, Eye, EyeOff, Loader2 } from 'lucide-react';
 import ReferralCodeInput from '../referral/ReferralCodeInput';
 
-interface RegisterFormProps {
-  onSwitchToLogin: () => void;
-}
-
-const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
+const RegisterForm: React.FC = () => {
+  const navigate = useNavigate();
   const { register, isLoading } = useAuth();
   const { handleError } = useErrorContext();
   const [formData, setFormData] = useState({
@@ -346,7 +344,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
               Already have an account?{' '}
               <button
                 type="button"
-                onClick={onSwitchToLogin}
+                onClick={() => navigate('/login')}
                 className="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 transition-colors"
               >
                 Sign in

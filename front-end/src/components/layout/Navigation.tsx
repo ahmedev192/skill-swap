@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useMessaging } from '../../contexts/MessagingContext';
@@ -28,16 +29,16 @@ import {
 } from 'lucide-react';
 import { notificationsService } from '../../services/notificationsService';
 
-interface NavigationProps {
-  currentView: string;
-  onViewChange: (view: string) => void;
-}
-
-const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) => {
+const Navigation: React.FC = () => {
   const { user, logout } = useAuth();
   const { isDarkMode, toggleTheme } = useTheme();
   const { unreadCount: messageUnreadCount, onUnreadCountsUpdated } = useMessaging();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Get current view from the URL path
+  const currentView = location.pathname.substring(1) || 'dashboard';
 
   // All navigation items with visual grouping
   const navigationItems = [
@@ -94,7 +95,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
           {/* Logo with enhanced styling - positioned at the very left */}
           <div className="flex-shrink-0">
             <button
-              onClick={() => onViewChange('dashboard')}
+              onClick={() => navigate('/dashboard')}
               className="flex items-center space-x-2 text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent hover:from-blue-700 hover:to-purple-700 transition-all duration-200 cursor-pointer"
               title="Go to Dashboard"
             >
@@ -114,7 +115,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
                 return (
                   <React.Fragment key={item.id}>
                     <button
-                      onClick={() => onViewChange(item.id)}
+                      onClick={() => navigate(`/${item.id}`)}
                       className={`px-5 py-3 rounded-lg text-sm font-medium flex items-center space-x-2 transition-all duration-200 border-2 ${colorClasses} relative group`}
                       title={item.label}
                     >
@@ -153,7 +154,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
                 return (
                   <button
                     key={item.id}
-                    onClick={() => onViewChange(item.id)}
+                    onClick={() => navigate(`/${item.id}`)}
                     className={`p-3 rounded-lg text-sm font-medium transition-all duration-200 border-2 ${colorClasses} relative`}
                     title={item.label}
                   >
@@ -188,7 +189,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
             </button>
 
             {/* Notifications */}
-            <NotificationsNav onViewChange={onViewChange} />
+            <NotificationsNav />
 
             {/* User Profile */}
             <div className="flex items-center space-x-3 pl-3 border-l border-gray-200 dark:border-gray-700">
@@ -201,7 +202,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
                 </p>
               </div>
               <button
-                onClick={() => onViewChange('profile')}
+                onClick={() => navigate('/profile')}
                 className="p-2 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
                 title="View Profile"
               >
@@ -258,7 +259,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
                       <button
                         key={item.id}
                         onClick={() => {
-                          onViewChange(item.id);
+                          navigate(`/${item.id}`);
                           setIsMenuOpen(false);
                         }}
                         className={`w-full text-left px-6 py-3 rounded-lg text-base font-medium flex items-center space-x-3 transition-all duration-200 border-2 ${colorClasses} relative`}

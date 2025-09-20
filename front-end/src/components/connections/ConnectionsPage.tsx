@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Users, 
   UserPlus, 
@@ -19,11 +20,8 @@ import { useErrorContext } from '../../contexts/ErrorContext';
 import { connectionService } from '../../services/connectionService';
 import ConnectionButton from './ConnectionButton';
 
-interface ConnectionsPageProps {
-  onViewChange: (view: string) => void;
-}
-
-const ConnectionsPage: React.FC<ConnectionsPageProps> = ({ onViewChange }) => {
+const ConnectionsPage: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { handleError } = useErrorContext();
   const { 
@@ -153,7 +151,7 @@ const ConnectionsPage: React.FC<ConnectionsPageProps> = ({ onViewChange }) => {
 
   const handleStartChat = (userId: string, userName: string) => {
     // Navigate to chat page with the user ID as a parameter
-    onViewChange('chat');
+    navigate('/chat');
     // Store the user info in sessionStorage for the chat page to pick up
     sessionStorage.setItem('chatUser', JSON.stringify({ userId, userName }));
   };

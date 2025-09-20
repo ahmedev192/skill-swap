@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
   TrendingUp, 
@@ -17,11 +18,8 @@ import { skillsService, UserSkill } from '../../services/skillsService';
 import { creditsService, CreditBalance } from '../../services/creditsService';
 import ReferralSection from '../referral/ReferralSection';
 
-interface DashboardProps {
-  onViewChange?: (view: string) => void;
-}
-
-const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
+const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [upcomingSessions, setUpcomingSessions] = useState<Session[]>([]);
   const [userSkills, setUserSkills] = useState<UserSkill[]>([]);
@@ -180,7 +178,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
                   Upcoming Sessions
                 </h2>
                 <button 
-                  onClick={() => onViewChange?.('bookings')}
+                  onClick={() => navigate('/bookings')}
                   className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
                 >
                   View all
@@ -284,21 +282,21 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
               </h2>
               <div className="space-y-3">
                 <button 
-                  onClick={() => onViewChange?.('community')}
+                  onClick={() => navigate('/community')}
                   className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   <Target className="h-4 w-4" />
                   <span>Find New Matches</span>
                 </button>
                 <button 
-                  onClick={() => onViewChange?.('manage-skills')}
+                  onClick={() => navigate('/manage-skills')}
                   className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   <BookOpen className="h-4 w-4" />
                   <span>Add New Skill</span>
                 </button>
                 <button 
-                  onClick={() => onViewChange?.('profile')}
+                  onClick={() => navigate('/profile')}
                   className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   <Clock className="h-4 w-4" />

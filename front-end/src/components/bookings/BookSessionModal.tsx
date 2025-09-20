@@ -83,7 +83,7 @@ const BookSessionModal: React.FC<BookSessionModalProps> = ({ isOpen, onClose, on
     }
   }, [isOpen]);
 
-  // Handle preselected skill
+  // Handle preselected skill (optional)
   useEffect(() => {
     if (preselectedSkill && availableSkills.length > 0) {
       const matchingSkill = availableSkills.find(skill => skill.id === preselectedSkill.id);

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Send, 
   Search, 
@@ -25,11 +26,8 @@ import { useConnection } from '../../contexts/ConnectionContext';
 import CallModal from './CallModal';
 import OnlineUsers from './OnlineUsers';
 
-interface ChatPageProps {
-  onViewChange: (view: string) => void;
-}
-
-const ChatPage: React.FC<ChatPageProps> = ({ onViewChange }) => {
+const ChatPage: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { connections, refreshConnections } = useConnection();
   const { 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Bell, 
   Check, 
@@ -16,11 +17,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useMessaging } from '../../contexts/MessagingContext';
 import { notificationsService, Notification } from '../../services/notificationsService';
 
-interface NotificationsNavProps {
-  onViewChange: (view: string) => void;
-}
-
-const NotificationsNav: React.FC<NotificationsNavProps> = ({ onViewChange }) => {
+const NotificationsNav: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { onUnreadCountsUpdated } = useMessaging();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -231,7 +229,7 @@ const NotificationsNav: React.FC<NotificationsNavProps> = ({ onViewChange }) => 
                 <button
                   onClick={() => {
                     setIsExpanded(false);
-                    onViewChange('notifications');
+                    navigate('/notifications');
                   }}
                   className="p-1 hover:bg-white/20 rounded-lg transition-colors"
                   title="View all notifications"
@@ -334,7 +332,7 @@ const NotificationsNav: React.FC<NotificationsNavProps> = ({ onViewChange }) => 
               <button
                 onClick={() => {
                   setIsExpanded(false);
-                  onViewChange('notifications');
+                  navigate('/notifications');
                 }}
                 className="w-full text-center text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
               >

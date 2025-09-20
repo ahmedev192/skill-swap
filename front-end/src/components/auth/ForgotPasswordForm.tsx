@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useErrorContext } from '../../contexts/ErrorContext';
 import { Mail, ArrowLeft, Loader2 } from 'lucide-react';
 import { authService } from '../../services/authService';
 
-interface ForgotPasswordFormProps {
-  onBackToLogin: () => void;
-}
-
-const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBackToLogin }) => {
+const ForgotPasswordForm: React.FC = () => {
+  const navigate = useNavigate();
   const { handleError } = useErrorContext();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -82,7 +80,7 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBackToLogin }
             
             <button
               type="button"
-              onClick={onBackToLogin}
+              onClick={() => navigate('/login')}
               className="w-full flex justify-center items-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-blue-600 dark:text-blue-400 hover:text-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -146,7 +144,7 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBackToLogin }
             
             <button
               type="button"
-              onClick={onBackToLogin}
+              onClick={() => navigate('/login')}
               className="w-full flex justify-center items-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-blue-600 dark:text-blue-400 hover:text-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />

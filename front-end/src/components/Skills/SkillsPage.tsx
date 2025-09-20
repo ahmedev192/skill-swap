@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Filter, Plus, MapPin, Clock, Star, User } from 'lucide-react';
 import { Skill, User as UserType } from '../../types';
 import { skillsService, UserSkill } from '../../services/skillsService';
 import { userService } from '../../services/userService';
 import { reviewsService, UserRating } from '../../services/reviewsService';
 
-interface SkillsPageProps {
-  onViewChange?: (view: string, skill?: UserSkill) => void;
-}
-
-const SkillsPage: React.FC<SkillsPageProps> = ({ onViewChange }) => {
+const SkillsPage: React.FC = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLevel, setSelectedLevel] = useState('all');
@@ -170,9 +168,7 @@ const SkillsPage: React.FC<SkillsPageProps> = ({ onViewChange }) => {
         <button 
           onClick={() => {
             // Navigate to manage skills page
-            if (onViewChange) {
-              onViewChange('manage-skills');
-            }
+            navigate('/manage-skills');
           }}
           className="mt-4 lg:mt-0 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
@@ -370,9 +366,8 @@ const SkillsPage: React.FC<SkillsPageProps> = ({ onViewChange }) => {
               <button 
                 onClick={() => {
                   // Navigate to bookings page with the preselected skill
-                  if (onViewChange) {
-                    onViewChange('bookings', skill);
-                  }
+                  // For now, just navigate to bookings - we can add skill preselection later
+                  navigate('/bookings');
                 }}
                 className="w-full mt-4 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
               >

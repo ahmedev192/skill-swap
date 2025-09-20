@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useErrorContext } from '../../contexts/ErrorContext';
 import { useFormValidation } from '../../hooks/useFormValidation';
@@ -6,12 +7,8 @@ import { authValidationRules } from '../../utils/validation';
 import { Mail, Lock, Eye, EyeOff, Loader2, Wifi } from 'lucide-react';
 import { healthService } from '../../services/healthService';
 
-interface LoginFormProps {
-  onSwitchToRegister: () => void;
-  onForgotPassword: () => void;
-}
-
-const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassword }) => {
+const LoginForm: React.FC = () => {
+  const navigate = useNavigate();
   const { login, isLoading } = useAuth();
   const { handleError } = useErrorContext();
   const [showPassword, setShowPassword] = useState(false);
@@ -184,7 +181,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
             <div>
               <button
                 type="button"
-                onClick={onForgotPassword}
+                onClick={() => navigate('/forgot-password')}
                 className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 transition-colors"
               >
                 Forgot your password?
@@ -195,7 +192,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
                 Don't have an account?{' '}
                 <button
                   type="button"
-                  onClick={onSwitchToRegister}
+                  onClick={() => navigate('/register')}
                   className="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 transition-colors"
                 >
                   Sign up
