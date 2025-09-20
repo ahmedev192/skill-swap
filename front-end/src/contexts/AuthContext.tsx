@@ -32,6 +32,7 @@ const transformApiUserToLocalUser = (apiUser: ApiUser): User => {
     lastName: apiUser.lastName,
     bio: apiUser.bio,
     profilePhoto: apiUser.profileImageUrl,
+    customAvatarUrl: apiUser.customAvatarUrl,
     location: apiUser.location || '',
     languages: apiUser.preferredLanguage ? [apiUser.preferredLanguage] : ['English'],
     timeZone: apiUser.timeZone || 'UTC',

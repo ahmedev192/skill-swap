@@ -18,6 +18,7 @@ interface ConnectionButtonProps {
     firstName: string;
     lastName: string;
     profileImageUrl?: string;
+    customAvatarUrl?: string;
   };
   variant?: 'primary' | 'secondary' | 'icon';
   size?: 'sm' | 'md' | 'lg';

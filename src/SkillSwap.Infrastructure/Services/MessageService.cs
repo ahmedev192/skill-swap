@@ -37,6 +37,9 @@ public class MessageService : IMessageService
                 OtherUserProfileImage = g.First().SenderId == userId ? 
                     g.First().Receiver.ProfileImageUrl : 
                     g.First().Sender.ProfileImageUrl,
+                OtherUserCustomAvatar = g.First().SenderId == userId ? 
+                    g.First().Receiver.CustomAvatarUrl : 
+                    g.First().Sender.CustomAvatarUrl,
                 LastMessage = g.OrderByDescending(m => m.SentAt).First().Content,
                 LastMessageTime = g.OrderByDescending(m => m.SentAt).First().SentAt,
                 UnreadCount = g.Count(m => m.ReceiverId == userId && !m.IsRead)

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { UserSkill, skillsService } from '../../services/skillsService';
 import { userService, User as UserType } from '../../services/userService';
+import { getUserAvatarUrl } from '../../utils/avatarUtils';
 import ConnectionButton from '../connections/ConnectionButton';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -188,8 +189,16 @@ const CommunityPage: React.FC = () => {
             <div key={user.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
               <div className="p-6">
                 <div className="flex items-center space-x-4 mb-4">
-                  <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                    <Users className="h-6 w-6 text-gray-400" />
+                  <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center overflow-hidden">
+                    {getUserAvatarUrl(user) ? (
+                      <img
+                        src={getUserAvatarUrl(user)!}
+                        alt={`${user.firstName} ${user.lastName}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Users className="h-6 w-6 text-gray-400" />
+                    )}
                   </div>
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -229,7 +238,8 @@ const CommunityPage: React.FC = () => {
                       id: user.id,
                       firstName: user.firstName,
                       lastName: user.lastName,
-                      profileImageUrl: user.profileImageUrl
+                      profileImageUrl: user.profileImageUrl,
+                      customAvatarUrl: user.customAvatarUrl
                     }}
                     variant="primary"
                     size="sm"

@@ -18,6 +18,7 @@ export interface SignalRMessage {
     lastName: string;
     email: string;
     profileImageUrl?: string;
+    customAvatarUrl?: string;
   };
   receiver: {
     id: string;
@@ -25,6 +26,7 @@ export interface SignalRMessage {
     lastName: string;
     email: string;
     profileImageUrl?: string;
+    customAvatarUrl?: string;
   };
 }
 
@@ -32,6 +34,7 @@ export interface SignalRConversation {
   otherUserId: string;
   otherUserName: string;
   otherUserProfileImage?: string;
+  otherUserCustomAvatar?: string;
   lastMessage: string;
   lastMessageTime: string;
   unreadCount: number;
@@ -44,6 +47,8 @@ export interface OnlineUser {
   lastName: string;
   connectedAt: string;
   lastSeen: string;
+  profileImageUrl?: string;
+  customAvatarUrl?: string;
 }
 
 class SignalRService {

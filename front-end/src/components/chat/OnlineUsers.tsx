@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useMessaging } from '../../contexts/MessagingContext';
 import { OnlineUser } from '../../services/signalRService';
+import { getUserAvatarUrl } from '../../utils/avatarUtils';
 
 interface OnlineUsersProps {
   onStartChat?: (userId: string, userName: string) => void;
@@ -84,8 +85,16 @@ const OnlineUsers: React.FC<OnlineUsersProps> = ({ onStartChat }) => {
               >
                 <div className="flex items-center space-x-3">
                   <div className="relative">
-                    <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                      <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center overflow-hidden">
+                      {getUserAvatarUrl(user) ? (
+                        <img
+                          src={getUserAvatarUrl(user)!}
+                          alt={`${user.firstName} ${user.lastName}`}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      )}
                     </div>
                     <Circle className="absolute -bottom-1 -right-1 h-3 w-3 text-green-500 fill-current" />
                   </div>

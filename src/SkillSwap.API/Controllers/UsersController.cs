@@ -656,6 +656,80 @@ public class UsersController : BaseController
             return StatusCode(500, new { message = "An unexpected error occurred" });
         }
     }
+
+    /// <summary>
+    /// Get current user's avatar URL
+    /// </summary>
+    [HttpGet("me/avatar")]
+    public async Task<ActionResult<string>> GetCurrentUserAvatar()
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            var avatarUrl = await _userService.GetUserAvatarUrlAsync(userId);
+            return Ok(new { avatarUrl });
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "get user avatar");
+        }
+    }
+
+    /// <summary>
+    /// Update current user's avatar
+    /// </summary>
+    [HttpPut("me/avatar")]
+    public async Task<ActionResult> UpdateCurrentUserAvatar([FromBody] UpdateAvatarDto updateAvatarDto)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            var success = await _userService.UpdateUserAvatarAsync(userId, updateAvatarDto);
+            if (!success)
+            {
+                return BadRequest("Failed to update avatar", "AVATAR_UPDATE_FAILED");
+            }
+
+            return Ok(new { message = "Avatar updated successfully" });
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "update user avatar");
+        }
+    }
+
+    /// <summary>
+    /// Generate a random avatar for current user
+    /// </summary>
+    [HttpPost("me/avatar/generate")]
+    public async Task<ActionResult<string>> GenerateRandomAvatar()
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            var avatarUrl = await _userService.GenerateRandomAvatarForUserAsync(userId);
+            return Ok(new { avatarUrl });
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "generate random avatar");
+        }
+    }
 }
 
 public class ChangePasswordDto

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useErrorContext } from '../../contexts/ErrorContext';
+import { getUserAvatarUrl } from '../../utils/avatarUtils';
 import { 
   Edit, 
   MapPin, 
@@ -151,8 +152,16 @@ const ProfilePage: React.FC = () => {
             {/* Profile Photo */}
             <div className="text-center mb-6">
               <div className="relative inline-block">
-                <div className="w-32 h-32 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto">
-                  <User className="h-16 w-16 text-gray-400" />
+                <div className="w-32 h-32 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto overflow-hidden">
+                  {getUserAvatarUrl(user) ? (
+                    <img
+                      src={getUserAvatarUrl(user)!}
+                      alt={`${user.firstName} ${user.lastName}`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <User className="h-16 w-16 text-gray-400" />
+                  )}
                 </div>
                 <button className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition-colors">
                   <Camera className="h-4 w-4" />

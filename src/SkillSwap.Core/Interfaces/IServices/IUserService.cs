@@ -28,6 +28,11 @@ public interface IUserService
     // Settings methods
     Task<bool> UpdateNotificationSettingsAsync(string userId, object settings);
     Task<bool> UpdatePrivacySettingsAsync(string userId, object settings);
+    
+    // Avatar methods
+    Task<string> GetUserAvatarUrlAsync(string userId);
+    Task<bool> UpdateUserAvatarAsync(string userId, UpdateAvatarDto updateAvatarDto);
+    Task<string> GenerateRandomAvatarForUserAsync(string userId);
 }
 
 public class ReferralResult

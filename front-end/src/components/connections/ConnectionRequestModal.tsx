@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Send, User, MessageCircle } from 'lucide-react';
 import { useConnection } from '../../contexts/ConnectionContext';
 import { useErrorContext } from '../../contexts/ErrorContext';
+import { getUserAvatarUrl } from '../../utils/avatarUtils';
 
 interface ConnectionRequestModalProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface ConnectionRequestModalProps {
     firstName: string;
     lastName: string;
     profileImageUrl?: string;
+    customAvatarUrl?: string;
   };
 }
 
@@ -76,10 +78,10 @@ const ConnectionRequestModal: React.FC<ConnectionRequestModalProps> = ({
         <div className="p-6">
           {/* Target User Info */}
           <div className="flex items-center space-x-4 mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center">
-              {targetUser.profileImageUrl ? (
+            <div className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center overflow-hidden">
+              {getUserAvatarUrl(targetUser) ? (
                 <img
-                  src={targetUser.profileImageUrl}
+                  src={getUserAvatarUrl(targetUser)!}
                   alt={`${targetUser.firstName} ${targetUser.lastName}`}
                   className="w-12 h-12 rounded-full object-cover"
                 />

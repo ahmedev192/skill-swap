@@ -23,6 +23,7 @@ import { useMessaging } from '../../contexts/MessagingContext';
 import { messagesService, Conversation, Message } from '../../services/messagesService';
 import { signalRService, SignalRMessage, SignalRConversation } from '../../services/signalRService';
 import { useConnection } from '../../contexts/ConnectionContext';
+import { getUserAvatarUrl } from '../../utils/avatarUtils';
 import CallModal from './CallModal';
 import OnlineUsers from './OnlineUsers';
 
@@ -172,6 +173,11 @@ const ChatPage: React.FC = () => {
   
   const selectedUserInfo = getSelectedUserInfo();
   
+  // Helper function to get avatar URL for conversations
+  const getConversationAvatarUrl = (conversation: any): string | null => {
+    return conversation.otherUserCustomAvatar || conversation.otherUserProfileImage || null;
+  };
+  
   // Debug selectedConversation
   useEffect(() => {
     console.log('selectedChat changed to:', selectedChat);
@@ -318,8 +324,16 @@ const ChatPage: React.FC = () => {
                 >
                   <div className="flex items-center space-x-3">
                     <div className="relative">
-                      <div className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center">
-                        <User className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+                      <div className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center overflow-hidden">
+                        {getConversationAvatarUrl(conversation) ? (
+                          <img
+                            src={getConversationAvatarUrl(conversation)!}
+                            alt={conversation.otherUserName}
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                        ) : (
+                          <User className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+                        )}
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -366,8 +380,16 @@ const ChatPage: React.FC = () => {
               <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div className="relative">
-                    <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center">
-                      <User className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                    <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center overflow-hidden">
+                      {selectedConversation && getConversationAvatarUrl(selectedConversation) ? (
+                        <img
+                          src={getConversationAvatarUrl(selectedConversation)!}
+                          alt={selectedConversation.otherUserName}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        <User className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                      )}
                     </div>
                   </div>
                   <div>
@@ -607,10 +629,10 @@ const ChatPage: React.FC = () => {
                         }}
                         className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
                       >
-                        <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center">
-                          {otherUser.profileImageUrl ? (
+                        <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center overflow-hidden">
+                          {getUserAvatarUrl(otherUser) ? (
                             <img
-                              src={otherUser.profileImageUrl}
+                              src={getUserAvatarUrl(otherUser)!}
                               alt={`${otherUser.firstName} ${otherUser.lastName}`}
                               className="w-10 h-10 rounded-full object-cover"
                             />

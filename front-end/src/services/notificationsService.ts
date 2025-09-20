@@ -26,6 +26,7 @@ export interface Notification {
     createdAt: string;
     lastActiveAt?: string;
     profileImageUrl?: string;
+    customAvatarUrl?: string;
     timeZone?: string;
     preferredLanguage?: string;
     creditBalance: number;

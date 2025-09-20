@@ -36,6 +36,7 @@ export interface Session {
     createdAt: string;
     lastActiveAt?: string;
     profileImageUrl?: string;
+    customAvatarUrl?: string;
     timeZone?: string;
     preferredLanguage?: string;
     creditBalance: number;
@@ -55,6 +56,7 @@ export interface Session {
     createdAt: string;
     lastActiveAt?: string;
     profileImageUrl?: string;
+    customAvatarUrl?: string;
     timeZone?: string;
     preferredLanguage?: string;
     creditBalance: number;
@@ -95,6 +97,7 @@ export interface Session {
       createdAt: string;
       lastActiveAt?: string;
       profileImageUrl?: string;
+      customAvatarUrl?: string;
       timeZone?: string;
       preferredLanguage?: string;
       creditBalance: number;

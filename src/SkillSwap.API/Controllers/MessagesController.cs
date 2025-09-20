@@ -146,6 +146,7 @@ public class MessagesController : BaseController
                 OtherUserId = userId!,
                 OtherUserName = $"{message.Sender.FirstName} {message.Sender.LastName}",
                 OtherUserProfileImage = message.Sender.ProfileImageUrl,
+                OtherUserCustomAvatar = message.Sender.CustomAvatarUrl,
                 LastMessage = message.Content,
                 LastMessageTime = message.SentAt,
                 UnreadCount = 1
@@ -156,6 +157,7 @@ public class MessagesController : BaseController
                 OtherUserId = createMessageDto.ReceiverId,
                 OtherUserName = $"{message.Receiver.FirstName} {message.Receiver.LastName}",
                 OtherUserProfileImage = message.Receiver.ProfileImageUrl,
+                OtherUserCustomAvatar = message.Receiver.CustomAvatarUrl,
                 LastMessage = message.Content,
                 LastMessageTime = message.SentAt,
                 UnreadCount = 0

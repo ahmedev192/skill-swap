@@ -33,6 +33,9 @@ public class User : IdentityUser
 
     public string? ProfileImageUrl { get; set; }
 
+    [MaxLength(500)]
+    public string? CustomAvatarUrl { get; set; }
+
     public string? TimeZone { get; set; }
 
     public string? PreferredLanguage { get; set; }

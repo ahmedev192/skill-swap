@@ -21,6 +21,7 @@ export interface User {
   bio?: string;
   location?: string;
   profileImageUrl?: string;
+  customAvatarUrl?: string;
   averageRating?: number;
   totalReviews?: number;
 }

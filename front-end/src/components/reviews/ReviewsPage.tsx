@@ -15,6 +15,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { reviewsService, Review } from '../../services/reviewsService';
 import { sessionsService } from '../../services/sessionsService';
 import { useErrorHandler } from '../../utils/errorHandler';
+import { getUserAvatarUrl } from '../../utils/avatarUtils';
 
 const ReviewsPage: React.FC = () => {
   const { user } = useAuth();
@@ -292,7 +293,21 @@ const ReviewsPage: React.FC = () => {
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                   <div className="flex items-center space-x-6 text-sm text-gray-600 dark:text-gray-400">
                     <div className="flex items-center space-x-2">
-                      <User className="h-4 w-4" />
+                      {review.session.teacher ? (
+                        <div className="w-4 h-4 rounded-full overflow-hidden flex items-center justify-center">
+                          {getUserAvatarUrl(review.session.teacher) ? (
+                            <img
+                              src={getUserAvatarUrl(review.session.teacher)!}
+                              alt={`${review.session.teacher.firstName} ${review.session.teacher.lastName}`}
+                              className="w-4 h-4 rounded-full object-cover"
+                            />
+                          ) : (
+                            <User className="h-4 w-4" />
+                          )}
+                        </div>
+                      ) : (
+                        <User className="h-4 w-4" />
+                      )}
                       <span>
                         {review.session.teacher?.firstName || 'Unknown'} {review.session.teacher?.lastName || 'User'}
                       </span>

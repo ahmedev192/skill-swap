@@ -7,6 +7,7 @@ using Serilog;
 using SkillSwap.Core.Entities;
 using SkillSwap.Core.Interfaces;
 using SkillSwap.Core.Interfaces.Services;
+using SkillSwap.Core.Services;
 using SkillSwap.Infrastructure.Configuration;
 using SkillSwap.Infrastructure.Data;
 using SkillSwap.Infrastructure.Mapping;
@@ -195,6 +196,7 @@ builder.Services.AddScoped<ISignalRNotificationService, SignalRNotificationServi
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<GoogleCalendarService>();
 builder.Services.AddScoped<IMeetingService, MeetingService>();
+builder.Services.AddScoped<IAvatarService, AvatarService>();
 
 // Add HTTP context accessor
 builder.Services.AddHttpContextAccessor();

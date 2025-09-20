@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SkillSwap.Core.Entities;
+using SkillSwap.Core.Services;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -184,6 +185,15 @@ public static class MockDataSeeder
             var result = await userManager.CreateAsync(user, "Password123!");
             if (result.Succeeded)
             {
+                // Generate a random avatar for the user using DiceBear API
+                var avatarProviders = new[]
+                {
+                    "avataaars", "personas", "micah", "bottts", "identicon", "initials"
+                };
+                var selectedProvider = avatarProviders[Random.Shared.Next(avatarProviders.Length)];
+                user.CustomAvatarUrl = $"https://api.dicebear.com/7.x/{selectedProvider}/svg?seed={Uri.EscapeDataString(user.Id)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf";
+                await userManager.UpdateAsync(user);
+                
                 users.Add(user);
             }
         }

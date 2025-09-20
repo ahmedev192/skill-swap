@@ -18,6 +18,7 @@ import { useConnection } from '../../contexts/ConnectionContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useErrorContext } from '../../contexts/ErrorContext';
 import { connectionService } from '../../services/connectionService';
+import { getUserAvatarUrl } from '../../utils/avatarUtils';
 import ConnectionButton from './ConnectionButton';
 
 const ConnectionsPage: React.FC = () => {
@@ -206,10 +207,10 @@ const ConnectionsPage: React.FC = () => {
       <div key={connection.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
-              {otherUser.profileImageUrl ? (
+            <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center overflow-hidden">
+              {getUserAvatarUrl(otherUser) ? (
                 <img
-                  src={otherUser.profileImageUrl}
+                  src={getUserAvatarUrl(otherUser)!}
                   alt={`${otherUser.firstName} ${otherUser.lastName}`}
                   className="w-12 h-12 rounded-full object-cover"
                 />

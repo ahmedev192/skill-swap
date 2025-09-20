@@ -19,6 +19,11 @@ const SkillsPage: React.FC = () => {
   const [userData, setUserData] = useState<Map<string, UserType>>(new Map());
   const [userRatings, setUserRatings] = useState<Map<string, UserRating>>(new Map());
 
+  // Helper function to get avatar URL for types User interface
+  const getUserAvatarUrl = (user: UserType): string | null => {
+    return user.customAvatarUrl || user.profilePhoto || null;
+  };
+
   const [categories, setCategories] = useState<string[]>(['All Categories']);
   const [levels] = useState(['All Levels', 'Beginner', 'Intermediate', 'Expert']);
 
@@ -312,8 +317,16 @@ const SkillsPage: React.FC = () => {
               {/* User Info */}
               <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex items-center space-x-3">
-                  <div className="bg-gray-200 dark:bg-gray-700 rounded-full p-2">
-                    <User className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                  <div className="bg-gray-200 dark:bg-gray-700 rounded-full p-2 overflow-hidden">
+                    {userData.get(skill.userId) && getUserAvatarUrl(userData.get(skill.userId)!) ? (
+                      <img
+                        src={getUserAvatarUrl(userData.get(skill.userId)!)!}
+                        alt={`${userData.get(skill.userId)!.firstName} ${userData.get(skill.userId)!.lastName}`}
+                        className="w-4 h-4 rounded-full object-cover"
+                      />
+                    ) : (
+                      <User className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                    )}
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-900 dark:text-white">

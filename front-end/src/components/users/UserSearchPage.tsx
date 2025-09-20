@@ -14,6 +14,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { User as UserType } from '../../types';
 import { userService } from '../../services/userService';
+import { getUserAvatarUrl } from '../../utils/avatarUtils';
 import ConnectionButton from '../connections/ConnectionButton';
 
 const UserSearchPage: React.FC = () => {
@@ -191,8 +192,16 @@ const UserSearchPage: React.FC = () => {
               {/* Header */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center space-x-4">
-                  <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                    <User className="h-8 w-8 text-gray-400" />
+                  <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center overflow-hidden">
+                    {getUserAvatarUrl(user) ? (
+                      <img
+                        src={getUserAvatarUrl(user)!}
+                        alt={`${user.firstName} ${user.lastName}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <User className="h-8 w-8 text-gray-400" />
+                    )}
                   </div>
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -267,7 +276,8 @@ const UserSearchPage: React.FC = () => {
                       id: user.id,
                       firstName: user.firstName,
                       lastName: user.lastName,
-                      profileImageUrl: user.profileImageUrl
+                      profileImageUrl: user.profileImageUrl,
+                      customAvatarUrl: user.customAvatarUrl
                     }}
                     variant="primary"
                     size="sm"

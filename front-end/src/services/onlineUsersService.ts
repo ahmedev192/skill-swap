@@ -7,6 +7,8 @@ export interface OnlineUser {
   lastName: string;
   connectedAt: string;
   lastSeen: string;
+  profileImageUrl?: string;
+  customAvatarUrl?: string;
 }
 
 export interface OnlineUsersResponse {

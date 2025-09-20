@@ -24,6 +24,7 @@ export interface Review {
     createdAt: string;
     lastActiveAt?: string;
     profileImageUrl?: string;
+    customAvatarUrl?: string;
     timeZone?: string;
     preferredLanguage?: string;
     creditBalance: number;
@@ -43,6 +44,7 @@ export interface Review {
     createdAt: string;
     lastActiveAt?: string;
     profileImageUrl?: string;
+    customAvatarUrl?: string;
     timeZone?: string;
     preferredLanguage?: string;
     creditBalance: number;

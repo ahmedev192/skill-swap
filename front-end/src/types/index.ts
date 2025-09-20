@@ -5,6 +5,7 @@ export interface User {
   lastName: string;
   bio?: string;
   profilePhoto?: string;
+  customAvatarUrl?: string;
   location?: string;
   languages: string[];
   timeZone?: string;

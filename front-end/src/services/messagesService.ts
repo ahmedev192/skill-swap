@@ -25,6 +25,7 @@ export interface Message {
     createdAt: string;
     lastActiveAt?: string;
     profileImageUrl?: string;
+    customAvatarUrl?: string;
     timeZone?: string;
     preferredLanguage?: string;
     creditBalance: number;
@@ -44,6 +45,7 @@ export interface Message {
     createdAt: string;
     lastActiveAt?: string;
     profileImageUrl?: string;
+    customAvatarUrl?: string;
     timeZone?: string;
     preferredLanguage?: string;
     creditBalance: number;
@@ -79,6 +81,7 @@ export interface Conversation {
   otherUserId: string;
   otherUserName: string;
   otherUserProfileImage?: string;
+  otherUserCustomAvatar?: string;
   lastMessage: string;
   lastMessageTime: string;
   unreadCount: number;

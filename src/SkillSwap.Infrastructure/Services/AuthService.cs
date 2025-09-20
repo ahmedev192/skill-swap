@@ -7,6 +7,7 @@ using SkillSwap.Core.DTOs;
 using SkillSwap.Core.Entities;
 using SkillSwap.Core.Interfaces;
 using SkillSwap.Core.Interfaces.Services;
+using SkillSwap.Core.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -19,17 +20,20 @@ public class AuthService : IAuthService
     private readonly IConfiguration _configuration;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IUserService _userService;
+    private readonly IAvatarService _avatarService;
 
     public AuthService(
         UserManager<User> userManager,
         IConfiguration configuration,
         IUnitOfWork unitOfWork,
-        IUserService userService)
+        IUserService userService,
+        IAvatarService avatarService)
     {
         _userManager = userManager;
         _configuration = configuration;
         _unitOfWork = unitOfWork;
         _userService = userService;
+        _avatarService = avatarService;
     }
 
     public async Task<AuthResponseDto> LoginAsync(LoginDto loginDto)
@@ -95,6 +99,10 @@ public class AuthService : IAuthService
         {
             throw new InvalidOperationException($"User creation failed: {string.Join(", ", result.Errors.Select(e => e.Description))}");
         }
+
+        // Generate a random avatar for the new user
+        user.CustomAvatarUrl = _avatarService.GenerateRandomAvatarUrl(user.Id);
+        await _userManager.UpdateAsync(user);
 
         // Process referral code if provided
         if (!string.IsNullOrEmpty(createUserDto.ReferralCode))

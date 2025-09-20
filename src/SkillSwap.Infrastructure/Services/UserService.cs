@@ -5,6 +5,7 @@ using SkillSwap.Core.DTOs;
 using SkillSwap.Core.Entities;
 using SkillSwap.Core.Interfaces;
 using SkillSwap.Core.Interfaces.Services;
+using SkillSwap.Core.Services;
 
 namespace SkillSwap.Infrastructure.Services;
 
@@ -14,13 +15,15 @@ public class UserService : IUserService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly ICreditService _creditService;
+    private readonly IAvatarService _avatarService;
 
-    public UserService(UserManager<User> userManager, IUnitOfWork unitOfWork, IMapper mapper, ICreditService creditService)
+    public UserService(UserManager<User> userManager, IUnitOfWork unitOfWork, IMapper mapper, ICreditService creditService, IAvatarService avatarService)
     {
         _userManager = userManager;
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _creditService = creditService;
+        _avatarService = avatarService;
     }
 
     public async Task<UserDto?> GetUserByIdAsync(string id)
@@ -32,6 +35,9 @@ public class UserService : IUserService
         userDto.CreditBalance = await _creditService.GetUserAvailableBalanceAsync(id);
         userDto.AverageRating = await GetUserAverageRatingAsync(id);
         userDto.TotalReviews = await GetUserTotalReviewsAsync(id);
+        
+        // Ensure avatar URL is set - use the stored CustomAvatarUrl from database
+        userDto.CustomAvatarUrl = _avatarService.GetAvatarUrl(user.Id, user.CustomAvatarUrl);
 
         return userDto;
     }
@@ -45,6 +51,9 @@ public class UserService : IUserService
         userDto.CreditBalance = await _creditService.GetUserAvailableBalanceAsync(user.Id);
         userDto.AverageRating = await GetUserAverageRatingAsync(user.Id);
         userDto.TotalReviews = await GetUserTotalReviewsAsync(user.Id);
+        
+        // Ensure avatar URL is set - use the stored CustomAvatarUrl from database
+        userDto.CustomAvatarUrl = _avatarService.GetAvatarUrl(user.Id, user.CustomAvatarUrl);
 
         return userDto;
     }
@@ -60,6 +69,10 @@ public class UserService : IUserService
             userDto.CreditBalance = await _creditService.GetUserAvailableBalanceAsync(user.Id);
             userDto.AverageRating = await GetUserAverageRatingAsync(user.Id);
             userDto.TotalReviews = await GetUserTotalReviewsAsync(user.Id);
+            
+            // Ensure avatar URL is set - use the stored CustomAvatarUrl from database
+            userDto.CustomAvatarUrl = _avatarService.GetAvatarUrl(user.Id, user.CustomAvatarUrl);
+            
             userDtos.Add(userDto);
         }
 
@@ -245,6 +258,10 @@ public class UserService : IUserService
             userDto.CreditBalance = await _creditService.GetUserAvailableBalanceAsync(user.Id);
             userDto.AverageRating = await GetUserAverageRatingAsync(user.Id);
             userDto.TotalReviews = await GetUserTotalReviewsAsync(user.Id);
+            
+            // Ensure avatar URL is set - use the stored CustomAvatarUrl from database
+            userDto.CustomAvatarUrl = _avatarService.GetAvatarUrl(user.Id, user.CustomAvatarUrl);
+            
             userDtos.Add(userDto);
         }
 
@@ -464,5 +481,36 @@ public class UserService : IUserService
         // or as JSON in the user profile
         await Task.Delay(1); // Simulate async operation
         return true;
+    }
+
+    public async Task<string> GetUserAvatarUrlAsync(string userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null) return string.Empty;
+
+        return _avatarService.GetAvatarUrl(user.Id, user.CustomAvatarUrl);
+    }
+
+    public async Task<bool> UpdateUserAvatarAsync(string userId, UpdateAvatarDto updateAvatarDto)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null) return false;
+
+        user.CustomAvatarUrl = updateAvatarDto.CustomAvatarUrl;
+        var result = await _userManager.UpdateAsync(user);
+        
+        return result.Succeeded;
+    }
+
+    public async Task<string> GenerateRandomAvatarForUserAsync(string userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null) return string.Empty;
+
+        var avatarUrl = _avatarService.GenerateRandomAvatarUrl(user.Id);
+        user.CustomAvatarUrl = avatarUrl;
+        await _userManager.UpdateAsync(user);
+        
+        return avatarUrl;
     }
 }

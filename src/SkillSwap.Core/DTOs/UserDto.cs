@@ -16,6 +16,7 @@ public class UserDto
     public DateTime CreatedAt { get; set; }
     public DateTime? LastActiveAt { get; set; }
     public string? ProfileImageUrl { get; set; }
+    public string? CustomAvatarUrl { get; set; }
     public string? TimeZone { get; set; }
     public string? PreferredLanguage { get; set; }
     public decimal CreditBalance { get; set; }
@@ -83,6 +84,9 @@ public class UpdateUserDto
     [StringLength(500, ErrorMessage = "Profile image URL cannot exceed 500 characters")]
     public string? ProfileImageUrl { get; set; }
 
+    [StringLength(500, ErrorMessage = "Custom avatar URL cannot exceed 500 characters")]
+    public string? CustomAvatarUrl { get; set; }
+
     [StringLength(50, ErrorMessage = "Time zone cannot exceed 50 characters")]
     public string? TimeZone { get; set; }
 
@@ -143,4 +147,10 @@ public class DeductCreditsDto
     [Required(ErrorMessage = "Description is required")]
     [StringLength(200, ErrorMessage = "Description cannot exceed 200 characters")]
     public string Description { get; set; } = string.Empty;
+}
+
+public class UpdateAvatarDto
+{
+    [StringLength(500, ErrorMessage = "Custom avatar URL cannot exceed 500 characters")]
+    public string? CustomAvatarUrl { get; set; }
 }

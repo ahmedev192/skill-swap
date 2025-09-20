@@ -13,6 +13,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { getUserAvatarUrl } from '../../utils/avatarUtils';
 import api from '../../services/api';
 
 interface User {
@@ -27,6 +28,8 @@ interface User {
   creditBalance: number;
   averageRating: number;
   totalReviews: number;
+  profileImageUrl?: string;
+  customAvatarUrl?: string;
 }
 
 interface UserManagementProps {
@@ -264,8 +267,16 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                 <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center">
-                        <Users className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                      <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center overflow-hidden">
+                        {getUserAvatarUrl(user) ? (
+                          <img
+                            src={getUserAvatarUrl(user)!}
+                            alt={`${user.firstName} ${user.lastName}`}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <Users className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                        )}
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900 dark:text-white">

@@ -18,6 +18,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { sessionsService, Session } from '../../services/sessionsService';
 import { reviewsService, Review } from '../../services/reviewsService';
 import { useErrorHandler } from '../../hooks/useErrorHandler';
+import { getUserAvatarUrl } from '../../utils/avatarUtils';
 import BookSessionModal from './BookSessionModal';
 import RescheduleModal from '../sessions/RescheduleModal';
 import ReviewModal from '../reviews/ReviewModal';
@@ -415,8 +416,16 @@ const BookingsPage: React.FC = () => {
       {/* Participant Info */}
       <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700 mb-4">
         <div className="flex items-center space-x-3">
-          <div className="bg-gray-200 dark:bg-gray-700 rounded-full p-2">
-            <User className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+          <div className="bg-gray-200 dark:bg-gray-700 rounded-full p-2 overflow-hidden">
+            {otherUser && getUserAvatarUrl(otherUser) ? (
+              <img
+                src={getUserAvatarUrl(otherUser)!}
+                alt={`${otherUser.firstName} ${otherUser.lastName}`}
+                className="w-4 h-4 rounded-full object-cover"
+              />
+            ) : (
+              <User className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+            )}
           </div>
           <div>
             <p className="text-sm font-medium text-gray-900 dark:text-white">

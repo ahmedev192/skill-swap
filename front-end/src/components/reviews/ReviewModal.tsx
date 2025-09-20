@@ -10,6 +10,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { reviewsService } from '../../services/reviewsService';
 import { useErrorHandler } from '../../hooks/useErrorHandler';
+import { getUserAvatarUrl } from '../../utils/avatarUtils';
 
 interface Session {
   id: number;
@@ -23,11 +24,15 @@ interface Session {
     id: string;
     firstName: string;
     lastName: string;
+    profileImageUrl?: string;
+    customAvatarUrl?: string;
   };
   student: {
     id: string;
     firstName: string;
     lastName: string;
+    profileImageUrl?: string;
+    customAvatarUrl?: string;
   };
 }
 
@@ -138,7 +143,17 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
           </h3>
           <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
             <div className="flex items-center space-x-2">
-              <User className="h-4 w-4" />
+              <div className="w-4 h-4 rounded-full overflow-hidden flex items-center justify-center">
+                {getUserAvatarUrl(reviewee) ? (
+                  <img
+                    src={getUserAvatarUrl(reviewee)!}
+                    alt={`${reviewee.firstName} ${reviewee.lastName}`}
+                    className="w-4 h-4 rounded-full object-cover"
+                  />
+                ) : (
+                  <User className="h-4 w-4" />
+                )}
+              </div>
               <span>Reviewing: {reviewee.firstName} {reviewee.lastName}</span>
             </div>
             <div className="flex items-center space-x-2">
