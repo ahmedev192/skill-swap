@@ -11,10 +11,12 @@ namespace SkillSwap.API.Controllers;
 public class AuthController : BaseController
 {
     private readonly IAuthService _authService;
+    private readonly IUserService _userService;
 
-    public AuthController(IAuthService authService, ILogger<AuthController> logger) : base(logger)
+    public AuthController(IAuthService authService, IUserService userService, ILogger<AuthController> logger) : base(logger)
     {
         _authService = authService;
+        _userService = userService;
     }
 
     /// <summary>

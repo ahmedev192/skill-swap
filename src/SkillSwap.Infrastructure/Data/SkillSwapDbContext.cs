@@ -280,37 +280,24 @@ public class SkillSwapDbContext : IdentityDbContext<User>
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
         });
 
-        // Seed data
-        SeedData(builder);
+        // Seed data is now handled by MockDataSeeder
+        SeedBasicData(builder);
     }
 
-    private static void SeedData(ModelBuilder builder)
+    private static void SeedBasicData(ModelBuilder builder)
     {
-        // Seed skills
-        var skills = new List<Skill>
-        {
-            new() { Id = 1, Name = "C# Programming", Category = "Programming", Description = "Object-oriented programming with C#" },
-            new() { Id = 2, Name = "JavaScript", Category = "Programming", Description = "Web development with JavaScript" },
-            new() { Id = 3, Name = "Python", Category = "Programming", Description = "Python programming language" },
-            new() { Id = 4, Name = "Spanish", Category = "Languages", Description = "Spanish language learning" },
-            new() { Id = 5, Name = "French", Category = "Languages", Description = "French language learning" },
-            new() { Id = 6, Name = "Cooking", Category = "Lifestyle", Description = "Culinary skills and techniques" },
-            new() { Id = 7, Name = "Photography", Category = "Arts", Description = "Digital and film photography" },
-            new() { Id = 8, Name = "Guitar", Category = "Music", Description = "Guitar playing and music theory" },
-            new() { Id = 9, Name = "Yoga", Category = "Fitness", Description = "Yoga practice and meditation" },
-            new() { Id = 10, Name = "Data Analysis", Category = "Analytics", Description = "Data analysis and visualization" }
-        };
-
-        builder.Entity<Skill>().HasData(skills);
-
-        // Seed badges
+        // Only seed badges as they are static reference data
         var badges = new List<Badge>
         {
-            new() { Id = 1, Name = "First Session", Description = "Completed your first teaching session", Type = BadgeType.TeachingHours, RequiredValue = 1 },
-            new() { Id = 2, Name = "Teaching Pro", Description = "Taught for 10 hours", Type = BadgeType.TeachingHours, RequiredValue = 10 },
-            new() { Id = 3, Name = "Learning Enthusiast", Description = "Learned for 5 hours", Type = BadgeType.LearningHours, RequiredValue = 5 },
-            new() { Id = 4, Name = "Community Helper", Description = "Helped 5 different people", Type = BadgeType.CommunityHelper, RequiredValue = 5 },
-            new() { Id = 5, Name = "Skill Master", Description = "Offered 3 different skills", Type = BadgeType.SkillsOffered, RequiredValue = 3 }
+            new() { Id = -1, Name = "First Session", Description = "Completed your first teaching session", Type = BadgeType.TeachingHours, RequiredValue = 1, IconUrl = "https://cdn-icons-png.flaticon.com/512/1828/1828817.png" },
+            new() { Id = -2, Name = "Teaching Pro", Description = "Taught for 10 hours", Type = BadgeType.TeachingHours, RequiredValue = 10, IconUrl = "https://cdn-icons-png.flaticon.com/512/1828/1828817.png" },
+            new() { Id = -3, Name = "Learning Enthusiast", Description = "Learned for 5 hours", Type = BadgeType.LearningHours, RequiredValue = 5, IconUrl = "https://cdn-icons-png.flaticon.com/512/1828/1828817.png" },
+            new() { Id = -4, Name = "Community Helper", Description = "Helped 5 different people", Type = BadgeType.CommunityHelper, RequiredValue = 5, IconUrl = "https://cdn-icons-png.flaticon.com/512/1828/1828817.png" },
+            new() { Id = -5, Name = "Skill Master", Description = "Offered 3 different skills", Type = BadgeType.SkillsOffered, RequiredValue = 3, IconUrl = "https://cdn-icons-png.flaticon.com/512/1828/1828817.png" },
+            new() { Id = -6, Name = "Session Champion", Description = "Completed 10 sessions", Type = BadgeType.SessionsCompleted, RequiredValue = 10, IconUrl = "https://cdn-icons-png.flaticon.com/512/1828/1828817.png" },
+            new() { Id = -7, Name = "Review Magnet", Description = "Received 5 reviews", Type = BadgeType.ReviewsReceived, RequiredValue = 5, IconUrl = "https://cdn-icons-png.flaticon.com/512/1828/1828817.png" },
+            new() { Id = -8, Name = "Knowledge Seeker", Description = "Learned 3 different skills", Type = BadgeType.SkillsLearned, RequiredValue = 3, IconUrl = "https://cdn-icons-png.flaticon.com/512/1828/1828817.png" },
+            new() { Id = -9, Name = "Consistency King", Description = "7-day learning streak", Type = BadgeType.Streak, RequiredValue = 7, IconUrl = "https://cdn-icons-png.flaticon.com/512/1828/1828817.png" }
         };
 
         builder.Entity<Badge>().HasData(badges);

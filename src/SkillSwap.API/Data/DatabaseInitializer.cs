@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using SkillSwap.Core.Entities;
 using SkillSwap.Infrastructure.Data;
 
 namespace SkillSwap.API.Data
@@ -9,6 +11,7 @@ namespace SkillSwap.API.Data
         {
             using var scope = serviceProvider.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<SkillSwapDbContext>();
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
             
             try
             {
@@ -19,12 +22,17 @@ namespace SkillSwap.API.Data
                 {
                     await AddReferralColumnsAsync(context);
                 }
+
+                // Seed mock data if database is empty
+                Console.WriteLine("🔧 DatabaseInitializer: Calling MockDataSeeder...");
+                await MockDataSeeder.SeedMockDataAsync(context, userManager);
+                Console.WriteLine("🔧 DatabaseInitializer: MockDataSeeder completed");
             }
             catch (Exception ex)
             {
                 // Log the error but don't fail the application startup
                 var logger = scope.ServiceProvider.GetRequiredService<ILogger<SkillSwapDbContext>>();
-                logger.LogError(ex, "Error initializing database with referral columns");
+                logger.LogError(ex, "Error initializing database with referral columns and mock data");
             }
         }
 

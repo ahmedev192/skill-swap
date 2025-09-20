@@ -24,6 +24,7 @@ public class UserDto
     public string? ReferralCode { get; set; }
     public string? ReferrerId { get; set; }
     public bool UsedReferralCode { get; set; }
+    public bool IsActive { get; set; }
 }
 
 public class CreateUserDto
