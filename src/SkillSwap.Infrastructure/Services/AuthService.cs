@@ -108,29 +108,19 @@ public class AuthService : IAuthService
         }
 
         // Add welcome bonus credits
-        await _unitOfWork.BeginTransactionAsync();
-        try
+        var welcomeTransaction = new CreditTransaction
         {
-            var welcomeTransaction = new CreditTransaction
-            {
-                UserId = user.Id,
-                Type = TransactionType.Bonus,
-                Amount = 5.0m, // Welcome bonus of 5 credits
-                BalanceAfter = 5.0m,
-                Description = "Welcome bonus",
-                Status = TransactionStatus.Completed,
-                ProcessedAt = DateTime.UtcNow
-            };
+            UserId = user.Id,
+            Type = TransactionType.Bonus,
+            Amount = 5.0m, // Welcome bonus of 5 credits
+            BalanceAfter = 5.0m,
+            Description = "Welcome bonus",
+            Status = TransactionStatus.Completed,
+            ProcessedAt = DateTime.UtcNow
+        };
 
-            await _unitOfWork.CreditTransactions.AddAsync(welcomeTransaction);
-            await _unitOfWork.SaveChangesAsync();
-            await _unitOfWork.CommitTransactionAsync();
-        }
-        catch
-        {
-            await _unitOfWork.RollbackTransactionAsync();
-            throw;
-        }
+        await _unitOfWork.CreditTransactions.AddAsync(welcomeTransaction);
+        await _unitOfWork.SaveChangesAsync();
 
         var token = await GenerateJwtTokenAsync(user);
         var refreshToken = GenerateRefreshToken();

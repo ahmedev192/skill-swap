@@ -110,6 +110,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
           // Already handled by the error handler
           return;
         }
+        // Display the specific error message to the user
         setErrors({ general: error.message || 'Registration failed. Please try again.' });
       }
     }

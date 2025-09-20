@@ -16,7 +16,6 @@ public static class DatabaseConfiguration
             options.UseSqlServer(connectionString, b => 
             {
                 b.MigrationsAssembly("SkillSwap.Infrastructure");
-                b.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null);
                 b.CommandTimeout(30);
             })
             .ConfigureWarnings(warnings => warnings.Throw(RelationalEventId.MultipleCollectionIncludeWarning)));

@@ -128,13 +128,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Handle specific error cases
       if (error.response?.status === 400) {
-        throw new Error(error.response.data?.message || 'Invalid registration data');
+        // Extract error message from the response
+        const errorMessage = error.response.data?.message || 'Invalid registration data';
+        throw new Error(errorMessage);
       } else if (error.response?.status === 409) {
         throw new Error('An account with this email already exists');
       } else if (error.code === 'ERR_NETWORK') {
         throw new Error('Unable to connect to server. Please check your internet connection.');
       } else {
-        throw new Error(error.response?.data?.message || 'Registration failed. Please try again.');
+        // For other errors, try to extract the message from the response
+        const errorMessage = error.response?.data?.message || error.message || 'Registration failed. Please try again.';
+        throw new Error(errorMessage);
       }
     }
     setIsLoading(false);
