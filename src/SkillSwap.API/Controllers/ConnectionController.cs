@@ -276,4 +276,33 @@ public class ConnectionController : BaseController
             return StatusCode(500, new { message = "An unexpected error occurred" });
         }
     }
+
+    /// <summary>
+    /// Search connections by name or email
+    /// </summary>
+    [HttpGet("search")]
+    public async Task<ActionResult<IEnumerable<UserConnectionDto>>> SearchConnections([FromQuery] string searchTerm)
+    {
+        try
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                return BadRequest("Search term is required", "SEARCH_TERM_REQUIRED");
+            }
+
+            var connections = await _connectionService.SearchConnectionsAsync(userId, searchTerm);
+            
+            return Ok(connections);
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "search connections", new { searchTerm });
+        }
+    }
 }

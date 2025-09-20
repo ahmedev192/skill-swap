@@ -93,6 +93,11 @@ class ConnectionService {
     const response = await api.get<ConnectionStatus>(`/connection/check/${targetUserId}`);
     return response.data;
   }
+
+  async searchConnections(searchTerm: string): Promise<UserConnection[]> {
+    const response = await api.get<UserConnection[]>(`/connection/search?searchTerm=${encodeURIComponent(searchTerm)}`);
+    return response.data;
+  }
 }
 
 export const connectionService = new ConnectionService();

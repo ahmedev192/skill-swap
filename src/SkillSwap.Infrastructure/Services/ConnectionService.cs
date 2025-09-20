@@ -204,4 +204,32 @@ public class ConnectionService : IConnectionService
 
         return connection.Any();
     }
+
+    public async Task<IEnumerable<UserConnectionDto>> SearchConnectionsAsync(string userId, string searchTerm)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            // If no search term, return all connections
+            return await GetConnectionsAsync(userId);
+        }
+
+        var connections = await _unitOfWork.UserConnections.FindAsync(uc => 
+            (uc.RequesterId == userId || uc.ReceiverId == userId) && uc.Status == ConnectionStatus.Accepted, 
+            uc => uc.Requester, uc => uc.Receiver);
+
+        // Filter connections where the other user's name contains the search term
+        var filteredConnections = connections.Where(uc =>
+        {
+            var otherUser = uc.RequesterId == userId ? uc.Receiver : uc.Requester;
+            if (otherUser == null) return false;
+            
+            var fullName = $"{otherUser.FirstName} {otherUser.LastName}".ToLower();
+            var email = otherUser.Email?.ToLower() ?? "";
+            var searchLower = searchTerm.ToLower();
+            
+            return fullName.Contains(searchLower) || email.Contains(searchLower);
+        });
+
+        return _mapper.Map<IEnumerable<UserConnectionDto>>(filteredConnections);
+    }
 }

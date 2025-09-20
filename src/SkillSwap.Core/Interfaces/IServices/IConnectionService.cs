@@ -15,4 +15,5 @@ public interface IConnectionService
     Task<bool> UnblockUserAsync(string userId, string targetUserId);
     Task<bool> IsConnectedAsync(string userId1, string userId2);
     Task<bool> HasPendingRequestAsync(string requesterId, string receiverId);
+    Task<IEnumerable<UserConnectionDto>> SearchConnectionsAsync(string userId, string searchTerm);
 }

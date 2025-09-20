@@ -16,6 +16,7 @@ import {
 import { useConnection } from '../../contexts/ConnectionContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useErrorContext } from '../../contexts/ErrorContext';
+import { connectionService } from '../../services/connectionService';
 import ConnectionButton from './ConnectionButton';
 
 interface ConnectionsPageProps {
@@ -43,8 +44,10 @@ const ConnectionsPage: React.FC<ConnectionsPageProps> = ({ onViewChange }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [isResponding, setIsResponding] = useState(false);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
-  // Debounce search term to prevent excessive filtering
+  // Debounce search term to prevent excessive API calls
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
@@ -52,6 +55,34 @@ const ConnectionsPage: React.FC<ConnectionsPageProps> = ({ onViewChange }) => {
 
     return () => clearTimeout(timer);
   }, [searchTerm]);
+
+  // Perform search when debounced search term changes
+  useEffect(() => {
+    const performSearch = async () => {
+      if (!debouncedSearchTerm.trim()) {
+        setSearchResults([]);
+        return;
+      }
+
+      if (activeTab !== 'connections') {
+        // For pending and sent requests, use client-side filtering
+        return;
+      }
+
+      try {
+        setIsSearching(true);
+        const results = await connectionService.searchConnections(debouncedSearchTerm);
+        setSearchResults(results);
+      } catch (error) {
+        handleError(error, 'search connections');
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    performSearch();
+  }, [debouncedSearchTerm, activeTab, handleError]);
 
   // Memoize the data loading function to prevent infinite loops
   const loadInitialData = useCallback(async () => {
@@ -128,15 +159,46 @@ const ConnectionsPage: React.FC<ConnectionsPageProps> = ({ onViewChange }) => {
   };
 
   const getFilteredConnections = useCallback(() => {
-    const allConnections = [...connections, ...pendingRequests, ...sentRequests];
-    return allConnections.filter(conn => {
-      const otherUser = conn.requesterId === user?.id ? conn.receiver : conn.requester;
-      if (!otherUser) return false;
-      
-      const fullName = `${otherUser.firstName} ${otherUser.lastName}`.toLowerCase();
-      return fullName.includes(debouncedSearchTerm.toLowerCase());
-    });
-  }, [connections, pendingRequests, sentRequests, user?.id, debouncedSearchTerm]);
+    if (activeTab === 'connections') {
+      // For connections tab, use server-side search results if searching
+      if (debouncedSearchTerm.trim()) {
+        return searchResults; // This will be empty array if no results found
+      }
+      return connections;
+    } else if (activeTab === 'pending') {
+      // For pending requests, use client-side filtering
+      if (!debouncedSearchTerm.trim()) {
+        return pendingRequests;
+      }
+      return pendingRequests.filter(conn => {
+        const otherUser = conn.requesterId === user?.id ? conn.receiver : conn.requester;
+        if (!otherUser) return false;
+        
+        const fullName = `${otherUser.firstName} ${otherUser.lastName}`.toLowerCase();
+        const email = otherUser.email?.toLowerCase() || '';
+        const searchLower = debouncedSearchTerm.toLowerCase();
+        
+        return fullName.includes(searchLower) || email.includes(searchLower);
+      });
+    } else if (activeTab === 'sent') {
+      // For sent requests, use client-side filtering
+      if (!debouncedSearchTerm.trim()) {
+        return sentRequests;
+      }
+      return sentRequests.filter(conn => {
+        const otherUser = conn.requesterId === user?.id ? conn.receiver : conn.requester;
+        if (!otherUser) return false;
+        
+        const fullName = `${otherUser.firstName} ${otherUser.lastName}`.toLowerCase();
+        const email = otherUser.email?.toLowerCase() || '';
+        const searchLower = debouncedSearchTerm.toLowerCase();
+        
+        return fullName.includes(searchLower) || email.includes(searchLower);
+      });
+    }
+    
+    return [];
+  }, [activeTab, connections, pendingRequests, sentRequests, user?.id, debouncedSearchTerm, searchResults]);
 
   const renderUserCard = (connection: any, type: 'connection' | 'pending' | 'sent') => {
     const otherUser = connection.requesterId === user?.id ? connection.receiver : connection.requester;
@@ -368,54 +430,68 @@ const ConnectionsPage: React.FC<ConnectionsPageProps> = ({ onViewChange }) => {
       <div className="space-y-6">
         {activeTab === 'connections' && (
           <>
-            {connections.length === 0 ? (
+            {isSearching ? (
+              <div className="text-center py-12">
+                <Loader2 className="animate-spin h-8 w-8 text-blue-600 mx-auto mb-4" />
+                <p className="text-gray-600 dark:text-gray-400">Searching connections...</p>
+              </div>
+            ) : getFilteredConnections().length === 0 ? (
               <div className="text-center py-12">
                 <Users className="mx-auto h-12 w-12 text-gray-400" />
                 <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">
-                  No connections yet
+                  {debouncedSearchTerm.trim() ? 'No connections found' : 'No connections yet'}
                 </h3>
                 <p className="mt-2 text-gray-600 dark:text-gray-400">
-                  Start connecting with other users to build your network
+                  {debouncedSearchTerm.trim() 
+                    ? `No connections match "${debouncedSearchTerm}"`
+                    : 'Start connecting with other users to build your network'
+                  }
                 </p>
               </div>
             ) : (
-              connections.map(connection => renderUserCard(connection, 'connection'))
+              getFilteredConnections().map(connection => renderUserCard(connection, 'connection'))
             )}
           </>
         )}
 
         {activeTab === 'pending' && (
           <>
-            {pendingRequests.length === 0 ? (
+            {getFilteredConnections().length === 0 ? (
               <div className="text-center py-12">
                 <Clock className="mx-auto h-12 w-12 text-gray-400" />
                 <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">
-                  No pending requests
+                  {debouncedSearchTerm.trim() ? 'No pending requests found' : 'No pending requests'}
                 </h3>
                 <p className="mt-2 text-gray-600 dark:text-gray-400">
-                  You don't have any pending connection requests
+                  {debouncedSearchTerm.trim() 
+                    ? `No pending requests match "${debouncedSearchTerm}"`
+                    : 'You don\'t have any pending connection requests'
+                  }
                 </p>
               </div>
             ) : (
-              pendingRequests.map(request => renderUserCard(request, 'pending'))
+              getFilteredConnections().map(request => renderUserCard(request, 'pending'))
             )}
           </>
         )}
 
         {activeTab === 'sent' && (
           <>
-            {sentRequests.length === 0 ? (
+            {getFilteredConnections().length === 0 ? (
               <div className="text-center py-12">
                 <UserPlus className="mx-auto h-12 w-12 text-gray-400" />
                 <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">
-                  No sent requests
+                  {debouncedSearchTerm.trim() ? 'No sent requests found' : 'No sent requests'}
                 </h3>
                 <p className="mt-2 text-gray-600 dark:text-gray-400">
-                  You haven't sent any connection requests yet
+                  {debouncedSearchTerm.trim() 
+                    ? `No sent requests match "${debouncedSearchTerm}"`
+                    : 'You haven\'t sent any connection requests yet'
+                  }
                 </p>
               </div>
             ) : (
-              sentRequests.map(request => renderUserCard(request, 'sent'))
+              getFilteredConnections().map(request => renderUserCard(request, 'sent'))
             )}
           </>
         )}
