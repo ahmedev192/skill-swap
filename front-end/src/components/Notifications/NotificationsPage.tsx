@@ -27,6 +27,94 @@ const NotificationsPage: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Helper functions
+  const getNotificationTypeString = (type: number): string => {
+    switch (type) {
+      case 1: return 'SessionRequest';
+      case 2: return 'SessionConfirmed';
+      case 3: return 'SessionReminder';
+      case 4: return 'SessionCompleted';
+      case 5: return 'Message';
+      case 6: return 'Review';
+      case 7: return 'CreditEarned';
+      case 8: return 'CreditSpent';
+      case 9: return 'System';
+      case 10: return 'MatchFound';
+      case 11: return 'GroupEvent';
+      default: return 'System';
+    }
+  };
+
+  const getNotificationIcon = (type: number) => {
+    const typeString = getNotificationTypeString(type);
+    switch (typeString) {
+      case 'SessionRequest':
+      case 'SessionConfirmed':
+      case 'SessionCancelled':
+      case 'SessionReminder':
+      case 'SessionCompleted':
+        return Calendar;
+      case 'Message':
+        return MessageCircle;
+      case 'Review':
+        return Star;
+      case 'CreditEarned':
+      case 'CreditSpent':
+        return Star;
+      case 'System':
+        return Info;
+      case 'MatchFound':
+      case 'GroupEvent':
+        return User;
+      default:
+        return Bell;
+    }
+  };
+
+  const getNotificationColor = (type: number) => {
+    const typeString = getNotificationTypeString(type);
+    switch (typeString) {
+      case 'SessionRequest':
+        return 'text-blue-600 dark:text-blue-400';
+      case 'SessionConfirmed':
+        return 'text-green-600 dark:text-green-400';
+      case 'SessionCancelled':
+        return 'text-red-600 dark:text-red-400';
+      case 'SessionReminder':
+        return 'text-orange-600 dark:text-orange-400';
+      case 'SessionCompleted':
+        return 'text-green-600 dark:text-green-400';
+      case 'Message':
+        return 'text-purple-600 dark:text-purple-400';
+      case 'Review':
+        return 'text-yellow-600 dark:text-yellow-400';
+      case 'CreditEarned':
+        return 'text-green-600 dark:text-green-400';
+      case 'CreditSpent':
+        return 'text-red-600 dark:text-red-400';
+      case 'System':
+        return 'text-gray-600 dark:text-gray-400';
+      case 'MatchFound':
+        return 'text-blue-600 dark:text-blue-400';
+      case 'GroupEvent':
+        return 'text-purple-600 dark:text-purple-400';
+      default:
+        return 'text-gray-600 dark:text-gray-400';
+    }
+  };
+
+  const formatDate = (date: string) => {
+    const notificationDate = new Date(date);
+    const now = new Date();
+    const diffInMinutes = Math.floor((now.getTime() - notificationDate.getTime()) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
+    if (diffInMinutes < 10080) return `${Math.floor(diffInMinutes / 1440)}d ago`;
+    return notificationDate.toLocaleDateString();
+  };
+
   // Load notifications
   useEffect(() => {
     const loadNotifications = async () => {
@@ -50,7 +138,8 @@ const NotificationsPage: React.FC = () => {
   }, [user]);
 
   const filteredNotifications = notifications.filter(notification => {
-    const matchesType = filterType === 'all' || notification.type === filterType;
+    const typeString = getNotificationTypeString(notification.type);
+    const matchesType = filterType === 'all' || typeString === filterType;
     const matchesStatus = filterStatus === 'all' || 
                          (filterStatus === 'read' && notification.isRead) ||
                          (filterStatus === 'unread' && !notification.isRead);
@@ -82,54 +171,6 @@ const NotificationsPage: React.FC = () => {
       console.error('Error marking all notifications as read:', error);
       alert('Failed to mark all notifications as read. Please try again.');
     }
-  };
-
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'SessionRequest':
-      case 'SessionConfirmed':
-      case 'SessionCancelled':
-        return Calendar;
-      case 'Message':
-        return MessageCircle;
-      case 'Review':
-        return Star;
-      case 'System':
-        return Info;
-      default:
-        return Bell;
-    }
-  };
-
-  const getNotificationColor = (type: string) => {
-    switch (type) {
-      case 'SessionRequest':
-        return 'text-blue-600 dark:text-blue-400';
-      case 'SessionConfirmed':
-        return 'text-green-600 dark:text-green-400';
-      case 'SessionCancelled':
-        return 'text-red-600 dark:text-red-400';
-      case 'Message':
-        return 'text-purple-600 dark:text-purple-400';
-      case 'Review':
-        return 'text-yellow-600 dark:text-yellow-400';
-      case 'System':
-        return 'text-gray-600 dark:text-gray-400';
-      default:
-        return 'text-gray-600 dark:text-gray-400';
-    }
-  };
-
-  const formatDate = (date: string) => {
-    const notificationDate = new Date(date);
-    const now = new Date();
-    const diffInMinutes = Math.floor((now.getTime() - notificationDate.getTime()) / (1000 * 60));
-    
-    if (diffInMinutes < 1) return 'Just now';
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
-    if (diffInMinutes < 10080) return `${Math.floor(diffInMinutes / 1440)}d ago`;
-    return notificationDate.toLocaleDateString();
   };
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
@@ -203,9 +244,12 @@ const NotificationsPage: React.FC = () => {
               { value: 'all', label: 'All Types', color: 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300' },
               { value: 'SessionRequest', label: 'Session Requests', color: 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' },
               { value: 'SessionConfirmed', label: 'Confirmations', color: 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300' },
-              { value: 'SessionCancelled', label: 'Cancellations', color: 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300' },
+              { value: 'SessionReminder', label: 'Reminders', color: 'bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300' },
+              { value: 'SessionCompleted', label: 'Completed', color: 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300' },
               { value: 'Message', label: 'Messages', color: 'bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300' },
               { value: 'Review', label: 'Reviews', color: 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300' },
+              { value: 'CreditEarned', label: 'Credits Earned', color: 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300' },
+              { value: 'CreditSpent', label: 'Credits Spent', color: 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300' },
               { value: 'System', label: 'System', color: 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300' }
             ].map((filter) => (
               <button
@@ -302,7 +346,7 @@ const NotificationsPage: React.FC = () => {
                           </span>
                           <span className="flex items-center space-x-1">
                             <span className="w-2 h-2 rounded-full bg-current"></span>
-                            <span className="capitalize">{notification.type.replace(/([A-Z])/g, ' $1').trim()}</span>
+                            <span className="capitalize">{getNotificationTypeString(notification.type).replace(/([A-Z])/g, ' $1').trim()}</span>
                           </span>
                         </div>
                       </div>

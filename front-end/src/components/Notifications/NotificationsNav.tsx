@@ -82,37 +82,76 @@ const NotificationsNav: React.FC<NotificationsNavProps> = ({ onViewChange }) => 
     }
   };
 
-  const getNotificationIcon = (type: string) => {
+  const getNotificationTypeString = (type: number): string => {
     switch (type) {
+      case 1: return 'SessionRequest';
+      case 2: return 'SessionConfirmed';
+      case 3: return 'SessionReminder';
+      case 4: return 'SessionCompleted';
+      case 5: return 'Message';
+      case 6: return 'Review';
+      case 7: return 'CreditEarned';
+      case 8: return 'CreditSpent';
+      case 9: return 'System';
+      case 10: return 'MatchFound';
+      case 11: return 'GroupEvent';
+      default: return 'System';
+    }
+  };
+
+  const getNotificationIcon = (type: number) => {
+    const typeString = getNotificationTypeString(type);
+    switch (typeString) {
       case 'SessionRequest':
       case 'SessionConfirmed':
       case 'SessionCancelled':
+      case 'SessionReminder':
+      case 'SessionCompleted':
         return Calendar;
       case 'Message':
         return MessageCircle;
       case 'Review':
         return Star;
+      case 'CreditEarned':
+      case 'CreditSpent':
+        return Star;
       case 'System':
         return Info;
+      case 'MatchFound':
+      case 'GroupEvent':
+        return User;
       default:
         return Bell;
     }
   };
 
-  const getNotificationColor = (type: string) => {
-    switch (type) {
+  const getNotificationColor = (type: number) => {
+    const typeString = getNotificationTypeString(type);
+    switch (typeString) {
       case 'SessionRequest':
         return 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20';
       case 'SessionConfirmed':
         return 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20';
       case 'SessionCancelled':
         return 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20';
+      case 'SessionReminder':
+        return 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20';
+      case 'SessionCompleted':
+        return 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20';
       case 'Message':
         return 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20';
       case 'Review':
         return 'text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20';
+      case 'CreditEarned':
+        return 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20';
+      case 'CreditSpent':
+        return 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20';
       case 'System':
         return 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/20';
+      case 'MatchFound':
+        return 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20';
+      case 'GroupEvent':
+        return 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20';
       default:
         return 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/20';
     }
@@ -129,15 +168,22 @@ const NotificationsNav: React.FC<NotificationsNavProps> = ({ onViewChange }) => 
     return `${Math.floor(diffInMinutes / 1440)}d`;
   };
 
-  const getNotificationTypeLabel = (type: string) => {
-    switch (type) {
+  const getNotificationTypeLabel = (type: number) => {
+    const typeString = getNotificationTypeString(type);
+    switch (typeString) {
       case 'SessionRequest': return 'Session Request';
       case 'SessionConfirmed': return 'Session Confirmed';
       case 'SessionCancelled': return 'Session Cancelled';
+      case 'SessionReminder': return 'Session Reminder';
+      case 'SessionCompleted': return 'Session Completed';
       case 'Message': return 'Message';
       case 'Review': return 'Review';
+      case 'CreditEarned': return 'Credits Earned';
+      case 'CreditSpent': return 'Credits Spent';
       case 'System': return 'System';
-      default: return type;
+      case 'MatchFound': return 'Match Found';
+      case 'GroupEvent': return 'Group Event';
+      default: return 'Notification';
     }
   };
 
