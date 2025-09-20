@@ -61,6 +61,7 @@ class SignalRService {
   private onUserOnline: ((user: OnlineUser) => void) | null = null;
   private onUserOffline: ((user: OnlineUser) => void) | null = null;
   private onOnlineUsersList: ((users: OnlineUser[]) => void) | null = null;
+  private onUnreadCountUpdated: ((unreadMessageCount: number, unreadNotificationCount: number) => void) | null = null;
 
   constructor() {
     this.setupConnection();
@@ -161,6 +162,13 @@ class SignalRService {
     this.connection.on('OnlineUsersList', (users: OnlineUser[]) => {
       if (this.onOnlineUsersList) {
         this.onOnlineUsersList(users);
+      }
+    });
+
+    // Unread count updated event
+    this.connection.on('UnreadCountUpdated', (data: { unreadMessageCount: number, unreadNotificationCount: number }) => {
+      if (this.onUnreadCountUpdated) {
+        this.onUnreadCountUpdated(data.unreadMessageCount, data.unreadNotificationCount);
       }
     });
 
@@ -320,6 +328,10 @@ class SignalRService {
 
   onOnlineUsersListHandler(handler: (users: OnlineUser[]) => void) {
     this.onOnlineUsersList = handler;
+  }
+
+  onUnreadCountUpdatedHandler(handler: (unreadMessageCount: number, unreadNotificationCount: number) => void) {
+    this.onUnreadCountUpdated = handler;
   }
 
   // Utility methods

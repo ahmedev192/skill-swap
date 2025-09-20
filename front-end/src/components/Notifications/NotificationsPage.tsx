@@ -14,10 +14,12 @@ import {
   Search
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useMessaging } from '../../contexts/MessagingContext';
 import { notificationsService, Notification } from '../../services/notificationsService';
 
 const NotificationsPage: React.FC = () => {
   const { user } = useAuth();
+  const { onUnreadCountsUpdated } = useMessaging();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +62,7 @@ const NotificationsPage: React.FC = () => {
       setNotifications(notifications.map(n => 
         n.id === notificationId ? { ...n, isRead: true } : n
       ));
+      // The counter will be updated automatically via SignalR
     } catch (error) {
       console.error('Error marking notification as read:', error);
       alert('Failed to mark notification as read. Please try again.');
@@ -70,6 +73,7 @@ const NotificationsPage: React.FC = () => {
     try {
       await notificationsService.markAllAsRead();
       setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+      // The counter will be updated automatically via SignalR
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
       alert('Failed to mark all notifications as read. Please try again.');

@@ -38,6 +38,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ onViewChange }) => {
     connectionStatus, 
     conversations, 
     sendMessage, 
+    markMessagesAsRead,
     refreshConversations,
     onMessageReceived,
     onConversationUpdated
@@ -126,13 +127,16 @@ const ChatPage: React.FC<ChatPageProps> = ({ onViewChange }) => {
         const messagesData = await messagesService.getConversation(selectedChat);
         console.log('Loaded messages:', messagesData);
         setMessages(messagesData);
+        
+        // Mark messages as read when conversation is selected
+        await markMessagesAsRead(selectedChat);
       } catch (error) {
         console.error('Error loading messages:', error);
       }
     };
 
     loadMessages();
-  }, [selectedChat]);
+  }, [selectedChat, markMessagesAsRead]);
 
   useEffect(() => {
     scrollToBottom();

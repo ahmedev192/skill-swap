@@ -32,7 +32,7 @@ interface NavigationProps {
 const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) => {
   const { user, logout } = useAuth();
   const { isDarkMode, toggleTheme } = useTheme();
-  const { unreadCount: messageUnreadCount } = useMessaging();
+  const { unreadCount: messageUnreadCount, onUnreadCountsUpdated } = useMessaging();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -53,6 +53,17 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
 
     loadUnreadCount();
   }, [user]);
+
+  // Listen for real-time unread count updates
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubscribe = onUnreadCountsUpdated((messageCount: number, notificationCount: number) => {
+      setUnreadCount(notificationCount);
+    });
+
+    return unsubscribe;
+  }, [user, onUnreadCountsUpdated]);
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },

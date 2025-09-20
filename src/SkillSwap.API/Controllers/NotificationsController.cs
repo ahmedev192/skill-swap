@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SkillSwap.Core.DTOs;
 using SkillSwap.Core.Interfaces.Services;
+using SkillSwap.API.Services;
 using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
 
@@ -13,11 +14,15 @@ namespace SkillSwap.API.Controllers;
 public class NotificationsController : BaseController
 {
     private readonly INotificationService _notificationService;
+    private readonly ISignalRNotificationService _signalRNotificationService;
+    private readonly IMessageService _messageService;
     private readonly ILogger<NotificationsController> _logger;
 
-    public NotificationsController(INotificationService notificationService, ILogger<NotificationsController> logger) : base(logger)
+    public NotificationsController(INotificationService notificationService, ISignalRNotificationService signalRNotificationService, IMessageService messageService, ILogger<NotificationsController> logger) : base(logger)
     {
         _notificationService = notificationService;
+        _signalRNotificationService = signalRNotificationService;
+        _messageService = messageService;
         _logger = logger;
     }
 
@@ -88,9 +93,17 @@ public class NotificationsController : BaseController
                 return BadRequest("Invalid notification ID", "INVALID_NOTIFICATION_ID");
             }
 
+            var userId = GetCurrentUserId();
             var result = await _notificationService.MarkNotificationAsReadAsync(id);
             if (result)
             {
+                // Update unread counts
+                var unreadNotificationCount = await _notificationService.GetUnreadNotificationCountAsync(userId!);
+                var unreadMessageCount = await _messageService.GetUnreadMessageCountAsync(userId!);
+                
+                // Notify user of updated counts
+                await _signalRNotificationService.NotifyUnreadCountUpdated(userId!, unreadMessageCount, unreadNotificationCount);
+                
                 return Ok(new { message = "Notification marked as read", notificationId = id });
             }
             return NotFound("Notification not found", "NOTIFICATION_NOT_FOUND", new { notificationId = id });
@@ -117,6 +130,14 @@ public class NotificationsController : BaseController
 
             var userId = GetCurrentUserId();
             await _notificationService.MarkAllNotificationsAsReadAsync(userId!);
+            
+            // Update unread counts
+            var unreadNotificationCount = await _notificationService.GetUnreadNotificationCountAsync(userId!);
+            var unreadMessageCount = await _messageService.GetUnreadMessageCountAsync(userId!);
+            
+            // Notify user of updated counts
+            await _signalRNotificationService.NotifyUnreadCountUpdated(userId!, unreadMessageCount, unreadNotificationCount);
+            
             return Ok(new { message = "All notifications marked as read" });
         }
         catch (Exception ex)

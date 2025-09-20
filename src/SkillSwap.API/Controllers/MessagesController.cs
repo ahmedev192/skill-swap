@@ -15,12 +15,14 @@ public class MessagesController : BaseController
 {
     private readonly IMessageService _messageService;
     private readonly ISignalRNotificationService _signalRNotificationService;
+    private readonly INotificationService _notificationService;
     private readonly ILogger<MessagesController> _logger;
 
-    public MessagesController(IMessageService messageService, ISignalRNotificationService signalRNotificationService, ILogger<MessagesController> logger) : base(logger)
+    public MessagesController(IMessageService messageService, ISignalRNotificationService signalRNotificationService, INotificationService notificationService, ILogger<MessagesController> logger) : base(logger)
     {
         _messageService = messageService;
         _signalRNotificationService = signalRNotificationService;
+        _notificationService = notificationService;
         _logger = logger;
     }
 
@@ -204,6 +206,18 @@ public class MessagesController : BaseController
             {
                 await _signalRNotificationService.NotifyMessageRead(messageId, readAt, markReadDto.SenderId);
             }
+
+            // Update unread counts for both users
+            var currentUserUnreadCount = await _messageService.GetUnreadMessageCountAsync(userId!);
+            var senderUnreadCount = await _messageService.GetUnreadMessageCountAsync(markReadDto.SenderId);
+            
+            // Get notification counts
+            var currentUserNotificationCount = await _notificationService.GetUnreadNotificationCountAsync(userId!);
+            var senderNotificationCount = await _notificationService.GetUnreadNotificationCountAsync(markReadDto.SenderId);
+            
+            // Notify both users of updated counts
+            await _signalRNotificationService.NotifyUnreadCountUpdated(userId!, currentUserUnreadCount, currentUserNotificationCount);
+            await _signalRNotificationService.NotifyUnreadCountUpdated(markReadDto.SenderId, senderUnreadCount, senderNotificationCount);
 
             return Ok(new { message = "Messages marked as read", markedCount = markedMessages.Count() });
         }

@@ -31,6 +31,7 @@ interface MessagingContextType {
   onUserOnline: (callback: (user: OnlineUser) => void) => void;
   onUserOffline: (callback: (user: OnlineUser) => void) => void;
   onOnlineUsersChanged: (callback: (users: OnlineUser[]) => void) => void;
+  onUnreadCountsUpdated: (callback: (messageCount: number, notificationCount: number) => void) => void;
 }
 
 const MessagingContext = createContext<MessagingContextType | undefined>(undefined);
@@ -55,6 +56,7 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
   const userOnlineCallbacks = useRef<((user: OnlineUser) => void)[]>([]);
   const userOfflineCallbacks = useRef<((user: OnlineUser) => void)[]>([]);
   const onlineUsersChangedCallbacks = useRef<((users: OnlineUser[]) => void)[]>([]);
+  const unreadCountsUpdatedCallbacks = useRef<((messageCount: number, notificationCount: number) => void)[]>([]);
 
   // Initialize error handler
   useEffect(() => {
@@ -160,6 +162,12 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
         signalRService.onOnlineUsersListHandler((users: OnlineUser[]) => {
           setOnlineUsers(users);
           onlineUsersChangedCallbacks.current.forEach(callback => callback(users));
+        });
+
+        signalRService.onUnreadCountUpdatedHandler((messageCount: number, notificationCount: number) => {
+          setUnreadCount(messageCount);
+          unreadCountChangedCallbacks.current.forEach(callback => callback(messageCount));
+          unreadCountsUpdatedCallbacks.current.forEach(callback => callback(messageCount, notificationCount));
         });
 
         // Load initial data
@@ -312,6 +320,16 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
     };
   };
 
+  const onUnreadCountsUpdated = (callback: (messageCount: number, notificationCount: number) => void) => {
+    unreadCountsUpdatedCallbacks.current.push(callback);
+    return () => {
+      const index = unreadCountsUpdatedCallbacks.current.indexOf(callback);
+      if (index > -1) {
+        unreadCountsUpdatedCallbacks.current.splice(index, 1);
+      }
+    };
+  };
+
   // Method to manually reconnect SignalR (useful after login)
   const reconnectSignalR = async () => {
     if (!user) return;
@@ -351,7 +369,8 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
     onUnreadCountChanged,
     onUserOnline,
     onUserOffline,
-    onOnlineUsersChanged
+    onOnlineUsersChanged,
+    onUnreadCountsUpdated
   };
 
   return (

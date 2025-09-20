@@ -12,6 +12,7 @@ public interface ISignalRNotificationService
     Task NotifyUserOnline(string userId, string email, string firstName, string lastName);
     Task NotifyUserOffline(string userId, string email, string firstName, string lastName);
     Task NotifyOnlineUsersList(string userId);
+    Task NotifyUnreadCountUpdated(string userId, int unreadMessageCount, int unreadNotificationCount);
 }
 
 public class SignalRNotificationService : ISignalRNotificationService
@@ -82,5 +83,15 @@ public class SignalRNotificationService : ISignalRNotificationService
 
         await _hubContext.Clients.Group($"User_{userId}")
             .SendAsync("OnlineUsersList", onlineUsers);
+    }
+
+    public async Task NotifyUnreadCountUpdated(string userId, int unreadMessageCount, int unreadNotificationCount)
+    {
+        await _hubContext.Clients.Group($"User_{userId}")
+            .SendAsync("UnreadCountUpdated", new
+            {
+                unreadMessageCount,
+                unreadNotificationCount
+            });
     }
 }
