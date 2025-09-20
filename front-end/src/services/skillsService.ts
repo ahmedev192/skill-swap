@@ -163,17 +163,18 @@ class SkillsService {
   }
 
   async getAllAvailableUserSkills(): Promise<UserSkill[]> {
-    // Use the proper endpoint for getting all offered skills
     try {
-      return await this.getAllOfferedSkills();
+      const response = await api.get<UserSkill[]>('/skills/available');
+      return response.data;
     } catch (error) {
       // If endpoint fails, fallback to search
-      console.warn('Could not load all offered skills, falling back to search:', error);
+      console.warn('Could not load all available skills, falling back to search:', error);
       try {
         const response = await api.get<UserSkill[]>('/skills/search?searchTerm=a');
         return response.data;
       } catch (searchError) {
         console.warn('Could not load all available user skills:', searchError);
+        // Return empty array instead of throwing to prevent UI crashes
         return [];
       }
     }

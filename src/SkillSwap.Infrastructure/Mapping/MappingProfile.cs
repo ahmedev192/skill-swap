@@ -16,6 +16,9 @@ public class MappingProfile : Profile
 
         // Skill mappings
         CreateMap<Skill, SkillDto>();
+        CreateMap<CreateSkillDto, Skill>();
+        CreateMap<UpdateSkillDto, Skill>()
+            .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
         CreateMap<UserSkill, UserSkillDto>();
         CreateMap<CreateUserSkillDto, UserSkill>();
         CreateMap<UpdateUserSkillDto, UserSkill>()

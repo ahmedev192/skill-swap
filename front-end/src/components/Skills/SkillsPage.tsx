@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Search, Filter, Plus, MapPin, Clock, Star, User } from 'lucide-react';
 import { Skill, User as UserType } from '../../types';
 import { skillsService, UserSkill } from '../../services/skillsService';
+import { userService } from '../../services/userService';
+import { reviewsService, UserRating } from '../../services/reviewsService';
 
 const SkillsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -12,6 +14,8 @@ const SkillsPage: React.FC = () => {
   const [skills, setSkills] = useState<UserSkill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userData, setUserData] = useState<Map<string, UserType>>(new Map());
+  const [userRatings, setUserRatings] = useState<Map<string, UserRating>>(new Map());
 
   const [categories, setCategories] = useState<string[]>(['All Categories']);
   const [levels] = useState(['All Levels', 'Beginner', 'Intermediate', 'Expert']);
@@ -31,6 +35,42 @@ const SkillsPage: React.FC = () => {
     loadCategories();
   }, []);
 
+  // Load user data and ratings for skills
+  const loadUserData = async (userIds: string[]) => {
+    if (userIds.length === 0) return;
+    
+    const newUserData = new Map(userData);
+    const newUserRatings = new Map(userRatings);
+    
+    const promises = userIds.map(async (userId) => {
+      if (!newUserData.has(userId)) {
+        try {
+          const [user, rating] = await Promise.all([
+            userService.getUserById(userId),
+            reviewsService.getUserRating(userId).catch(() => ({ averageRating: 0, reviewCount: 0 }))
+          ]);
+          newUserData.set(userId, user);
+          newUserRatings.set(userId, rating);
+        } catch (error) {
+          console.error(`Failed to load data for user ${userId}:`, error);
+          // Set default values for failed user data
+          newUserData.set(userId, {
+            id: userId,
+            firstName: 'Unknown',
+            lastName: 'User',
+            email: '',
+            location: 'Location not available'
+          } as any);
+          newUserRatings.set(userId, { averageRating: 0, reviewCount: 0 });
+        }
+      }
+    });
+    
+    await Promise.all(promises);
+    setUserData(newUserData);
+    setUserRatings(newUserRatings);
+  };
+
   // Load skills from API
   useEffect(() => {
     const loadSkills = async () => {
@@ -38,29 +78,50 @@ const SkillsPage: React.FC = () => {
         setIsLoading(true);
         setError(null);
         
+        let skillsData: UserSkill[] = [];
+        
         if (searchTerm.trim()) {
           // Search skills
-          const searchResults = await skillsService.searchSkills(
+          skillsData = await skillsService.searchSkills(
             searchTerm,
             selectedCategory === 'all' ? undefined : selectedCategory,
             undefined // location could be added later
           );
-          setSkills(searchResults);
         } else {
           // Get all available user skills
           if (selectedCategory === 'all') {
             // Get all available user skills using a broad search
-            const allSkills = await skillsService.getAllAvailableUserSkills();
-            setSkills(allSkills);
+            skillsData = await skillsService.getAllAvailableUserSkills();
           } else {
             // Search for skills in the specific category using a broad search term
-            const categorySkills = await skillsService.searchSkills('a', selectedCategory);
-            setSkills(categorySkills);
+            skillsData = await skillsService.searchSkills('a', selectedCategory);
           }
         }
-      } catch (err) {
-        setError('Failed to load skills. Please try again.');
+        
+        setSkills(skillsData);
+        
+        // Load user data for all unique user IDs
+        const uniqueUserIds = [...new Set(skillsData.map(skill => skill.userId))];
+        await loadUserData(uniqueUserIds);
+      } catch (err: any) {
         console.error('Error loading skills:', err);
+        
+        // Enhanced error handling
+        let errorMessage = 'Failed to load skills. Please try again.';
+        
+        if (err?.response?.data?.message) {
+          errorMessage = err.response.data.message;
+        } else if (err?.message) {
+          errorMessage = err.message;
+        } else if (err?.response?.status === 401) {
+          errorMessage = 'Please log in to view skills.';
+        } else if (err?.response?.status === 403) {
+          errorMessage = 'You do not have permission to view skills.';
+        } else if (err?.response?.status >= 500) {
+          errorMessage = 'Server error. Please try again later.';
+        }
+        
+        setError(errorMessage);
       } finally {
         setIsLoading(false);
       }
@@ -216,13 +277,26 @@ const SkillsPage: React.FC = () => {
                       {skill.skill?.category || 'Uncategorized'}
                     </span>
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300">
-                      {skill.level}
+                      {(() => {
+                        const level = skill.level;
+                        if (typeof level === 'string') {
+                          return level;
+                        }
+                        const levelNum = Number(level);
+                        if (levelNum === 1 || levelNum === 0) return 'Beginner'; // Handle 0 as Beginner for now
+                        if (levelNum === 2) return 'Intermediate';
+                        if (levelNum === 3) return 'Expert';
+                        return 'Unknown';
+                      })()}
                     </span>
                   </div>
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold text-gray-900 dark:text-white">
-                    {skill.creditsPerHour || 0} credits
+                    {(() => {
+                      const credits = Number(skill.creditsPerHour);
+                      return credits > 0 ? credits : 'Not set';
+                    })()} credits
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">per hour</p>
                 </div>
@@ -241,11 +315,16 @@ const SkillsPage: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      User ID: {skill.userId}
+                      {userData.get(skill.userId) 
+                        ? `${userData.get(skill.userId)!.firstName} ${userData.get(skill.userId)!.lastName}`
+                        : 'Loading...'
+                      }
                     </p>
                     <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
                       <MapPin className="h-3 w-3" />
-                      <span>Location not available</span>
+                      <span>
+                        {userData.get(skill.userId)?.location || 'Location not available'}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -253,11 +332,17 @@ const SkillsPage: React.FC = () => {
                   <div className="flex items-center space-x-1">
                     <Star className="h-4 w-4 text-yellow-400 fill-current" />
                     <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      N/A
+                      {userRatings.get(skill.userId)?.reviewCount > 0 
+                        ? userRatings.get(skill.userId)!.averageRating.toFixed(1)
+                        : 'Not reviewed yet'
+                      }
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    No reviews
+                    {userRatings.get(skill.userId)?.reviewCount > 0 
+                      ? `${userRatings.get(skill.userId)!.reviewCount} review${userRatings.get(skill.userId)!.reviewCount !== 1 ? 's' : ''}`
+                      : ''
+                    }
                   </p>
                 </div>
               </div>

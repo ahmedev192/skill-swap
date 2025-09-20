@@ -281,6 +281,10 @@ public class SkillsController : BaseController
                 return BadRequest("Invalid user skill data", "INVALID_REQUEST_DATA");
             }
 
+            // Debug: Log the received data
+            _logger.LogInformation("Received CreateUserSkill request: SkillId={SkillId}, Type={Type}, Level={Level}, CreditsPerHour={CreditsPerHour}", 
+                createUserSkillDto.SkillId, createUserSkillDto.Type, createUserSkillDto.Level, createUserSkillDto.CreditsPerHour);
+
             if (!ModelState.IsValid)
             {
                 var validationErrors = ModelState
@@ -387,6 +391,23 @@ public class SkillsController : BaseController
     }
 
     /// <summary>
+    /// Get all available user skills (public endpoint for skills discovery)
+    /// </summary>
+    [HttpGet("available")]
+    public async Task<ActionResult<IEnumerable<UserSkillDto>>> GetAllAvailableUserSkills()
+    {
+        try
+        {
+            var availableSkills = await _skillService.GetAllOfferedSkillsAsync();
+            return Ok(availableSkills);
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "get all available user skills");
+        }
+    }
+
+    /// <summary>
     /// Search skills
     /// </summary>
     [HttpGet("search")]
@@ -394,9 +415,14 @@ public class SkillsController : BaseController
     {
         try
         {
-            if (string.IsNullOrEmpty(searchTerm))
+            if (string.IsNullOrWhiteSpace(searchTerm))
             {
                 return BadRequest("Search term is required", "INVALID_SEARCH_TERM");
+            }
+
+            if (searchTerm.Length < 2)
+            {
+                return BadRequest("Search term must be at least 2 characters long", "SEARCH_TERM_TOO_SHORT");
             }
 
             var skills = await _skillService.SearchSkillsAsync(searchTerm, category, location);

@@ -103,19 +103,29 @@ const ManageSkillsPage: React.FC = () => {
     const levelMapping: { [key: string]: number } = {
       'Beginner': 1,
       'Intermediate': 2,
-      'Advanced': 2, // Map Advanced to Intermediate since backend doesn't have Advanced
       'Expert': 3
     };
 
     const skillId = parseInt(formData.get('skillId') as string);
-    const level = levelMapping[formData.get('level') as string] || 1;
-    const type = typeMapping[formData.get('type') as string] || 1;
+    const levelStr = formData.get('level') as string;
+    const typeStr = formData.get('type') as string;
     const description = formData.get('description') as string;
-    const creditsPerHour = formData.get('creditsPerHour') ? parseFloat(formData.get('creditsPerHour') as string) : 1.0;
-
-    // Validation
+    const requirements = formData.get('requirements') as string;
+    const creditsPerHourStr = formData.get('creditsPerHour') as string;
+    
+    // Enhanced validation
     if (!skillId || skillId <= 0) {
       setError('Please select a valid skill');
+      return;
+    }
+
+    if (!levelStr || !levelMapping[levelStr]) {
+      setError('Please select a valid skill level');
+      return;
+    }
+
+    if (!typeStr || !typeMapping[typeStr]) {
+      setError('Please select a valid skill type');
       return;
     }
 
@@ -124,16 +134,26 @@ const ManageSkillsPage: React.FC = () => {
       return;
     }
 
-    if (creditsPerHour < 0.1 || creditsPerHour > 1000) {
-      setError('Credits per hour must be between 0.1 and 1000');
+    if (description.trim().length < 10) {
+      setError('Description must be at least 10 characters long');
       return;
     }
+
+    const creditsPerHour = creditsPerHourStr ? parseFloat(creditsPerHourStr) : 1.0;
+    if (isNaN(creditsPerHour) || creditsPerHour < 0.1 || creditsPerHour > 1000) {
+      setError('Credits per hour must be a valid number between 0.1 and 1000');
+      return;
+    }
+
+    const level = levelMapping[levelStr];
+    const type = typeMapping[typeStr];
 
     const skillData = {
       skillId,
       level,
       type,
       description: description.trim(),
+      requirements: requirements?.trim() || undefined,
       creditsPerHour,
     };
 
@@ -156,15 +176,36 @@ const ManageSkillsPage: React.FC = () => {
       setEditingSkill(null);
     } catch (error: any) {
       console.error('Error saving skill:', error);
-      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to save skill';
+      
+      // Enhanced error handling
+      let errorMessage = 'Failed to save skill';
+      
+      if (error?.response?.data) {
+        const errorData = error.response.data;
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.errors) {
+          // Handle validation errors
+          const validationErrors = Object.values(errorData.errors).flat();
+          errorMessage = validationErrors.join(', ');
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const getLevelText = (level: number) => {
-    switch (level) {
+  const getLevelText = (level: number | string) => {
+    if (typeof level === 'string') {
+      return level;
+    }
+    const levelNum = Number(level);
+    switch (levelNum) {
+      case 0:
       case 1: return 'Beginner';
       case 2: return 'Intermediate';
       case 3: return 'Expert';
@@ -172,16 +213,30 @@ const ManageSkillsPage: React.FC = () => {
     }
   };
 
-  const getTypeText = (type: number) => {
-    switch (type) {
+  const getTypeText = (type: number | string) => {
+    if (typeof type === 'string') {
+      return type;
+    }
+    const typeNum = Number(type);
+    switch (typeNum) {
       case 1: return 'Offered';
       case 2: return 'Requested';
       default: return 'Unknown';
     }
   };
 
-  const getLevelColor = (level: number) => {
-    switch (level) {
+  const getLevelColor = (level: number | string) => {
+    if (typeof level === 'string') {
+      switch (level.toLowerCase()) {
+        case 'beginner': return 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300';
+        case 'intermediate': return 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300';
+        case 'expert': return 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-300';
+        default: return 'bg-gray-100 dark:bg-gray-900/20 text-gray-800 dark:text-gray-300';
+      }
+    }
+    const levelNum = Number(level);
+    switch (levelNum) {
+      case 0:
       case 1: // Beginner
         return 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300';
       case 2: // Intermediate
@@ -193,8 +248,16 @@ const ManageSkillsPage: React.FC = () => {
     }
   };
 
-  const getTypeColor = (type: number) => {
-    switch (type) {
+  const getTypeColor = (type: number | string) => {
+    if (typeof type === 'string') {
+      switch (type.toLowerCase()) {
+        case 'offered': return 'bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300';
+        case 'requested': return 'bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300';
+        default: return 'bg-gray-100 dark:bg-gray-900/20 text-gray-800 dark:text-gray-300';
+      }
+    }
+    const typeNum = Number(type);
+    switch (typeNum) {
       case 1: // Offered
         return 'bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300';
       case 2: // Requested
@@ -442,37 +505,59 @@ const ManageSkillsPage: React.FC = () => {
                 >
                   <option value="Beginner">Beginner</option>
                   <option value="Intermediate">Intermediate</option>
-                  <option value="Advanced">Advanced</option>
                   <option value="Expert">Expert</option>
                 </select>
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Description
+                  Description *
                 </label>
                 <textarea
                   name="description"
                   rows={3}
+                  required
+                  minLength={10}
                   defaultValue={editingSkill?.description || ''}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                  placeholder="Describe your experience or what you want to learn..."
+                  placeholder="Describe your experience or what you want to learn (minimum 10 characters)..."
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Minimum 10 characters required
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Requirements (Optional)
+                </label>
+                <textarea
+                  name="requirements"
+                  rows={2}
+                  defaultValue={editingSkill?.requirements || ''}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Any specific requirements or prerequisites..."
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Hourly Rate (Credits)
+                  Hourly Rate (Credits) *
                 </label>
                 <input
                   name="creditsPerHour"
                   type="number"
-                  min="0"
+                  min="0.1"
+                  max="1000"
                   step="0.1"
-                  defaultValue={editingSkill?.creditsPerHour || ''}
+                  required
+                  defaultValue={editingSkill?.creditsPerHour || '1.0'}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   placeholder="e.g., 10.0"
                 />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Must be between 0.1 and 1000 credits per hour
+                </p>
               </div>
               
               <div className="flex items-center justify-end space-x-3 mt-6">

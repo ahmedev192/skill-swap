@@ -1,0 +1,104 @@
+### Test Skills API Fixes
+### This file tests the fixed skills functionality
+
+### Variables
+@baseUrl = https://localhost:7001
+@token = your-jwt-token-here
+
+### 1. Test new available skills endpoint (public)
+GET {{baseUrl}}/api/skills/available
+Content-Type: application/json
+
+### 2. Test search with minimum length validation
+GET {{baseUrl}}/api/skills/search?searchTerm=a
+Content-Type: application/json
+
+### 3. Test search with valid term
+GET {{baseUrl}}/api/skills/search?searchTerm=programming
+Content-Type: application/json
+
+### 4. Test search with category filter
+GET {{baseUrl}}/api/skills/search?searchTerm=web&category=Technology
+Content-Type: application/json
+
+### 5. Test create user skill with proper validation
+POST {{baseUrl}}/api/skills/user
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "skillId": 1,
+  "type": 1,
+  "level": 2,
+  "description": "I have extensive experience in web development with React and Node.js",
+  "requirements": "Basic understanding of JavaScript",
+  "creditsPerHour": 15.0
+}
+
+### 6. Test create user skill with invalid data (should fail)
+POST {{baseUrl}}/api/skills/user
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "skillId": 0,
+  "type": 5,
+  "level": 10,
+  "description": "Short",
+  "creditsPerHour": -5.0
+}
+
+### 7. Test update user skill
+PUT {{baseUrl}}/api/skills/user/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "level": 3,
+  "description": "Updated description with more detailed experience",
+  "creditsPerHour": 20.0,
+  "isAvailable": true
+}
+
+### 8. Test get all offered skills (authenticated)
+GET {{baseUrl}}/api/skills/offered
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### 9. Test get user skills
+GET {{baseUrl}}/api/skills/user/user-id-here
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### 10. Test search with empty term (should fail)
+GET {{baseUrl}}/api/skills/search?searchTerm=
+Content-Type: application/json
+
+### 11. Test search with single character (should fail)
+GET {{baseUrl}}/api/skills/search?searchTerm=x
+Content-Type: application/json
+
+### 12. Test create skill (Admin only)
+POST {{baseUrl}}/api/skills
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Advanced React Development",
+  "description": "Advanced React development with hooks, context, and performance optimization",
+  "category": "Technology",
+  "subCategory": "Frontend Development"
+}
+
+### 13. Test get skills by category
+GET {{baseUrl}}/api/skills/category/Technology
+Content-Type: application/json
+
+### 14. Test get skill by ID
+GET {{baseUrl}}/api/skills/1
+Content-Type: application/json
+
+### 15. Test delete user skill
+DELETE {{baseUrl}}/api/skills/user/1
+Authorization: Bearer {{token}}
+Content-Type: application/json

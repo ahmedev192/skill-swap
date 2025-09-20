@@ -17,6 +17,10 @@ public static class DatabaseConfiguration
             {
                 b.MigrationsAssembly("SkillSwap.Infrastructure");
                 b.CommandTimeout(30);
+                b.EnableRetryOnFailure(
+                    maxRetryCount: 3,
+                    maxRetryDelay: TimeSpan.FromSeconds(30),
+                    errorNumbersToAdd: null);
             })
             .ConfigureWarnings(warnings => warnings.Throw(RelationalEventId.MultipleCollectionIncludeWarning)));
 

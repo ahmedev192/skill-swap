@@ -364,7 +364,7 @@ const ProfilePage: React.FC = () => {
                     <p className="text-sm text-gray-600 dark:text-gray-400">{skill.skill?.category || 'Uncategorized'}</p>
                     <div className="flex items-center justify-between mt-2">
                       <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300">
-                        {skill.level}
+                        {skill.level === 1 ? 'Beginner' : skill.level === 2 ? 'Intermediate' : skill.level === 3 ? 'Expert' : 'Unknown'}
                       </span>
                       {skill.creditsPerHour && (
                         <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -410,7 +410,7 @@ const ProfilePage: React.FC = () => {
                     <h3 className="font-medium text-gray-900 dark:text-white">{skill.skill?.name || 'Unknown Skill'}</h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400">{skill.skill?.category || 'Uncategorized'}</p>
                     <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300 mt-2">
-                      Looking for {skill.level} level
+                      Looking for {skill.level === 1 ? 'Beginner' : skill.level === 2 ? 'Intermediate' : skill.level === 3 ? 'Expert' : 'Unknown'} level
                     </span>
                     {skill.description && (
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">

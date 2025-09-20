@@ -118,10 +118,16 @@ public class SkillService : ISkillService
 
     public async Task<UserSkillDto> CreateUserSkillAsync(string userId, CreateUserSkillDto createUserSkillDto)
     {
+        // Debug: Log the data before mapping
+        Console.WriteLine($"Creating UserSkill: UserId={userId}, SkillId={createUserSkillDto.SkillId}, Type={createUserSkillDto.Type}, Level={createUserSkillDto.Level}, CreditsPerHour={createUserSkillDto.CreditsPerHour}");
+        
         var userSkill = _mapper.Map<UserSkill>(createUserSkillDto);
         userSkill.UserId = userId;
         userSkill.CreatedAt = DateTime.UtcNow;
         userSkill.IsAvailable = true;
+
+        // Debug: Log the mapped entity
+        Console.WriteLine($"Mapped UserSkill: UserId={userSkill.UserId}, SkillId={userSkill.SkillId}, Type={userSkill.Type}, Level={userSkill.Level}, CreditsPerHour={userSkill.CreditsPerHour}");
 
         await _unitOfWork.UserSkills.AddAsync(userSkill);
         await _unitOfWork.SaveChangesAsync();
@@ -159,11 +165,16 @@ public class SkillService : ISkillService
 
     public async Task<IEnumerable<UserSkillDto>> SearchSkillsAsync(string searchTerm, string? category = null, string? location = null)
     {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            return new List<UserSkillDto>();
+        }
+
         var userSkills = await _unitOfWork.UserSkills.FindAsync(us => 
             us.IsAvailable && 
             (us.Skill.Name.Contains(searchTerm) || 
-             us.Skill.Description!.Contains(searchTerm) ||
-             us.Description!.Contains(searchTerm)), us => us.Skill, us => us.User);
+             (us.Skill.Description != null && us.Skill.Description.Contains(searchTerm)) ||
+             (us.Description != null && us.Description.Contains(searchTerm))), us => us.Skill, us => us.User);
 
         if (!string.IsNullOrEmpty(category))
         {
