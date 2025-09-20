@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useMessaging } from '../../contexts/MessagingContext';
 import NotificationsNav from '../Notifications/NotificationsNav';
+import { getUserAvatarUrl } from '../../utils/avatarUtils';
 import { 
   Menu, 
   X, 
@@ -203,10 +204,18 @@ const Navigation: React.FC = () => {
               </div>
               <button
                 onClick={() => navigate('/profile')}
-                className="p-2 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+                className="p-1 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 overflow-hidden"
                 title="View Profile"
               >
-                <User size={20} />
+                {getUserAvatarUrl(user) ? (
+                  <img
+                    src={getUserAvatarUrl(user)!}
+                    alt={`${user?.firstName} ${user?.lastName}`}
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <User size={20} />
+                )}
               </button>
             </div>
 
