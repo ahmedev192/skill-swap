@@ -73,8 +73,8 @@ const WalletPage: React.FC = () => {
   // Referral functionality handlers
   const handleGenerateReferralCode = async () => {
     try {
-      const referralCode = await referralService.generateReferralCode();
-      setReferralStats(prev => prev ? { ...prev, referralCode } : null);
+      const result = await referralService.generateReferralCode();
+      setReferralStats(prev => prev ? { ...prev, referralCode: result.referralCode } : null);
       setShowReferralModal(true);
     } catch (error) {
       console.error('Error generating referral code:', error);
