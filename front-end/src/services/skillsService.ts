@@ -140,11 +140,14 @@ class SkillsService {
     }
   }
 
-  async searchSkills(searchTerm: string, category?: string, location?: string): Promise<UserSkill[]> {
+  async searchSkills(searchTerm?: string, category?: string, location?: string, level?: string, type?: string): Promise<UserSkill[]> {
     try {
-      const params = new URLSearchParams({ searchTerm });
+      const params = new URLSearchParams();
+      if (searchTerm) params.append('searchTerm', searchTerm);
       if (category) params.append('category', category);
       if (location) params.append('location', location);
+      if (level) params.append('level', level);
+      if (type) params.append('type', type);
       
       const response = await api.get<UserSkill[]>(`/skills/search?${params}`);
       return response.data;

@@ -11,7 +11,8 @@ import {
   X,
   MoreHorizontal,
   Filter,
-  Settings
+  Settings,
+  User
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMessaging } from '../../contexts/MessagingContext';
@@ -36,15 +37,52 @@ const NotificationsNav: React.FC = () => {
         const userNotifications = await notificationsService.getNotifications();
         // Show only the 5 most recent notifications in nav
         setNotifications(userNotifications.slice(0, 5));
-        setUnreadCount(userNotifications.filter(n => !n.isRead).length);
+        const unreadCount = userNotifications.filter(n => !n.isRead).length;
+        setUnreadCount(unreadCount);
+        console.log('Loaded notifications:', userNotifications.length, 'Unread:', unreadCount);
       } catch (err) {
         console.error('Error loading notifications:', err);
+        // Fallback: try to get just the unread count
+        try {
+          const unreadCountResponse = await notificationsService.getUnreadCount();
+          setUnreadCount(unreadCountResponse.unreadCount);
+        } catch (countErr) {
+          console.error('Error getting unread count:', countErr);
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     loadNotifications();
+    
+    // Set up periodic refresh every 30 seconds to ensure counter stays updated
+    const interval = setInterval(loadNotifications, 30000);
+    
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Refresh notifications when user comes back to the tab
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user) {
+        // User came back to the tab, refresh notifications
+        const refreshNotifications = async () => {
+          try {
+            const userNotifications = await notificationsService.getNotifications();
+            setNotifications(userNotifications.slice(0, 5));
+            const unreadCount = userNotifications.filter(n => !n.isRead).length;
+            setUnreadCount(unreadCount);
+          } catch (err) {
+            console.error('Error refreshing notifications on visibility change:', err);
+          }
+        };
+        refreshNotifications();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [user]);
 
   // Listen for real-time updates
@@ -52,7 +90,19 @@ const NotificationsNav: React.FC = () => {
     if (!user) return;
 
     const unsubscribe = onUnreadCountsUpdated((messageCount: number, notificationCount: number) => {
+      console.log('Real-time update received - Messages:', messageCount, 'Notifications:', notificationCount);
       setUnreadCount(notificationCount);
+      
+      // Also refresh the notifications list to get the latest data
+      const refreshNotifications = async () => {
+        try {
+          const userNotifications = await notificationsService.getNotifications();
+          setNotifications(userNotifications.slice(0, 5));
+        } catch (err) {
+          console.error('Error refreshing notifications:', err);
+        }
+      };
+      refreshNotifications();
     });
 
     return unsubscribe;
@@ -80,6 +130,22 @@ const NotificationsNav: React.FC = () => {
     }
   };
 
+  // Refresh notifications when the dropdown is opened
+  const handleToggleExpanded = async () => {
+    if (!isExpanded) {
+      // Opening the dropdown - refresh notifications
+      try {
+        const userNotifications = await notificationsService.getNotifications();
+        setNotifications(userNotifications.slice(0, 5));
+        const unreadCount = userNotifications.filter(n => !n.isRead).length;
+        setUnreadCount(unreadCount);
+      } catch (err) {
+        console.error('Error refreshing notifications:', err);
+      }
+    }
+    setIsExpanded(!isExpanded);
+  };
+
   const getNotificationTypeString = (type: number): string => {
     switch (type) {
       case 1: return 'SessionRequest';
@@ -93,6 +159,11 @@ const NotificationsNav: React.FC = () => {
       case 9: return 'System';
       case 10: return 'MatchFound';
       case 11: return 'GroupEvent';
+      case 12: return 'Referral';
+      case 13: return 'ConnectionRequest';
+      case 14: return 'ConnectionAccepted';
+      case 15: return 'SessionCancelled';
+      case 16: return 'SessionRescheduled';
       default: return 'System';
     }
   };
@@ -105,6 +176,7 @@ const NotificationsNav: React.FC = () => {
       case 'SessionCancelled':
       case 'SessionReminder':
       case 'SessionCompleted':
+      case 'SessionRescheduled':
         return Calendar;
       case 'Message':
         return MessageCircle;
@@ -117,6 +189,11 @@ const NotificationsNav: React.FC = () => {
         return Info;
       case 'MatchFound':
       case 'GroupEvent':
+        return User;
+      case 'ConnectionRequest':
+      case 'ConnectionAccepted':
+        return User;
+      case 'Referral':
         return User;
       default:
         return Bell;
@@ -136,6 +213,8 @@ const NotificationsNav: React.FC = () => {
         return 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20';
       case 'SessionCompleted':
         return 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20';
+      case 'SessionRescheduled':
+        return 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20';
       case 'Message':
         return 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20';
       case 'Review':
@@ -146,6 +225,10 @@ const NotificationsNav: React.FC = () => {
         return 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20';
       case 'System':
         return 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/20';
+      case 'ConnectionRequest':
+        return 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20';
+      case 'ConnectionAccepted':
+        return 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20';
       case 'MatchFound':
         return 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20';
       case 'GroupEvent':
@@ -185,11 +268,16 @@ const NotificationsNav: React.FC = () => {
     }
   };
 
+  // Don't render if user is not available
+  if (!user) {
+    return null;
+  }
+
   return (
     <div className="relative">
       {/* Notifications Button */}
       <button 
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={handleToggleExpanded}
         className="relative p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 hover:scale-105"
         title="Notifications"
       >
@@ -263,9 +351,18 @@ const NotificationsNav: React.FC = () => {
                   return (
                     <div
                       key={notification.id}
-                      className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
+                      className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer ${
                         !notification.isRead ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
                       }`}
+                      onClick={() => {
+                        if (notification.actionUrl) {
+                          navigate(notification.actionUrl);
+                          setIsExpanded(false);
+                        }
+                        if (!notification.isRead) {
+                          handleMarkAsRead(notification.id);
+                        }
+                      }}
                     >
                       <div className="flex items-start space-x-3">
                         <div className={`${colorClass} p-2 rounded-lg flex-shrink-0`}>

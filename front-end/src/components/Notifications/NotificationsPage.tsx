@@ -41,6 +41,11 @@ const NotificationsPage: React.FC = () => {
       case 9: return 'System';
       case 10: return 'MatchFound';
       case 11: return 'GroupEvent';
+      case 12: return 'Referral';
+      case 13: return 'ConnectionRequest';
+      case 14: return 'ConnectionAccepted';
+      case 15: return 'SessionCancelled';
+      case 16: return 'SessionRescheduled';
       default: return 'System';
     }
   };
@@ -53,6 +58,7 @@ const NotificationsPage: React.FC = () => {
       case 'SessionCancelled':
       case 'SessionReminder':
       case 'SessionCompleted':
+      case 'SessionRescheduled':
         return Calendar;
       case 'Message':
         return MessageCircle;
@@ -65,6 +71,11 @@ const NotificationsPage: React.FC = () => {
         return Info;
       case 'MatchFound':
       case 'GroupEvent':
+        return User;
+      case 'ConnectionRequest':
+      case 'ConnectionAccepted':
+        return User;
+      case 'Referral':
         return User;
       default:
         return Bell;
@@ -84,6 +95,8 @@ const NotificationsPage: React.FC = () => {
         return 'text-orange-600 dark:text-orange-400';
       case 'SessionCompleted':
         return 'text-green-600 dark:text-green-400';
+      case 'SessionRescheduled':
+        return 'text-orange-600 dark:text-orange-400';
       case 'Message':
         return 'text-purple-600 dark:text-purple-400';
       case 'Review':
@@ -94,6 +107,10 @@ const NotificationsPage: React.FC = () => {
         return 'text-red-600 dark:text-red-400';
       case 'System':
         return 'text-gray-600 dark:text-gray-400';
+      case 'ConnectionRequest':
+        return 'text-blue-600 dark:text-blue-400';
+      case 'ConnectionAccepted':
+        return 'text-green-600 dark:text-green-400';
       case 'MatchFound':
         return 'text-blue-600 dark:text-blue-400';
       case 'GroupEvent':
@@ -246,10 +263,15 @@ const NotificationsPage: React.FC = () => {
               { value: 'SessionConfirmed', label: 'Confirmations', color: 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300' },
               { value: 'SessionReminder', label: 'Reminders', color: 'bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300' },
               { value: 'SessionCompleted', label: 'Completed', color: 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300' },
+              { value: 'SessionCancelled', label: 'Cancelled', color: 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300' },
+              { value: 'SessionRescheduled', label: 'Rescheduled', color: 'bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300' },
               { value: 'Message', label: 'Messages', color: 'bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300' },
               { value: 'Review', label: 'Reviews', color: 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300' },
               { value: 'CreditEarned', label: 'Credits Earned', color: 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300' },
               { value: 'CreditSpent', label: 'Credits Spent', color: 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300' },
+              { value: 'ConnectionRequest', label: 'Connection Requests', color: 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' },
+              { value: 'ConnectionAccepted', label: 'Connections', color: 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300' },
+              { value: 'MatchFound', label: 'Matches', color: 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' },
               { value: 'System', label: 'System', color: 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300' }
             ].map((filter) => (
               <button
@@ -314,9 +336,17 @@ const NotificationsPage: React.FC = () => {
             return (
               <div
                 key={notification.id}
-                className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-all duration-200 hover:shadow-md hover:scale-[1.02] ${
+                className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-all duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer ${
                   !notification.isRead ? 'ring-2 ring-blue-200 dark:ring-blue-800 bg-blue-50/30 dark:bg-blue-900/10' : ''
                 }`}
+                onClick={() => {
+                  if (notification.actionUrl) {
+                    window.location.href = notification.actionUrl;
+                  }
+                  if (!notification.isRead) {
+                    handleMarkAsRead(notification.id);
+                  }
+                }}
               >
                 <div className="flex items-start space-x-4">
                   <div className={`${colorClass} p-3 rounded-xl flex-shrink-0 shadow-sm`}>

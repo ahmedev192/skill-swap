@@ -6,7 +6,7 @@ export interface Notification {
   userId: string;
   title: string;
   message: string;
-  type: number; // 1=SessionRequest, 2=SessionConfirmed, 3=SessionReminder, 4=SessionCompleted, 5=NewMessage, 6=NewReview, 7=CreditEarned, 8=CreditSpent, 9=System, 10=MatchFound, 11=GroupEvent
+  type: number; // 1=SessionRequest, 2=SessionConfirmed, 3=SessionReminder, 4=SessionCompleted, 5=NewMessage, 6=NewReview, 7=CreditEarned, 8=CreditSpent, 9=System, 10=MatchFound, 11=GroupEvent, 12=Referral, 13=ConnectionRequest, 14=ConnectionAccepted, 15=SessionCancelled, 16=SessionRescheduled
   isRead: boolean;
   createdAt: string;
   readAt?: string;
@@ -37,7 +37,7 @@ export interface Notification {
 
 export interface CreateNotificationRequest {
   userId: string;
-  type: number; // 1=SessionRequest, 2=SessionConfirmed, 3=SessionReminder, 4=SessionCompleted, 5=NewMessage, 6=NewReview, 7=CreditEarned, 8=CreditSpent, 9=System, 10=MatchFound, 11=GroupEvent
+  type: number; // 1=SessionRequest, 2=SessionConfirmed, 3=SessionReminder, 4=SessionCompleted, 5=NewMessage, 6=NewReview, 7=CreditEarned, 8=CreditSpent, 9=System, 10=MatchFound, 11=GroupEvent, 12=Referral, 13=ConnectionRequest, 14=ConnectionAccepted, 15=SessionCancelled, 16=SessionRescheduled
   title: string;
   message: string;
   actionUrl?: string;

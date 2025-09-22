@@ -85,25 +85,14 @@ const SkillsPage: React.FC = () => {
         setIsLoading(true);
         setError(null);
         
-        let skillsData: UserSkill[] = [];
-        
-        if (searchTerm.trim()) {
-          // Search skills
-          skillsData = await skillsService.searchSkills(
-            searchTerm,
-            selectedCategory === 'all' ? undefined : selectedCategory,
-            undefined // location could be added later
-          );
-        } else {
-          // Get all available user skills
-          if (selectedCategory === 'all') {
-            // Get all available user skills using a broad search
-            skillsData = await skillsService.getAllAvailableUserSkills();
-          } else {
-            // Search for skills in the specific category using a broad search term
-            skillsData = await skillsService.searchSkills('a', selectedCategory);
-          }
-        }
+        // Use the unified search endpoint with all filters
+        const skillsData = await skillsService.searchSkills(
+          searchTerm.trim() || undefined,
+          selectedCategory === 'all' ? undefined : selectedCategory,
+          undefined, // location could be added later
+          selectedLevel === 'all' ? undefined : selectedLevel,
+          selectedType === 'all' ? undefined : selectedType
+        );
         
         setSkills(skillsData);
         
@@ -135,28 +124,10 @@ const SkillsPage: React.FC = () => {
     };
 
     loadSkills();
-  }, [searchTerm, selectedCategory]);
+  }, [searchTerm, selectedCategory, selectedLevel, selectedType]);
 
-  // Use skills from API
-  const displaySkills = skills;
-  
-  const filteredSkills = displaySkills.filter(skill => {
-    // For API skills (UserSkill), use different property names
-    const userSkill = skill as UserSkill;
-    
-    // Add null checks to prevent errors
-    if (!userSkill.skill) {
-      return false; // Skip skills without skill data
-    }
-    
-    const matchesSearch = userSkill.skill.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (userSkill.skill.description && userSkill.skill.description.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesCategory = selectedCategory === 'all' || userSkill.skill.category === selectedCategory;
-    const matchesLevel = selectedLevel === 'all' || userSkill.level === selectedLevel;
-    const matchesType = selectedType === 'all' || userSkill.type === selectedType;
-    
-    return matchesSearch && matchesCategory && matchesLevel && matchesType;
-  });
+  // Skills are already filtered by the API, so we can use them directly
+  const filteredSkills = skills;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

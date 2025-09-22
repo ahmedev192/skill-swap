@@ -207,7 +207,7 @@ const Navigation: React.FC = () => {
                 className="p-1 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 overflow-hidden"
                 title="View Profile"
               >
-                {getUserAvatarUrl(user) ? (
+                {user && getUserAvatarUrl(user) ? (
                   <img
                     src={getUserAvatarUrl(user)!}
                     alt={`${user?.firstName} ${user?.lastName}`}
