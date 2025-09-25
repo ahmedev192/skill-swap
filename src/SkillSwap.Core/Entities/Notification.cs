@@ -51,5 +51,9 @@ public enum NotificationType
     System = 9,
     MatchFound = 10,
     GroupEvent = 11,
-    Referral = 12
+    Referral = 12,
+    ConnectionRequest = 13,
+    ConnectionAccepted = 14,
+    SessionCancelled = 15,
+    SessionRescheduled = 16
 }

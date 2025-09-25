@@ -14,11 +14,13 @@ public class UsersController : BaseController
 {
     private readonly IUserService _userService;
     private readonly ICreditService _creditService;
+    private readonly INotificationService _notificationService;
 
-    public UsersController(IUserService userService, ICreditService creditService, ILogger<UsersController> logger) : base(logger)
+    public UsersController(IUserService userService, ICreditService creditService, INotificationService notificationService, ILogger<UsersController> logger) : base(logger)
     {
         _userService = userService;
         _creditService = creditService;
+        _notificationService = notificationService;
     }
 
     /// <summary>
@@ -355,6 +357,12 @@ public class UsersController : BaseController
             }
 
             var transaction = await _creditService.TransferCreditsAsync(fromUserId, transferDto.ToUserId, transferDto.Amount, transferDto.Description);
+            
+            // Send notifications to both users
+            var fromUserName = $"{User.FindFirst("firstName")?.Value} {User.FindFirst("lastName")?.Value}";
+            await _notificationService.SendCreditSpentNotificationAsync(fromUserId, transferDto.Amount, $"Transfer to {transferDto.ToUserId}");
+            await _notificationService.SendCreditEarnedNotificationAsync(transferDto.ToUserId, transferDto.Amount, $"Transfer from {fromUserName}");
+            
             return Ok(transaction);
         }
         catch (ArgumentException ex)
@@ -384,6 +392,10 @@ public class UsersController : BaseController
         try
         {
             var transaction = await _creditService.AddCreditsAsync(userId, addCreditsDto.Amount, addCreditsDto.Description);
+            
+            // Send notification to the user
+            await _notificationService.SendCreditEarnedNotificationAsync(userId, addCreditsDto.Amount, addCreditsDto.Description);
+            
             return Ok(transaction);
         }
         catch (ArgumentException ex)
@@ -408,6 +420,10 @@ public class UsersController : BaseController
         try
         {
             var transaction = await _creditService.DeductCreditsAsync(userId, deductCreditsDto.Amount, deductCreditsDto.Description);
+            
+            // Send notification to the user
+            await _notificationService.SendCreditSpentNotificationAsync(userId, deductCreditsDto.Amount, deductCreditsDto.Description);
+            
             return Ok(transaction);
         }
         catch (ArgumentException ex)

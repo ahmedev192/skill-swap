@@ -13,10 +13,12 @@ namespace SkillSwap.API.Controllers;
 public class SessionsController : BaseController
 {
     private readonly ISessionService _sessionService;
+    private readonly INotificationService _notificationService;
 
-    public SessionsController(ISessionService sessionService, ILogger<SessionsController> logger) : base(logger)
+    public SessionsController(ISessionService sessionService, INotificationService notificationService, ILogger<SessionsController> logger) : base(logger)
     {
         _sessionService = sessionService;
+        _notificationService = notificationService;
     }
 
     /// <summary>
@@ -152,6 +154,12 @@ public class SessionsController : BaseController
             }
 
             var session = await _sessionService.CreateSessionAsync(userId, createSessionDto);
+            
+            // Send notification to the teacher about the new session request
+            var studentName = $"{User.FindFirst("firstName")?.Value} {User.FindFirst("lastName")?.Value}";
+            var skillName = session.UserSkill?.Skill?.Name ?? "a skill";
+            await _notificationService.SendSessionRequestNotificationAsync(createSessionDto.TeacherId, studentName, skillName, session.Id);
+            
             return CreatedAtAction(nameof(GetSession), new { id = session.Id }, session);
         }
         catch (ArgumentException ex)
@@ -272,6 +280,16 @@ public class SessionsController : BaseController
             var result = await _sessionService.CancelSessionAsync(id, cancelSessionDto.Reason);
             if (result)
             {
+                // Send notification to the other participant about session cancellation
+                var session = await _sessionService.GetSessionByIdAsync(id);
+                if (session != null)
+                {
+                    var cancellerName = $"{User.FindFirst("firstName")?.Value} {User.FindFirst("lastName")?.Value}";
+                    var otherUserId = session.TeacherId == userId ? session.StudentId : session.TeacherId;
+                    var skillName = session.UserSkill?.Skill?.Name ?? "a skill";
+                    await _notificationService.SendSessionCancelledNotificationAsync(otherUserId, cancellerName, skillName, id);
+                }
+                
                 return Ok(new { message = "Session cancelled successfully" });
             }
             return NotFound(new { message = "Session not found" });
@@ -319,6 +337,15 @@ public class SessionsController : BaseController
             var result = await _sessionService.ConfirmSessionAsync(id, userId, confirmSessionDto);
             if (result)
             {
+                // Send notification to the student about session confirmation
+                var session = await _sessionService.GetSessionByIdAsync(id);
+                if (session != null)
+                {
+                    var teacherName = $"{User.FindFirst("firstName")?.Value} {User.FindFirst("lastName")?.Value}";
+                    var skillName = session.UserSkill?.Skill?.Name ?? "a skill";
+                    await _notificationService.SendSessionConfirmedNotificationAsync(session.StudentId, teacherName, skillName, id);
+                }
+                
                 return Ok(new { message = "Session confirmed successfully" });
             }
             return NotFound(new { message = "Session not found" });
@@ -357,6 +384,15 @@ public class SessionsController : BaseController
             var result = await _sessionService.CompleteSessionAsync(id, userId);
             if (result)
             {
+                // Send notification to the student about session completion
+                var session = await _sessionService.GetSessionByIdAsync(id);
+                if (session != null)
+                {
+                    var teacherName = $"{User.FindFirst("firstName")?.Value} {User.FindFirst("lastName")?.Value}";
+                    var skillName = session.UserSkill?.Skill?.Name ?? "a skill";
+                    await _notificationService.SendSessionCompletedNotificationAsync(session.StudentId, teacherName, skillName, id);
+                }
+                
                 return Ok(new { message = "Session completed successfully" });
             }
             return NotFound(new { message = "Session not found" });
@@ -457,6 +493,16 @@ public class SessionsController : BaseController
             var result = await _sessionService.RescheduleSessionAsync(id, userId, rescheduleSessionDto.NewStart, rescheduleSessionDto.NewEnd);
             if (result)
             {
+                // Send notification to the other participant about session rescheduling
+                var session = await _sessionService.GetSessionByIdAsync(id);
+                if (session != null)
+                {
+                    var reschedulerName = $"{User.FindFirst("firstName")?.Value} {User.FindFirst("lastName")?.Value}";
+                    var otherUserId = session.TeacherId == userId ? session.StudentId : session.TeacherId;
+                    var skillName = session.UserSkill?.Skill?.Name ?? "a skill";
+                    await _notificationService.SendSessionRescheduledNotificationAsync(otherUserId, reschedulerName, skillName, id);
+                }
+                
                 return Ok(new { message = "Session rescheduled successfully" });
             }
             return NotFound(new { message = "Session not found" });

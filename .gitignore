@@ -356,10 +356,6 @@ logs/
 *.log
 
 # Environment files
-.env
-.env.local
-.env.development
-.env.production
 
 # Database files
 *.db
@@ -483,3 +479,4 @@ docs/build/
 *.rpm
 *.pkg
 *.dmg
+config.bat

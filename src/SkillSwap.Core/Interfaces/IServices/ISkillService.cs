@@ -18,5 +18,5 @@ public interface ISkillService
     Task<UserSkillDto> CreateUserSkillAsync(string userId, CreateUserSkillDto createUserSkillDto);
     Task<UserSkillDto> UpdateUserSkillAsync(int userSkillId, UpdateUserSkillDto updateUserSkillDto);
     Task<bool> DeleteUserSkillAsync(int userSkillId);
-    Task<IEnumerable<UserSkillDto>> SearchSkillsAsync(string searchTerm, string? category = null, string? location = null);
+    Task<IEnumerable<UserSkillDto>> SearchSkillsAsync(string? searchTerm = null, string? category = null, string? location = null, string? level = null, string? type = null);
 }

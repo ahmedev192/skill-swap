@@ -1,0 +1,38 @@
+### Test Current Google Meet Configuration
+### This will help identify why the Google Calendar API is not being used
+
+@baseUrl = https://localhost:7001
+@studentToken = YOUR_STUDENT_TOKEN_HERE
+
+### 1. Test Google Meet Generation (Current Configuration)
+POST {{baseUrl}}/api/meeting/google-meet
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "title": "Configuration Test Session",
+  "description": "Testing current Google Meet configuration",
+  "duration": 30,
+  "platform": "google-meet",
+  "startTime": "2024-12-25T10:00:00Z"
+}
+
+### Expected Results:
+### - If private key is truncated: Fallback link (fake URL like yoyO7XNTGl)
+### - If private key is complete: Real Google Meet link
+### - Check server logs for detailed debugging information
+
+### 2. Check the Response
+### Look for:
+### - URL format: Should be https://meet.google.com/xxx-yyyy-zzz for real links
+### - URL length: Real Google Meet IDs are typically 10-12 characters with hyphens
+### - Server logs: Should show detailed debugging information
+
+### 3. Validate the Generated Link
+POST {{baseUrl}}/api/meeting/validate
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "url": "{{response.body.url}}"
+}
