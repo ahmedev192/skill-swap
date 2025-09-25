@@ -329,7 +329,6 @@ MigrationBackup/
 FodyWeavers.xsd
 
 # VS Code files for those working on multiple tools
-.vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
@@ -356,10 +355,6 @@ logs/
 *.log
 
 # Environment files
-.env
-.env.local
-.env.development
-.env.production
 
 # Database files
 *.db
@@ -483,3 +478,4 @@ docs/build/
 *.rpm
 *.pkg
 *.dmg
+config.bat
