@@ -1,19 +1,9 @@
 using Microsoft.AspNetCore.SignalR;
 using SkillSwap.Core.DTOs;
+using SkillSwap.Core.Interfaces.Services;
 using SkillSwap.Infrastructure.Hubs;
 
 namespace SkillSwap.API.Services;
-
-public interface ISignalRNotificationService
-{
-    Task NotifyMessageReceived(MessageDto message);
-    Task NotifyConversationUpdated(ConversationDto conversation, string userId);
-    Task NotifyMessageRead(int messageId, string readAt, string senderId);
-    Task NotifyUserOnline(string userId, string email, string firstName, string lastName);
-    Task NotifyUserOffline(string userId, string email, string firstName, string lastName);
-    Task NotifyOnlineUsersList(string userId);
-    Task NotifyUnreadCountUpdated(string userId, int unreadMessageCount, int unreadNotificationCount);
-}
 
 public class SignalRNotificationService : ISignalRNotificationService
 {
@@ -93,5 +83,11 @@ public class SignalRNotificationService : ISignalRNotificationService
                 unreadMessageCount,
                 unreadNotificationCount
             });
+    }
+
+    public async Task NotifyNewNotification(NotificationDto notification)
+    {
+        await _hubContext.Clients.Group($"User_{notification.UserId}")
+            .SendAsync("NewNotification", notification);
     }
 }

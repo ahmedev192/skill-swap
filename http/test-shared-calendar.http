@@ -1,0 +1,64 @@
+### Test Google Meet with Shared Calendar
+### This test verifies that the Google Meet integration works with the shared calendar
+
+@baseUrl = https://localhost:7001
+@studentToken = YOUR_STUDENT_TOKEN_HERE
+
+### 1. Test Google Meet Link Generation (Should now work with shared calendar!)
+POST {{baseUrl}}/api/meeting/google-meet
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "title": "Shared Calendar Test Session",
+  "description": "Testing Google Meet with shared calendar (swapev192@gmail.com)",
+  "duration": 60,
+  "platform": "google-meet",
+  "startTime": "2024-12-25T10:00:00Z"
+}
+
+### Expected Results:
+### - Real Google Meet link should be generated
+### - URL format: https://meet.google.com/xxx-yyyy-zzz (with hyphens)
+### - Link should work when opened in a browser
+### - Meeting should appear in the shared calendar
+### - Check server logs for success messages
+
+### 2. Test with Different Duration
+POST {{baseUrl}}/api/meeting/google-meet
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "title": "Short Session Test",
+  "description": "Testing with shorter duration",
+  "duration": 30,
+  "platform": "google-meet",
+  "startTime": "2024-12-25T11:00:00Z"
+}
+
+### 3. Validate the Generated Link
+POST {{baseUrl}}/api/meeting/validate
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "url": "{{response.body.url}}"
+}
+
+### Expected Validation Results:
+### - Real Google Meet links: isValid = true
+### - URL should be a valid Google Meet format
+
+### 4. Test with Future Date
+POST {{baseUrl}}/api/meeting/google-meet
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "title": "Future Session Test",
+  "description": "Testing with future date",
+  "duration": 45,
+  "platform": "google-meet",
+  "startTime": "2024-12-30T14:00:00Z"
+}

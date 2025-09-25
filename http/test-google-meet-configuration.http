@@ -1,0 +1,42 @@
+### Test Google Meet Configuration Fix
+### This test helps verify that the Google Meet configuration is correct
+
+@baseUrl = https://localhost:7001
+@studentToken = YOUR_STUDENT_TOKEN_HERE
+
+### 1. Test Google Meet Link Generation
+### Expected Results:
+### - If using API key (AIzaSy...): Error message in logs + fallback link
+### - If using service account private key: Real working Google Meet link
+### - If not configured: Warning message in logs + fallback link
+
+POST {{baseUrl}}/api/meeting/google-meet
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "title": "React Development Session - Configuration Test",
+  "description": "Testing Google Meet configuration with proper service account setup",
+  "duration": 60,
+  "platform": "google-meet",
+  "startTime": "2024-12-25T10:00:00Z"
+}
+
+### 2. Check the Response
+### Look for:
+### - If URL starts with https://meet.google.com/ and has a valid format
+### - If the URL actually works when opened in a browser
+### - Check the API logs for success/error messages
+
+### 3. Validate the Generated Link
+POST {{baseUrl}}/api/meeting/validate
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "url": "{{response.body.url}}"
+}
+
+### Expected Validation Results:
+### - Real Google Meet links: isValid = true
+### - Fallback/fake links: isValid = false or true (depending on format)
