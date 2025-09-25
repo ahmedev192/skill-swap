@@ -1,0 +1,56 @@
+### Test Google Meet Link Generation (Fixed)
+### This test verifies that the Google Meet functionality now works properly
+
+@baseUrl = https://localhost:7001
+@studentToken = YOUR_STUDENT_TOKEN_HERE
+
+### 1. Test Google Meet Link Generation (Should work with proper credentials)
+POST {{baseUrl}}/api/meeting/google-meet
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "title": "React Development Session",
+  "description": "Learning React fundamentals with proper Google Meet integration",
+  "duration": 60,
+  "platform": "google-meet",
+  "startTime": "2024-12-25T10:00:00Z"
+}
+
+### Expected Response:
+### - If Google Calendar API is configured: Real working Google Meet link
+### - If not configured: Fallback link with warning in logs
+### - No more fake/non-working URLs
+
+### 2. Test Meeting Link Validation
+POST {{baseUrl}}/api/meeting/validate
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "url": "https://meet.google.com/abc-defg-hij"
+}
+
+### 3. Test Different Platforms (Should still work)
+POST {{baseUrl}}/api/meeting/teams
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "title": "Teams Session",
+  "description": "Microsoft Teams meeting",
+  "duration": 45,
+  "platform": "teams"
+}
+
+### 4. Test Zoom (Should still work)
+POST {{baseUrl}}/api/meeting/zoom
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "title": "Zoom Session",
+  "description": "Zoom meeting",
+  "duration": 30,
+  "platform": "zoom"
+}

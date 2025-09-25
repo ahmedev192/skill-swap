@@ -17,4 +17,10 @@ public interface INotificationService
     Task<bool> SendNewReviewNotificationAsync(string revieweeId, string reviewerName, int rating, int sessionId);
     Task<bool> SendCreditEarnedNotificationAsync(string userId, decimal amount, string description);
     Task<bool> SendCreditSpentNotificationAsync(string userId, decimal amount, string description);
+    Task<bool> SendConnectionRequestNotificationAsync(string receiverId, string senderName);
+    Task<bool> SendConnectionAcceptedNotificationAsync(string senderId, string accepterName);
+    Task<bool> SendSessionCancelledNotificationAsync(string userId, string otherUserName, string skillName, int sessionId);
+    Task<bool> SendSessionRescheduledNotificationAsync(string userId, string otherUserName, string skillName, int sessionId);
+    Task<bool> SendSessionCompletedNotificationAsync(string userId, string otherUserName, string skillName, int sessionId);
+    Task<bool> SendMatchFoundNotificationAsync(string userId, string matchedUserName, string skillName);
 }

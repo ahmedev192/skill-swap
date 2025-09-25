@@ -411,26 +411,21 @@ public class SkillsController : BaseController
     /// Search skills
     /// </summary>
     [HttpGet("search")]
-    public async Task<ActionResult<IEnumerable<UserSkillDto>>> SearchSkills([FromQuery] string searchTerm, [FromQuery] string? category = null, [FromQuery] string? location = null)
+    public async Task<ActionResult<IEnumerable<UserSkillDto>>> SearchSkills([FromQuery] string? searchTerm = null, [FromQuery] string? category = null, [FromQuery] string? location = null, [FromQuery] string? level = null, [FromQuery] string? type = null)
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(searchTerm))
-            {
-                return BadRequest("Search term is required", "INVALID_SEARCH_TERM");
-            }
-
-            if (searchTerm.Length < 2)
+            if (!string.IsNullOrWhiteSpace(searchTerm) && searchTerm.Length < 2)
             {
                 return BadRequest("Search term must be at least 2 characters long", "SEARCH_TERM_TOO_SHORT");
             }
 
-            var skills = await _skillService.SearchSkillsAsync(searchTerm, category, location);
+            var skills = await _skillService.SearchSkillsAsync(searchTerm, category, location, level, type);
             return Ok(skills);
         }
         catch (Exception ex)
         {
-            return HandleException(ex, "search skills", new { searchTerm, category, location });
+            return HandleException(ex, "search skills", new { searchTerm, category, location, level, type });
         }
     }
 }

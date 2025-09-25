@@ -17,6 +17,7 @@ public class AdminController : BaseController
     private readonly ISkillService _skillService;
     private readonly ISessionService _sessionService;
     private readonly ICreditService _creditService;
+    private readonly INotificationService _notificationService;
     private readonly ILogger<AdminController> _logger;
 
     public AdminController(
@@ -24,12 +25,14 @@ public class AdminController : BaseController
         ISkillService skillService,
         ISessionService sessionService,
         ICreditService creditService,
+        INotificationService notificationService,
         ILogger<AdminController> logger) : base(logger)
     {
         _userService = userService;
         _skillService = skillService;
         _sessionService = sessionService;
         _creditService = creditService;
+        _notificationService = notificationService;
         _logger = logger;
     }
 
@@ -225,6 +228,16 @@ public class AdminController : BaseController
             var result = await _creditService.AdjustCreditsAsync(userId, adjustCreditsDto.Amount, adjustCreditsDto.Description);
             if (result)
             {
+                // Send notification to the user
+                if (adjustCreditsDto.Amount > 0)
+                {
+                    await _notificationService.SendCreditEarnedNotificationAsync(userId, adjustCreditsDto.Amount, adjustCreditsDto.Description);
+                }
+                else
+                {
+                    await _notificationService.SendCreditSpentNotificationAsync(userId, Math.Abs(adjustCreditsDto.Amount), adjustCreditsDto.Description);
+                }
+                
                 return Ok(new { message = "Credits adjusted successfully" });
             }
             return BadRequest("Insufficient credits for adjustment", "INSUFFICIENT_CREDITS");

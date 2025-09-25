@@ -1,0 +1,86 @@
+### Test Notification Counter
+### This file tests the notification system to ensure the counter works properly
+
+### Variables
+@baseUrl = https://localhost:7001/api
+@token = your_jwt_token_here
+
+### 1. Get current notifications (to see baseline)
+GET {{baseUrl}}/notifications
+Authorization: Bearer {{token}}
+
+### 2. Get unread count
+GET {{baseUrl}}/notifications/unread-count
+Authorization: Bearer {{token}}
+
+### 3. Send a connection request (should create a notification)
+POST {{baseUrl}}/connection/send-request
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "receiverId": "target_user_id_here",
+  "message": "Hi! I'd like to connect with you."
+}
+
+### 4. Create a session booking (should create a notification)
+POST {{baseUrl}}/sessions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "teacherId": "teacher_user_id_here",
+  "userSkillId": 1,
+  "scheduledStart": "2024-12-20T10:00:00Z",
+  "scheduledEnd": "2024-12-20T11:00:00Z",
+  "notes": "Test session booking",
+  "isOnline": true
+}
+
+### 5. Create a review (should create a notification)
+POST {{baseUrl}}/reviews
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "revieweeId": "reviewee_user_id_here",
+  "sessionId": 1,
+  "rating": 5,
+  "comment": "Great session! Very helpful."
+}
+
+### 6. Transfer credits (should create notifications for both users)
+POST {{baseUrl}}/users/credits/transfer
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "toUserId": "recipient_user_id_here",
+  "amount": 10.0,
+  "description": "Test credit transfer"
+}
+
+### 7. Check notifications again (should show new notifications)
+GET {{baseUrl}}/notifications
+Authorization: Bearer {{token}}
+
+### 8. Check unread count again (should be higher)
+GET {{baseUrl}}/notifications/unread-count
+Authorization: Bearer {{token}}
+
+### 9. Mark a notification as read
+POST {{baseUrl}}/notifications/1/mark-read
+Authorization: Bearer {{token}}
+
+### 10. Check unread count after marking as read (should be lower)
+GET {{baseUrl}}/notifications/unread-count
+Authorization: Bearer {{token}}
+
+### 11. Mark all notifications as read
+POST {{baseUrl}}/notifications/mark-all-read
+Authorization: Bearer {{token}}
+
+### 12. Check unread count after marking all as read (should be 0)
+GET {{baseUrl}}/notifications/unread-count
+Authorization: Bearer {{token}}
+

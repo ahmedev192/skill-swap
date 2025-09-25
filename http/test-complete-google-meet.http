@@ -1,0 +1,62 @@
+### Test Complete Google Meet Integration
+### This test verifies that the Google Calendar API is now working with the complete credentials
+
+@baseUrl = https://localhost:7001
+@studentToken = YOUR_STUDENT_TOKEN_HERE
+
+### 1. Test Google Meet Link Generation (Should now work!)
+POST {{baseUrl}}/api/meeting/google-meet
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "title": "Complete Google Meet Test Session",
+  "description": "Testing Google Meet with complete service account credentials",
+  "duration": 60,
+  "platform": "google-meet",
+  "startTime": "2024-12-25T10:00:00Z"
+}
+
+### Expected Results:
+### - Real Google Meet link should be generated
+### - URL format: https://meet.google.com/xxx-yyyy-zzz (with hyphens)
+### - Link should work when opened in a browser
+### - Check server logs for success messages
+
+### 2. Test with Future Date
+POST {{baseUrl}}/api/meeting/google-meet
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "title": "Future Session Test",
+  "description": "Testing with future date",
+  "duration": 45,
+  "platform": "google-meet",
+  "startTime": "2024-12-30T14:00:00Z"
+}
+
+### 3. Validate the Generated Link
+POST {{baseUrl}}/api/meeting/validate
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "url": "{{response.body.url}}"
+}
+
+### Expected Validation Results:
+### - Real Google Meet links: isValid = true
+### - URL should be a valid Google Meet format
+
+### 4. Test Different Meeting Platforms (Should still work)
+POST {{baseUrl}}/api/meeting/teams
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "title": "Teams Session Test",
+  "description": "Microsoft Teams meeting test",
+  "duration": 30,
+  "platform": "teams"
+}

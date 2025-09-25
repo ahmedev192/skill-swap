@@ -163,27 +163,63 @@ public class SkillService : ISkillService
         return true;
     }
 
-    public async Task<IEnumerable<UserSkillDto>> SearchSkillsAsync(string searchTerm, string? category = null, string? location = null)
+    public async Task<IEnumerable<UserSkillDto>> SearchSkillsAsync(string? searchTerm = null, string? category = null, string? location = null, string? level = null, string? type = null)
     {
-        if (string.IsNullOrWhiteSpace(searchTerm))
+        // Start with all available offered skills
+        var userSkills = await _unitOfWork.UserSkills.FindAsync(us => us.IsAvailable && us.Type == SkillType.Offered, us => us.Skill, us => us.User);
+
+        // Apply search term filter if provided
+        if (!string.IsNullOrWhiteSpace(searchTerm))
         {
-            return new List<UserSkillDto>();
+            userSkills = userSkills.Where(us => 
+                us.Skill.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || 
+                (us.Skill.Description != null && us.Skill.Description.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+                (us.Description != null && us.Description.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)));
         }
 
-        var userSkills = await _unitOfWork.UserSkills.FindAsync(us => 
-            us.IsAvailable && 
-            (us.Skill.Name.Contains(searchTerm) || 
-             (us.Skill.Description != null && us.Skill.Description.Contains(searchTerm)) ||
-             (us.Description != null && us.Description.Contains(searchTerm))), us => us.Skill, us => us.User);
-
-        if (!string.IsNullOrEmpty(category))
+        // Apply category filter if provided
+        if (!string.IsNullOrEmpty(category) && category != "all")
         {
             userSkills = userSkills.Where(us => us.Skill.Category == category);
         }
 
+        // Apply location filter if provided
         if (!string.IsNullOrEmpty(location))
         {
-            userSkills = userSkills.Where(us => us.User.Location != null && us.User.Location.Contains(location));
+            userSkills = userSkills.Where(us => us.User.Location != null && us.User.Location.Contains(location, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Apply level filter if provided
+        if (!string.IsNullOrEmpty(level) && level != "all")
+        {
+            var levelValue = level.ToLower() switch
+            {
+                "beginner" => SkillLevel.Beginner,
+                "intermediate" => SkillLevel.Intermediate,
+                "expert" => SkillLevel.Expert,
+                _ => (SkillLevel)(-1)
+            };
+            
+            if (levelValue != (SkillLevel)(-1))
+            {
+                userSkills = userSkills.Where(us => us.Level == levelValue);
+            }
+        }
+
+        // Apply type filter if provided
+        if (!string.IsNullOrEmpty(type) && type != "all")
+        {
+            var typeValue = type.ToLower() switch
+            {
+                "offering" => SkillType.Offered,
+                "requested" => SkillType.Requested,
+                _ => (SkillType)(-1)
+            };
+            
+            if (typeValue != (SkillType)(-1))
+            {
+                userSkills = userSkills.Where(us => us.Type == typeValue);
+            }
         }
 
         return _mapper.Map<IEnumerable<UserSkillDto>>(userSkills);
