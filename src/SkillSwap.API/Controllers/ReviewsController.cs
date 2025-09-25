@@ -13,10 +13,12 @@ namespace SkillSwap.API.Controllers;
 public class ReviewsController : BaseController
 {
     private readonly IReviewService _reviewService;
+    private readonly INotificationService _notificationService;
 
-    public ReviewsController(IReviewService reviewService, ILogger<ReviewsController> logger) : base(logger)
+    public ReviewsController(IReviewService reviewService, INotificationService notificationService, ILogger<ReviewsController> logger) : base(logger)
     {
         _reviewService = reviewService;
+        _notificationService = notificationService;
     }
 
     /// <summary>
@@ -122,6 +124,11 @@ public class ReviewsController : BaseController
             }
 
             var review = await _reviewService.CreateReviewAsync(userId, createReviewDto);
+            
+            // Send notification to the reviewee about the new review
+            var reviewerName = $"{User.FindFirst("firstName")?.Value} {User.FindFirst("lastName")?.Value}";
+            await _notificationService.SendNewReviewNotificationAsync(createReviewDto.RevieweeId, reviewerName, createReviewDto.Rating, createReviewDto.SessionId);
+            
             return CreatedAtAction(nameof(GetReview), new { id = review.Id }, review);
         }
         catch (ArgumentException ex)

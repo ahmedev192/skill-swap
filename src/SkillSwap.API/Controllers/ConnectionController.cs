@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SkillSwap.Core.DTOs;
+using SkillSwap.Core.Entities;
 using SkillSwap.Core.Interfaces.Services;
 using System.Security.Claims;
 
@@ -12,10 +13,12 @@ namespace SkillSwap.API.Controllers;
 public class ConnectionController : BaseController
 {
     private readonly IConnectionService _connectionService;
+    private readonly INotificationService _notificationService;
 
-    public ConnectionController(IConnectionService connectionService, ILogger<ConnectionController> logger) : base(logger)
+    public ConnectionController(IConnectionService connectionService, INotificationService notificationService, ILogger<ConnectionController> logger) : base(logger)
     {
         _connectionService = connectionService;
+        _notificationService = notificationService;
     }
 
     /// <summary>
@@ -33,6 +36,11 @@ public class ConnectionController : BaseController
             }
 
             var connection = await _connectionService.SendConnectionRequestAsync(userId, request);
+            
+            // Send notification to the receiver
+            var senderName = $"{User.FindFirst("firstName")?.Value} {User.FindFirst("lastName")?.Value}";
+            await _notificationService.SendConnectionRequestNotificationAsync(request.ReceiverId, senderName);
+            
             return Ok(connection);
         }
         catch (Exception ex)
@@ -56,6 +64,14 @@ public class ConnectionController : BaseController
             }
 
             var connection = await _connectionService.RespondToConnectionRequestAsync(userId, response);
+            
+            // Send notification to the original sender if accepted
+            if (response.Status == (int)ConnectionStatus.Accepted)
+            {
+                var accepterName = $"{User.FindFirst("firstName")?.Value} {User.FindFirst("lastName")?.Value}";
+                await _notificationService.SendConnectionAcceptedNotificationAsync(connection.RequesterId, accepterName);
+            }
+            
             return Ok(connection);
         }
         catch (Exception ex)

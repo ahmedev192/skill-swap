@@ -1,0 +1,45 @@
+### Debug Google Meet Configuration
+### This test helps identify configuration issues
+
+@baseUrl = https://localhost:7001
+@studentToken = YOUR_STUDENT_TOKEN_HERE
+
+### 1. Test Google Meet Link Generation with Debug Info
+POST {{baseUrl}}/api/meeting/google-meet
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "title": "Debug Test Session",
+  "description": "Testing Google Meet configuration debugging",
+  "duration": 30,
+  "platform": "google-meet",
+  "startTime": "2024-12-25T10:00:00Z"
+}
+
+### Expected Results:
+### - Check the API response for the generated URL
+### - Check the server logs for any error messages
+### - The URL should be a real Google Meet link if configuration is correct
+
+### 2. Test with Different Time (Future)
+POST {{baseUrl}}/api/meeting/google-meet
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "title": "Future Session Test",
+  "description": "Testing with future date",
+  "duration": 60,
+  "platform": "google-meet",
+  "startTime": "2024-12-30T14:00:00Z"
+}
+
+### 3. Test Validation
+POST {{baseUrl}}/api/meeting/validate
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "url": "{{response.body.url}}"
+}
